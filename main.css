@@ -1,0 +1,463 @@
+/* main.css */
+
+*
+{
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body
+{
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	background-color: #0f0f0f;
+	color: #f0f0f0;
+	line-height: 1.5;
+}
+
+
+.hidden
+{
+	display: none;
+}
+a
+{
+	color: inherit;
+	text-decoration: none;
+}
+
+/* Neon Colors */
+:root
+{
+	--neon-blue: #00ffff;
+	--neon-pink: #ff00ff;
+	--neon-yellow: #ffff00;
+	--bg-dark: #0f0f0f;
+	--text-dark: #1f1f1f;
+}
+/* Header */
+header
+{
+	background-color: var(--bg-dark);
+	padding: 1rem 2rem;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.navbar.hidden
+{
+	display: none;
+}
+.navbar
+{
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.nav-list
+{
+	list-style: none;
+	display: flex;
+	gap: 1.5rem;
+}
+
+.nav-but
+{
+	background: none;
+	border: none;
+	color: var(--neon-blue);
+	font-size: 1.1rem;
+	cursor: pointer;
+	transition: color 0.3s ease;
+}
+
+.nav-but:hover
+{
+    color: var(--neon-pink);
+    text-shadow: 0 0 5px var(--neon-pink), 0 0 10px var(--neon-pink);
+}
+
+.login-page
+{
+	position: relative;
+	z-index: 1;
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+}
+
+.login-page::before
+{
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-image: url("imgs/background.svg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+	z-index: -1;
+}
+
+/* Hamburger menu */
+.menu-icons
+{
+	display: none;
+	cursor: pointer;
+	position: absolute;
+	right: 20px; 
+	top: 95%;
+	transform: translateY(-50%);
+}
+
+.hamlogo 
+{
+	width: 50px;
+	height: 50px;
+	position: relative;
+}
+.hamlogo2
+{
+	width: 30px;
+	height: 30px;
+	position: relative;
+}
+
+/* Main Content */
+.main-content
+{
+	padding: 2rem;
+	min-height: 80vh;
+}
+
+/* Auth Container */
+.auth-container
+{
+	max-width: 400px;
+	width: 100%;
+	margin: auto;
+	padding: 2rem;
+	background-color: rgba(26, 26, 26, 0.85);
+	border: 2px solid var(--neon-yellow);
+	border-radius: 10px;
+	box-shadow: 0 0 15px var(--neon-yellow);
+	backdrop-filter: blur(5px);
+}
+
+.form-content
+{
+	display: none;
+}
+
+.form-content.active
+{
+	display: block;
+}
+.auth-form h2
+{
+	text-align: center;
+	color: var(--neon-yellow);
+	margin-bottom: 1rem;
+	text-shadow: 0 0 10px var(--neon-yellow);
+}
+
+.auth-form p
+{
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.input-group
+{
+	margin-bottom: 1rem;
+}
+
+.input-group input
+{
+	width: 100%;
+	padding: 0.7rem;
+	border: none;
+	border-radius: 5px;
+	background-color: #333;
+	color: #fff;
+}
+
+.auth-btn,
+.google-auth-btn
+{
+	width: 100%;
+	padding: 0.7rem;
+	border: none;
+	border-radius: 5px;
+	background-color: var(--neon-pink);
+	color: black;
+	font-weight: bold;
+	cursor: pointer;
+	margin-top: 1rem;
+	box-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+	transition: all 0.3s ease;
+}
+
+.auth-btn:hover,
+.google-auth-btn:hover
+{
+	background-color: var(--neon-blue);
+	box-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+}
+
+.divider
+{
+	text-align: center;
+	margin: 1rem 0;
+	color: #888;
+}
+
+.auth-switch
+{
+	text-align: center;
+	margin-top: 1rem;
+}
+
+.auth-switch strong
+{
+	cursor: pointer;
+	color: var(--neon-yellow);
+	text-shadow: 0 0 10px var(--neon-yellow);
+}
+/* Profile page */
+
+.profile-page
+{
+	background-color: var(--bg-dark);
+	color: var(--neon-blue);
+	padding: 2rem;
+	border-radius: 20px;
+	max-width: 500px;
+	margin: 2rem auto;
+	text-align: center;
+	box-shadow: 0 0 15px var(--neon-pink);
+	border: 2px solid var(--neon-yellow);
+}
+
+.profile-content h2
+{
+color: var(--neon-pink);
+text-shadow: 0 0 5px var(--neon-pink);
+margin-bottom: 1rem;
+}
+
+.profile-content p
+{
+	margin: 0.5rem 0;
+	font-size: 1.1rem;
+	color: var(--neon-yellow);
+	text-shadow: 0 0 3px var(--neon-yellow);
+}
+
+.profile-content span
+{
+	color: var(--neon-blue);
+	font-weight: bold;
+	text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.profile-icon
+{
+	width: 100px;
+	height: 100px;
+	margin: 0 auto 1rem auto;
+	display: block;
+	fill: var(--neon-pink);
+	filter: drop-shadow(0 0 5px var(--neon-pink));
+}
+
+
+/* Footer */
+footer
+{
+	background-color: #111;
+	padding: 2rem;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	color: #ccc;
+}
+
+.footer-content
+{
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 2rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+.social-icons
+{
+	display: flex;
+	gap: 1rem;
+}
+
+.social-icons i
+{
+	color: var(--neon-blue);
+	transition: color 0.3s ease;
+}
+
+.social-icons i:hover
+{
+	color: var(--neon-pink);
+}
+
+.copyright
+{
+	margin-top: 1rem;
+	font-size: 0.85rem;
+	color: #666;
+}
+
+/* Game and Profile Pages
+.hidden {
+	display: none;
+} */
+
+
+.game-work {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.game-info {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	max-width: 1000px;
+}
+
+.player-info {
+	width: 100px;
+	color: var(--neon-yellow);
+}
+
+.player-info.left {
+	text-align: left;
+	display: block;
+}
+
+.player-info.right {
+	text-align: right;
+}
+.player-info p {
+	margin: 0.5rem 0;
+	white-space: nowrap;
+}
+
+canvas.can {
+	border: 2px solid var(--neon-pink);
+	background-color: var(--text-dark);
+	box-shadow: 0 0 10px var(--neon-blue);
+	margin: 0 1rem;
+}
+
+.profile-content
+{
+	height: 400px;
+	background-color: #222;
+	border-radius: 10px;
+	box-shadow: inset 0 0 10px #444;
+}
+
+/* Responsive */
+@media (max-width: 768px)
+{
+	.navbar.hidden
+	{
+		display: flex !important; /* Need navbar on mobile so (!important) tag it is */
+	}
+
+	.nav-list
+	{
+		display: none;
+		flex-direction: column;
+		background-color: #111;
+		position: absolute;
+		top: 60px;
+		right: 0;
+		width: 200px;
+		padding: 1rem;
+		box-shadow: 0 0 10px var(--neon-blue);
+	}
+
+	.nav-list.active
+	{
+		display: flex;
+	}
+
+	.menu-icons
+	{
+		display: block;
+	}
+	.footer-content
+	{
+		grid-template-columns: 1fr;
+	}
+	
+	.auth-container
+	{
+		padding: 1.5rem;
+	}
+	
+	/* I for now fck this up a little bit, gonna fix
+	.game-info {
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	canvas.can {
+		width: 100%;
+		max-width: 100%;
+		height: auto; 
+		margin: 1rem 0;
+	}
+
+	.touch-controls {
+		display: flex;
+		justify-content: center;
+		gap: 2rem;
+		margin-top: 1rem;
+	}
+
+	.touch-btn {
+		padding: 1rem 2rem;
+		background-color: var(--neon-yellow);
+		color: #000;
+		border: none;
+		border-radius: 10px;
+		font-weight: bold;
+		box-shadow: 0 0 10px var(--neon-yellow);
+		cursor: pointer;
+	} */
+}
+
+@media (min-width: 769px)
+{
+	.nav-list
+	{
+		display: flex !important;
+	}
+
+	.menu-icons
+	{
+		display: none !important;
+	}
+}
