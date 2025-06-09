@@ -1,4 +1,4 @@
-# HTML MAP
+# All Infos
 ### Header
 - Includes page directions, since it has to be sigle page app, we do not reload the page.
 - All buttons will display or hid the different features like (login-page, game screen, profile page)
