@@ -16,5 +16,8 @@ compile typescript via tsc main.ts it will create main.js which I linked in our 
 main.ts however I will need to use modules but It can wait till we start modules implementations and in our
 main.ts I commented different sections and purposes already so it will be copy paste into different ts files
 at the end we will have to compile them.
+### Storage
+- We're using localStorage at the moment which is browsers storage, so as long as u don't delete cache manually you will be able to
+- login once u signup even if u close the browser and open it up again. when u logged in you can go to new game and play against computer. 
 ### Footer 
 - Includes contact details, about us, copyright and pricay policy
