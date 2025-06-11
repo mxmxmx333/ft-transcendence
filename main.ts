@@ -148,7 +148,7 @@ signup_btn.addEventListener("click", (e: Event) => {
 	}
 });
 
-let currentClient;
+let currentClient: Client;
 const login_btn = document.getElementById("loginsbmt") as HTMLButtonElement;
 
 login_btn.addEventListener("click", (e: Event) => {
@@ -190,9 +190,33 @@ if (matchedClient) {
 	}
 });
 
-
-
 // Game injection
+
+function resizeCanvas()
+{
+	const canvas = document.querySelector("canvas.can") as HTMLCanvasElement;
+	if (!canvas) return;
+
+	// I had to change the canvas size from css if the screensize changes
+	canvas.width = canvas.clientWidth;
+	canvas.height = canvas.clientHeight;
+}
+
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => 
+{
+		setTimeout(resizeCanvas, 300); // if the phone turns and screen doesn't we're waiting a little bit
+});
+
+
+let gameRunning = false;
+let animationId: number;
+let playerScore = 0;
+let playerScore2 = 0;
+const scoreDisplay = document.getElementById("score")!;
+const nicknameDisplay = document.getElementById("game-nick")!;
+const scoreDisplay2 = document.getElementById("score2")!;
+const nicknameDisplay2 = document.getElementById("game-nick2")!;
 
 const ngame = document.getElementById("aigame") as HTMLButtonElement;
 
@@ -202,16 +226,10 @@ ngame.addEventListener("click", () => {
 
 	const canvas = document.querySelector('canvas.can') as HTMLCanvasElement;
 	const ctx = canvas.getContext("2d")!;
-	const scoreDisplay = document.getElementById("score")!;
-	const nicknameDisplay = document.getElementById("game-nick")!;
-	const scoreDisplay2 = document.getElementById("score2")!;
-	const nicknameDisplay2 = document.getElementById("game-nick2")!;
 
 	canvas.width = 800;
 	canvas.height = 600;
-
-	let playerScore = 0;
-	let playerScore2 = 0;
+	resizeCanvas(); // here I should call the function
 	let playerY = 250;
 	let aiY = 250;
 	let ballX = 400, ballY = 300;
@@ -219,17 +237,25 @@ ngame.addEventListener("click", () => {
 	let upPressed = false;
 	let downPressed = false;
 
+	// If game was already running, we shall stop it first
+	if (gameRunning)
+	{
+		cancelAnimationFrame(animationId);
+		gameRunning = false;
+	}
 
 	const aiSpeed = 3;
 	const aiErrorMargin = 30;
 	const paddleHeight = 100, paddleWidth = 15;
 
-	function resetBall(scoredbyfirstPlayer = true) {
+	function resetBall(scoredbyfirstPlayer = true)
+	{
 		ballX = canvas.width / 2;
 		ballY = canvas.height / 2;
 		ballVX = 5 * (Math.random() > 0.5 ? 1 : -1); // for random directions
 		ballVY = 3 * (Math.random() > 0.5 ? 1 : -1);
 	}
+
 	function drawRoundedRect(ctx, x, y, width, height, radius)
 	{
 		ctx.beginPath();
@@ -246,123 +272,120 @@ ngame.addEventListener("click", () => {
 		ctx.fill();
 	}
 
-	function draw() {
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
+	let isPaused = false;
+	function draw()
+	{
+		if (!isPaused)
+		{
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-		// Middle line
-		ctx.strokeStyle = "#ffff00";
-		ctx.setLineDash([10, 10]);
-		ctx.beginPath();
-		ctx.moveTo(canvas.width / 2, 0);
-		ctx.lineTo(canvas.width / 2, canvas.height);
-		ctx.stroke();
-		ctx.setLineDash([]);
+			// Middle line
+			ctx.strokeStyle = "#ffff00";
+			ctx.setLineDash([10, 10]);
+			ctx.beginPath();
+			ctx.moveTo(canvas.width / 2, 0);
+			ctx.lineTo(canvas.width / 2, canvas.height);
+			ctx.stroke();
+			ctx.setLineDash([]);
 
-		// First paddles were square I add some radius
-		const paddleRadius = 8;
+			// First paddles were square I add some radius
+			const paddleRadius = 8;
 
-		// Player's paddle we can change colors if u want
-		ctx.fillStyle = "#ff00ff";
-		drawRoundedRect(ctx, 10, playerY, paddleWidth, paddleHeight, paddleRadius);
+			// Player's paddle we can change colors if u want
+			ctx.fillStyle = "#ff00ff";
+			drawRoundedRect(ctx, 10, playerY, paddleWidth, paddleHeight, paddleRadius);
 
-		// AI paddle
-		ctx.fillStyle = "#00ffff";
-		drawRoundedRect(ctx, canvas.width - 25, aiY, paddleWidth, paddleHeight, paddleRadius);
+			// AI paddle
+			ctx.fillStyle = "#00ffff";
+			drawRoundedRect(ctx, canvas.width - 25, aiY, paddleWidth, paddleHeight, paddleRadius);
 
+			// Ball creation
+			ctx.fillStyle = "#ffff00";
+			ctx.beginPath();
+			ctx.arc(ballX, ballY, 10, 0, Math.PI * 2);
+			ctx.fill();
 
-		// Ball creation
-		ctx.fillStyle = "#ffff00";
-		ctx.beginPath();
-		ctx.arc(ballX, ballY, 10, 0, Math.PI * 2);
-		ctx.fill();
+			// Player sckore check
+			if (ballX > canvas.width) {
+				playerScore++;
+				scoreDisplay.textContent = playerScore.toString();
+				resetBall(true);
+			}
 
-		// Ball moves always
-		ballX += ballVX;
-		ballY += ballVY;
+			// AI score check
+			if (ballX < 0) {
+				playerScore2++;
+				scoreDisplay2.textContent = playerScore2.toString();
+				resetBall(false);
+			}
 
-		// Wall hits
-		if (ballY <= 0 || ballY >= canvas.height) ballVY *= -1;
+			// Wall hits
+			if (ballY <= 0 || ballY >= canvas.height) ballVY *= -1;
 
-		// Player paddle hits note :Oyuncu paddle çarpışması biraz daha smoot olabilir?
-		if (
-			ballX <= 25 &&
-			ballY >= playerY &&
-			ballY <= playerY + paddleHeight
-		) {
-			ballVX *= -1.1;
-			ballVY *= 1.05;
+			// Player paddle hits note :Oyuncu paddle çarpışması biraz daha smoot olabilir?
+			if (
+				ballX <= 25 &&
+				ballY >= playerY &&
+				ballY <= playerY + paddleHeight
+			) {
+				ballVX *= -1.1;
+				ballVY *= 1.05;
+			}
+
+			// AI paddle hits
+			if (
+				ballX >= canvas.width - 25 - paddleWidth &&
+				ballY >= aiY &&
+				ballY <= aiY + paddleHeight
+			) {
+				ballVX *= -1.1;
+				ballVY *= 1.05;
+			}
+
+			// AI should not be perfect so i made this
+			if (ballY > aiY + paddleHeight / 2 + aiErrorMargin) aiY += aiSpeed;
+			else if (ballY < aiY + paddleHeight / 2 - aiErrorMargin) aiY -= aiSpeed;
+
+			// Ball moves always
+			ballX += ballVX;
+			ballY += ballVY;
+
+			// Player paddle moves
+			if (upPressed) playerY = Math.max(0, playerY - 10);
+			if (downPressed) playerY = Math.min(canvas.height - paddleHeight, playerY + 10);
+
+			// making sure paddle dont go over canvas
+			playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
 		}
 
-		// AI paddle hits
-		if (
-			ballX >= canvas.width - 25 - paddleWidth &&
-			ballY >= aiY &&
-			ballY <= aiY + paddleHeight
-		) {
-			ballVX *= -1.1;
-			ballVY *= 1.05;
+		// Always request the next frame (even if paused)
+		animationId = requestAnimationFrame(draw);
+	}
+
+	const touchControls = document.querySelector(".touch-controls");
+
+	function checkScreenSize()
+	{
+		if (!touchControls) return;
+
+		if (window.innerWidth <= 768)
+		{
+			touchControls.classList.remove("hidden");
+
+			const upBtn = document.getElementById("up-btn");
+			const downBtn = document.getElementById("down-btn");
+
+			if (upBtn && downBtn)
+			{
+				upBtn.addEventListener("touchstart", () => upPressed = true);
+				upBtn.addEventListener("touchend", () => upPressed = false);
+				downBtn.addEventListener("touchstart", () => downPressed = true);
+				downBtn.addEventListener("touchend", () => downPressed = false);
+			}
+		} else
+		{
+			touchControls.classList.add("hidden");
 		}
-
-		// AI should not be perfect so i made this
-		if (ballY > aiY + paddleHeight / 2 + aiErrorMargin) aiY += aiSpeed;
-		else if (ballY < aiY + paddleHeight / 2 - aiErrorMargin) aiY -= aiSpeed;
-
-		// Player sckore check
-		if (ballX > canvas.width) {
-			playerScore++;
-			scoreDisplay.textContent = playerScore.toString();
-			resetBall(true);
-		}
-
-		// AI score check
-		if (ballX < 0) {
-			playerScore2++;
-			scoreDisplay2.textContent = playerScore2.toString();
-			resetBall(false);
-		}
-
-		// Player paddle moves
-		if (upPressed) playerY -= 10;
-		if (downPressed) playerY += 10;
-
-		// making sure paddle dont go over canvas
-		playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
-
-		// //For Mobile play note: for now it works but I coudn't understand why css is not working
-		// const touchControls = document.querySelector(".touch-controls");
-
-		// function checkScreenSize() {
-		// if (!touchControls) return;
-
-		// if (window.innerWidth <= 768) {
-		// 	// Mobil görünüm
-		// 	touchControls.classList.remove("hidden");
-		// } else {
-		// 	// Masaüstü görünüm
-		// 	touchControls.classList.add("hidden");
-		// }
-		// }
-		// checkScreenSize();
-		// const upBtn = document.getElementById("up-btn");
-		// const downBtn = document.getElementById("down-btn");
-
-		// if (upBtn && downBtn) {
-		// upBtn.addEventListener("touchstart", () => {
-		// 	upPressed = true;
-		// });
-		// upBtn.addEventListener("touchend", () => {
-		// 	upPressed = false;
-		// });
-
-		// downBtn.addEventListener("touchstart", () => {
-		// 	downPressed = true;
-		// });
-		// downBtn.addEventListener("touchend", () => {
-		// 	downPressed = false;
-		// });
-		// }
-
-		requestAnimationFrame(draw);
 	}
 
 	// I was trying things Lol
@@ -375,17 +398,16 @@ ngame.addEventListener("click", () => {
 	// });
 
 	document.addEventListener("keydown", (e) => {
-	if (e.key === "ArrowUp") upPressed = true;
-	else if (e.key === "ArrowDown") downPressed = true;
+		if (e.key === "ArrowUp") upPressed = true;
+		else if (e.key === "ArrowDown") downPressed = true;
 	});
 
 	document.addEventListener("keyup", (e) => {
-	if (e.key === "ArrowUp") upPressed = false;
-	else if (e.key === "ArrowDown") downPressed = false;
+		if (e.key === "ArrowUp") upPressed = false;
+		else if (e.key === "ArrowDown") downPressed = false;
 	});
 
 	// to display curent player
-	
 	if (currentClient) {
 		if (currentClient.nickname)
 			nicknameDisplay.textContent = currentClient.nickname;
@@ -394,11 +416,49 @@ ngame.addEventListener("click", () => {
 		nicknameDisplay2.textContent = "AI";
 	}
 
-	draw();
+	const startBtn = document.getElementById("start-btn") as HTMLButtonElement;
+	const pauseBtn = document.getElementById("pause-btn") as HTMLButtonElement;
+
+	startBtn.addEventListener("click", () => {
+		if (!gameRunning)
+		{
+			draw();
+			gameRunning = true;
+			isPaused = false;
+		} else if (isPaused)
+		{
+			isPaused = false;
+		}
+	});
+
+	pauseBtn.addEventListener("click", () => {
+		if (gameRunning && !isPaused)
+		{
+			isPaused = true;
+		}
+	});
+
+	checkScreenSize();
+	window.addEventListener("resize", checkScreenSize);
 });
 
 
 
+const probtn = document.getElementById("pro") as HTMLButtonElement;
+
+probtn.addEventListener("click", (e: Event) => {
+	if (gameRunning)
+	{
+		cancelAnimationFrame(animationId);
+		gameRunning = false;
+		playerScore = 0;
+		playerScore2 = 0;
+		scoreDisplay.textContent = playerScore.toString();
+		scoreDisplay2.textContent = playerScore2.toString();
+	}
+	profilPageContent.classList.remove("hidden");
+	gameContent.classList.add("hidden");
+});
 
 
 }); //end of window function

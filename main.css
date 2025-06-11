@@ -329,45 +329,64 @@ footer
 } */
 
 
-.game-work {
+.game-container
+{
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
 	align-items: center;
-}
-
-.game-info {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	width: 100%;
+	gap: 20px; /* Butonlar ile oyun alanı arasına boşluk */
 	max-width: 1000px;
+	margin: 0 auto;
+	padding: 20px;
 }
 
-.player-info {
-	width: 100px;
+.game-btns 
+{
+	display: flex;
+	gap: 15px;
+	margin-bottom: 10px; /* Canvas'tan uzaklık */
+}
+
+.game-btns button
+{
+	padding: 10px 20px;
+	background-color: var(--bg-dark);
 	color: var(--neon-yellow);
+	border: 2px solid var(--neon-pink);
+	border-radius: 5px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	box-shadow: 0 0 8px var(--neon-blue);
 }
 
-.player-info.left {
-	text-align: left;
-	display: block;
+.game-btns button:hover
+{
+	background-color: var(--neon-pink);
+	color: var(--bg-dark);
+	box-shadow: 0 0 20px var(--neon-blue);
 }
 
-.player-info.right {
-	text-align: right;
-}
-.player-info p {
-	margin: 0.5rem 0;
-	white-space: nowrap;
+.game-content
+{
+	width: 100%;
 }
 
-canvas.can {
+.game-info
+{
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
+canvas.can
+{
 	border: 2px solid var(--neon-pink);
 	background-color: var(--text-dark);
-	box-shadow: 0 0 10px var(--neon-blue);
-	margin: 0 1rem;
+	box-shadow: 0 0 15px var(--neon-blue);
+	margin: 0 20px;
 }
-
 .profile-content
 {
 	height: 400px;
@@ -415,38 +434,81 @@ canvas.can {
 	{
 		padding: 1.5rem;
 	}
-	
-	/* I for now fck this up a little bit, gonna fix
-	.game-info {
+
+	.game-btns 
+	{
 		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
+		width: 30%;
 	}
 
-	canvas.can {
+	.game-btns button
+	{
+		width: 30%;
+	}
+
+	.game-info
+	{
+		flex-direction: column;
+	}
+
+	.player-info
+	{
 		width: 100%;
-		max-width: 100%;
-		height: auto; 
-		margin: 1rem 0;
+		text-align: center !important;
+		margin: 10px 0;
 	}
 
-	.touch-controls {
-		display: flex;
-		justify-content: center;
-		gap: 2rem;
-		margin-top: 1rem;
-	}
-
-	.touch-btn {
-		padding: 1rem 2rem;
-		background-color: var(--neon-yellow);
-		color: #000;
+	canvas.can
+	{
+		width: 100% !important;
+		height: auto !important;
+		aspect-ratio: 4 / 3;
+		max-height: 90vh;
+		margin: 0;
 		border: none;
-		border-radius: 10px;
-		font-weight: bold;
-		box-shadow: 0 0 10px var(--neon-yellow);
-		cursor: pointer;
-	} */
+	}
+}
+
+/* Mobile Game Fullscreen Mode */
+@media (max-width: 768px) and (orientation: landscape) {
+	.game-page
+	{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 100;
+	background: var(--bg-dark);
+	padding: 0;
+	margin: 0;
+	}
+
+	.game-container
+	{
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+	}
+
+	footer
+	{
+		display: none !important;
+	}
+
+	.navbar
+	{
+		display: none !important;
+	}
+
+	canvas.can
+	{
+		width: 100% !important;
+		height: 90% !important;
+		margin: 0;
+		border: none;
+	}
 }
 
 @media (min-width: 769px)

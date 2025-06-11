@@ -1,0 +1,13 @@
+{
+  "name": "my-web-app",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "http-server -p 80",
+    "build": "tsc main.ts"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "http-server": "^14.1.1",
+    "@types/node": "^18.11.18"
+  }
+}
