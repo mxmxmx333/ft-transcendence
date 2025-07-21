@@ -1,0 +1,31 @@
+// {
+//   "compilerOptions": {
+//     "target": "ES6",
+//     "module": "ES6",
+//     "outDir": "./public/js",
+//     "rootDir": "./frontend-src/ts",
+//     "baseUrl": "./frontend-src/ts",
+//     "paths": {
+//       "@/*": ["./*"]
+//     },
+//     "strict": true,
+//     "moduleResolution": "node",
+//     "esModuleInterop": true,
+//     "forceConsistentCasingInFileNames": true,
+//     "skipLibCheck": true
+//   },
+//   "include": ["./frontend-src/ts/**/*"],
+//   "exclude": ["node_modules"]
+// }
+
+{
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": false,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["./src/*"],
+      "@frontend/*": ["./frontend-src/*"]
+    }
+  }
+}

@@ -1,13 +1,46 @@
 {
-  "name": "my-web-app",
+  "name": "transcendence",
   "version": "1.0.0",
+  "main": "dist/server.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "http-server -p 80",
-    "build": "tsc main.ts"
+    "dev": "ts-node src/server.ts",
+    "build:frontend": "tsc -p frontend-src/tsconfig.json",
+    "build:backend": "tsc -p src/tsconfig.json",
+    "build:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css",
+    "watch:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css --watch",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:css",
+    "start": "ts-node src/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@fastify/jwt": "^9.1.0",
+    "@fastify/static": "^8.2.0",
+    "@fastify/websocket": "^11.2.0",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.0.0",
+    "dotenv": "^16.5.0",
+    "fastify": "^5.4.0",
+    "fastify-static": "^4.6.1",
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0"
   },
   "devDependencies": {
-    "typescript": "^4.9.5",
-    "http-server": "^14.1.1",
-    "@types/node": "^18.11.18"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.1",
+    "@types/qrcode": "^1.5.5",
+    "@types/speakeasy": "^2.0.10",
+    "@types/websocket": "^1.0.10",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }
