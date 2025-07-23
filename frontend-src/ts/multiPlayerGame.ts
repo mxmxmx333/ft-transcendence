@@ -1,4 +1,3 @@
-// frontend-src/ts/game/multiplayer/PongMultiplayer.ts
 import { SocketManager } from './socketManager.js';
 
 export class PongMultiplayer {
@@ -36,7 +35,7 @@ export class PongMultiplayer {
   this.setupCanvas();
   this.setupControls();
   await this.setupMultiplayerConnection();
-  this.setupSocketListeners(); // Yeni eklenen fonksiyon
+  this.setupSocketListeners();
   this.setupUI();
 }
 
@@ -45,7 +44,7 @@ private setupSocketListeners() {
   socket.onGameStart = (msg) => {
     console.log("Game start triggered", msg);
     this.handleGameStart(msg);
-    this.startGame(); // Oyunu başlat
+    this.startGame();
   };
 }
 
@@ -86,7 +85,7 @@ private startGame() {
     }
 
     private setupControls() {
-        // Keyboard controls
+        // Keyboard
         const keyDownHandler = (e: KeyboardEvent) => {
             if (e.key === "ArrowUp") this.upPressed = true;
             else if (e.key === "ArrowDown") this.downPressed = true;
@@ -100,7 +99,7 @@ private startGame() {
         document.addEventListener("keydown", keyDownHandler);
         document.addEventListener("keyup", keyUpHandler);
 
-        // Mobile controls
+        // Mobile 
         const upBtn = document.getElementById("up-btn");
         const downBtn = document.getElementById("down-btn");
 
@@ -126,7 +125,7 @@ private startGame() {
 
     private async setupUI() {
         try {
-            const response = await fetch('http://localhost:3000/api/profile', {
+            const response = await fetch('/api/profile', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
                     'Content-Type': 'application/json'
@@ -165,32 +164,29 @@ private startGame() {
         }
     }
 
- public handleGameStart(message: any) {
-  console.log("Game start received:", message);
-  
-  // Eski oyunu temizle
-  if (this.gameRunning) this.stop();
+    public handleGameStart(message: any) {
+    console.log("Game start received:", message);
 
-  this.isPlayer1 = message.isPlayer1;
-  this.roomId = message.roomId;
-  this.opponentNickname = message.opponent;
+    if (this.gameRunning) this.stop();
 
-  // UI Güncelleme
-  document.getElementById("game-nick2")!.textContent = this.opponentNickname;
-  document.querySelector(".multiplayer-lobby")?.classList.add("hidden");
-  document.querySelector(".game-page")?.classList.remove("hidden");
+    this.isPlayer1 = message.isPlayer1;
+    this.roomId = message.roomId;
+    this.opponentNickname = message.opponent;
 
-  // Oyunu başlat
-  this.start();
-}
+    document.getElementById("game-nick2")!.textContent = this.opponentNickname;
+    document.querySelector(".multiplayer-lobby")?.classList.add("hidden");
+    document.querySelector(".game-page")?.classList.remove("hidden");
 
-public handleRoomTerminated() {
-  console.warn("Room terminated, returning to lobby");
-  this.stop();
-  document.querySelector(".game-page")?.classList.add("hidden");
-  document.querySelector(".multiplayer-lobby")?.classList.remove("hidden");
-  alert("Room was terminated by server");
-}
+    this.start();
+    }
+
+    public handleRoomTerminated() {
+    console.warn("Room terminated, returning to lobby");
+    this.stop();
+    document.querySelector(".game-page")?.classList.add("hidden");
+    document.querySelector(".multiplayer-lobby")?.classList.remove("hidden");
+    alert("Room was terminated by server");
+    }
 
     public handleGameOver(message: any) {
         this.gameRunning = false;
@@ -215,7 +211,7 @@ public handleRoomTerminated() {
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw middle line
+        // mid
         this.ctx.strokeStyle = "#ffff00";
         this.ctx.setLineDash([10, 10]);
         this.ctx.beginPath();
@@ -224,7 +220,7 @@ public handleRoomTerminated() {
         this.ctx.stroke();
         this.ctx.setLineDash([]);
 
-        // Draw paddles
+        // paddles
         const paddleRadius = 8;
         this.ctx.fillStyle = this.isPlayer1 ? "#ff00ff" : "#00ffff";
         const playerPaddleX = this.isPlayer1 ? 10 : this.canvas.width - 25;
@@ -234,13 +230,13 @@ public handleRoomTerminated() {
         const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 : 10;
         this.drawRoundedRect(opponentPaddleX, this.opponentY, this.paddleWidth, this.paddleHeight, paddleRadius);
 
-        // Draw ball
+        // ball
         this.ctx.fillStyle = "#ffff00";
         this.ctx.beginPath();
         this.ctx.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Update player paddle position
+        // player paddle
         if (this.upPressed) {
             this.playerY = Math.max(0, this.playerY - 5);
         }
@@ -248,10 +244,10 @@ public handleRoomTerminated() {
             this.playerY = Math.min(this.canvas.height - this.paddleHeight, this.playerY + 5);
         }
 
-        // Send paddle position to server
+        // Important!! paddle possition for server!
         SocketManager.getInstance().sendPaddlePosition(this.playerY);
 
-        // Update scores
+        // scores
         document.getElementById("score")!.textContent = this.playerScore.toString();
         document.getElementById("score2")!.textContent = this.opponentScore.toString();
 
@@ -286,7 +282,7 @@ public handleRoomTerminated() {
         this.ctx.fillText(`${winner} WON`, this.canvas.width/2, this.canvas.height/2 + 20);
         
         this.ctx.font = "24px Arial";
-        this.ctx.fillText("Click to play again", this.canvas.width/2, this.canvas.height/2 + 80);
+        this.ctx.fillText("Click start to play again", this.canvas.width/2, this.canvas.height/2 + 80);
         
         this.canvas.onclick = () => {
             this.canvas.onclick = null;
@@ -304,7 +300,7 @@ public handleRoomTerminated() {
         this.draw();
     }
 
-      public start() { // start metodunu ekleyin
+      public start() {
         this.gameRunning = true;
         this.draw();
     }

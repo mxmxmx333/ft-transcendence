@@ -48,31 +48,26 @@ interface GameRoom {
         lastUpdate: number;
     };
     isPrivate: boolean;
-    gameLoop?: NodeJS.Timeout; // Bu satırı ekleyin
+    gameLoop?: NodeJS.Timeout;
 }
 
 const gameRooms: Record<string, GameRoom> = {};
 const waitingPlayers: Player[] = [];
 
 async function start() {
-  // 1. Önce veritabanı bağlantısını kur
   await server.register(dbConnector);
   
-  // 2. Auth pluginini yükle
   await server.register(authPlugin);
 
-  // 3. WebSocket desteği ekle
 await server.register(websocketPlugin, {
   options: { maxPayload: 1048576 } // 1MB
 });
-  // 4. Static dosyaları servis et
   await server.register(fastifyStatic, {
     root: path.join(__dirname, '../public'),
     prefix: '/',
     wildcard: false
   });
 
-  // 5. API route'ları
   const authService = new AuthService(server);
   const authController = new AuthController(authService, server);
 
@@ -88,8 +83,6 @@ await server.register(websocketPlugin, {
 
 server.post('/api/logout', async (req, reply) => {
   try {
-    // JWT token'ı geçersiz kılmak için bir blacklist tutabilirsiniz
-    // Şimdilik sadece başarılı yanıt döndürelim
     return reply.send({ success: true });
   } catch (err) {
     return reply.status(500).send({ error: 'Logout failed' });
@@ -113,17 +106,9 @@ server.post('/api/logout', async (req, reply) => {
     }
   });
 
-  // WebSocket route
-  // server.ts'de WebSocket handler'ını güncelleyin
-// Hatalı kısmı bulalım (muhtemelen ~140. satır)
 server.get('/ws', { websocket: true }, (connection, req) => {
-  console.log("New WebSocket connection attempt");
-  
-  // connection.socket yerine doğrudan connection kullanın
-  //const socket = connection.socket; // connection.socket olmayabilir, test edin
-  
-  // Alternatif olarak:
-  const socket = connection; // Fastify-websocket plugininde connection doğrudan WebSocket olabilir
+
+  const socket = connection;
   
   const token = req.headers['sec-websocket-protocol'];
   if (!token) {
@@ -146,17 +131,16 @@ server.get('/ws', { websocket: true }, (connection, req) => {
 
       const player: Player = {
   conn: socket,
-  id: user?.id?.toString() || 'unknown', // Null check ekledik ve fallback değer
-  nickname: user?.nickname || 'Guest', // Nickname için de güvenlik
+  id: user?.id?.toString() || 'unknown',
+  nickname: user?.nickname || 'Guest',
   score: 0,
   paddleY: 250
 };
-waitingPlayers.push(player); // 👈 burada açıkça ekle
+waitingPlayers.push(player);
 
       handlePlayerConnection(player);
       type WebSocketMessage = string | Buffer | ArrayBuffer | Buffer[];
 
-      // Mesaj dinleyiciyi ekleyin
       socket.on('message', (message: WebSocketMessage) => {
         try {
           const data = JSON.parse(message.toString());
@@ -178,12 +162,10 @@ waitingPlayers.push(player); // 👈 burada açıkça ekle
   });
 });
 
-  // 6. SPA (Single Page Application) desteği
   server.setNotFoundHandler((_, reply) => {
     reply.sendFile('index.html');
   });
 
-  // 7. Sunucuyu başlat
   await server.listen({ port: 3000, host: '0.0.0.0' });
   console.log('Server http://localhost:3000 adresinde çalışıyor');
 }
@@ -249,14 +231,12 @@ function addToMatchmaking(player: Player) {
 function startGame(room: GameRoom) {
   if (!room.player2) return;
 
-  // Önceki game loop'u temizle
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
   }
 
   console.log(`Starting game in room ${room.id}`);
 
-  // Her iki oyuncuya da game_start mesajı gönder
   const startMessages = [
     {
       type: 'game_start',
@@ -280,7 +260,6 @@ function startGame(room: GameRoom) {
     player.conn.send(JSON.stringify(startMessages[index]));
   });
 
-  // Oyun döngüsünü başlat
   room.gameLoop = setInterval(() => {
     if (!gameRooms[room.id]) {
       clearInterval(room.gameLoop);
@@ -297,14 +276,11 @@ function updateGameState(room: GameRoom) {
   const deltaTime = (now - gameState.lastUpdate) / 1000;
   gameState.lastUpdate = now;
   
-  // Update ball position
   gameState.ballX += gameState.ballVX * deltaTime * 60;
   gameState.ballY += gameState.ballVY * deltaTime * 60;
   
-  // Handle collisions
   handleCollisions(room);
   
-  // Handle scoring
   if (gameState.ballX <= 0) {
     room.player2!.score++;
     resetBall(room, false);
@@ -313,7 +289,6 @@ function updateGameState(room: GameRoom) {
     resetBall(room, true);
   }
   
-  // Check for winner
   if (room.player1.score >= 10 || room.player2!.score >= 10) {
     endGame(room);
   }
@@ -325,19 +300,17 @@ function handleCollisions(room: GameRoom) {
   const paddleHeight = 100;
   const paddleWidth = 15;
   
-  // Wall collisions (top and bottom)
   if (gameState.ballY - ballRadius <= 0 || gameState.ballY + ballRadius >= 600) {
     gameState.ballVY *= -1;
   }
   
-  // Paddle collisions
   // Player 1 paddle (left)
   if (gameState.ballX - ballRadius <= 30 && 
       gameState.ballX - ballRadius >= 15 &&
       gameState.ballY >= room.player1.paddleY && 
       gameState.ballY <= room.player1.paddleY + paddleHeight) {
-    gameState.ballVX = Math.abs(gameState.ballVX) * 1.05; // Increase speed slightly
-    gameState.ballVY += (Math.random() * 2 - 1); // Add some randomness
+    gameState.ballVX = Math.abs(gameState.ballVX) * 1.05;
+    gameState.ballVY += (Math.random() * 2 - 1);
   }
   
   // Player 2 paddle (right)
@@ -379,7 +352,6 @@ function endGame(room: GameRoom) {
     }
   }));
   
-  // Clean up room
   delete gameRooms[room.id];
 }
 
@@ -439,22 +411,16 @@ function generateRoomId(): string {
 }
 
 function findPlayerAndRoom(socket: WebSocket): { player: Player | null, room: GameRoom | null } {
-  // Tüm odalarda ara
   for (const roomId in gameRooms) {
     const room = gameRooms[roomId];
-    
-    // Player1 kontrolü
     if (room.player1.conn === socket) {
       return { player: room.player1, room };
     }
-    
-    // Player2 kontrolü
     if (room.player2 && room.player2.conn === socket) {
       return { player: room.player2, room };
     }
   }
   
-  // Bekleyen oyuncular arasında ara
   const waitingPlayer = waitingPlayers.find(p => p.conn === socket);
   if (waitingPlayer) {
     return { player: waitingPlayer, room: null };
@@ -512,7 +478,6 @@ function handleCreateRoom(player: Player) {
 }
 
 function handleJoinRoom(player: Player, roomId: string) {
-  // Eski bağlantıları temizle
   const { room: currentRoom } = findPlayerAndRoom(player.conn);
   if (currentRoom && currentRoom.id !== roomId) {
     cleanupRoom(currentRoom);
@@ -527,20 +492,17 @@ function handleJoinRoom(player: Player, roomId: string) {
     return;
   }
 
-  // Oyuncuyu odaya ekle
   targetRoom.player2 = player;
-  player.roomId = roomId; // Oyuncunun oda bilgisini güncelle
+  player.roomId = roomId;
 
-  // Sadece hedef odada oyun başlat
   startGame(targetRoom);
 }
 function cleanupRoom(room: GameRoom) {
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
-    room.gameLoop = undefined; // Temizlik yapın
+    room.gameLoop = undefined;
   }
   
-  // Odadan çıkan oyuncuları temizle
   [room.player1, room.player2].forEach(player => {
     if (player) {
       try {

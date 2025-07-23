@@ -4,13 +4,11 @@ export function setupMobileMenu() {
     const navMenu = document.getElementById('main-nav') as HTMLUListElement;
 
     if (!hamburgerMenu || !closeMenu || !navMenu) {
-        console.error('Mobile menu elements not found!');
         return;
     }
 
     const toggleMenu = (isOpening: boolean) => {
         if (isOpening) {
-            // Menüyü aç
             navMenu.classList.remove('hidden');
             navMenu.classList.add(
                 'fixed', 'md:hidden',
@@ -23,7 +21,6 @@ export function setupMobileMenu() {
             closeMenu.classList.remove('hidden');
             hamburgerMenu.classList.add('hidden');
         } else {
-            // Menüyü kapat
             navMenu.classList.add('hidden');
             navMenu.classList.remove(
                 'fixed', 'flex', 'flex-col',

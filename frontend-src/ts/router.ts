@@ -42,7 +42,7 @@ const routes: Route[] = [
   }
 ];
 
-function manageNavbar() {
+export function manageNavbar() {
   const navbar = document.getElementById('header-navbar');
   if (isAuthenticated()) {
     navbar?.classList.remove('hidden');
@@ -119,9 +119,6 @@ function showProfilePage() {
   document.querySelector('.newgame-page')?.classList.add('hidden');
   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
 
-
-  
-  // Profil verilerini yükle
   loadProfileData();
 }
 
@@ -156,12 +153,11 @@ function handleRouting() {
   route.view();
 }
 
-// Tarayıcı geri/ileri butonları için
+// Browser button functionality
 window.addEventListener('popstate', handleRouting);
 
-// Sayfa yüklendiğinde routing'i başlat
+// Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', () => {
-  // Link tıklamalarını yakala
     manageNavbar();
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -172,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
     document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    if (target.closest('#singlegame-btn')) {  // # işareti ID anlamına gelir
+    if (target.closest('#singlegame-btn')) {
       e.preventDefault();
       initGame();
     }
@@ -190,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const href = target.getAttribute('href');
       
-      // Logout linkine özel işlem
       if (href === '/logout') {
         handleLogout();
       } else {
@@ -210,7 +205,7 @@ async function loadProfileData() {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch('http://localhost:3000/api/profile', {
+    const response = await fetch('/api/profile', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -232,7 +227,6 @@ async function loadProfileData() {
       throw new Error('Invalid profile data received');
     }
 
-    // Check if elements exist before setting content
     const nicknameElement = document.getElementById('profile-nickname');
     const emailElement = document.getElementById('profile-email');
     
@@ -247,13 +241,11 @@ async function loadProfileData() {
   }
 }
 
-// router.ts'e ekleyin
 async function handleLogout() {
   try {
     const token = localStorage.getItem('authToken');
     if (token) {
-      // Backend'e logout isteği gönder (opsiyonel)
-      await fetch('http://localhost:3000/api/logout', {
+      await fetch('/api/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -261,15 +253,13 @@ async function handleLogout() {
       });
     }
     
-    // Local storage'ı temizle
     localStorage.removeItem('authToken');
-      manageNavbar(); // Navbar'ı gizle
-    // Kullanıcıyı login sayfasına yönlendir
+    document.querySelector('.main-nav')?.classList.add('hidden');
+
+      manageNavbar();
     navigateTo('/');
     
   } catch (error) {
-    console.error('Logout error:', error);
-    // Yine de temizlik yap ve yönlendir
     localStorage.removeItem('authToken');
     navigateTo('/');
   }
@@ -281,29 +271,25 @@ function initGame() {
     return;
   }
   
-  // Önce tüm sayfaları gizle
   document.querySelector('.login-page')?.classList.add('hidden');
   document.querySelector('.profile-page')?.classList.add('hidden');
   document.querySelector('.newgame-page')?.classList.add('hidden');
   
-  // Oyun sayfasını göster
   document.querySelector('.game-page')?.classList.remove('hidden');
 
 
-  // Canvas'ı ID'ye göre bul (class yerine ID kullanıyoruz)
   const gameCanvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!gameCanvas) {
     console.error('Canvas element not found!');
     return;
   }
+  gameCanvas.classList.add('bg-black'); //
 
-  // Önceki oyunu temizle
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();
   }
 
-  // Yeni oyunu başlat
   const game = new PongGame(gameCanvas);
   (window as any).currentGame = game;
   game.start();
@@ -314,8 +300,7 @@ function showMultiplayerLobby() {
   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
   document.querySelector('.newgame-page')?.classList.add('hidden');
 }
-// router.ts'e yeni fonksiyon ekleyin
-// router.ts'de initMultiplayerGame fonksiyonunu güncelleyin
+
 async function initMultiplayerGame() {
   if (!isAuthenticated()) {
     alert('Multiplayer oynamak için giriş yapmalısınız');
@@ -324,26 +309,20 @@ async function initMultiplayerGame() {
   }
 
   showMultiplayerLobby();
-  setupLobbyUI(); // Lobby UI'ını hemen kur
+  setupLobbyUI();
 
   try {
     const socketManager = SocketManager.getInstance();
     
-    // Bağlantıyı kur
     await socketManager.connect();
-    
-    // Bağlantı başarılıysa lobby'yi hazırla
     document.getElementById('lobby-status')!.textContent = "Connected to server";
     
   } catch (error) {
-    console.error("Multiplayer init error:", error);
     document.getElementById('lobby-status')!.textContent = "Connection failed";
   }
 }
 
-// router.ts'ye ekleyin
 function setupLobbyUI() {
-  // Oda oluşturma butonu
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = "Creating room...";
@@ -354,7 +333,6 @@ function setupLobbyUI() {
       
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
       
-      // Oyun başlayınca tetiklenecek
       socketManager.onGameStart = () => {
         document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
         document.querySelector('.game-page')?.classList.remove('hidden');
@@ -365,7 +343,6 @@ function setupLobbyUI() {
     }
   });
 
-  // Odaya katılma butonu
   document.getElementById('join-room-btn')?.addEventListener('click', async () => {
     const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
     if (!roomId) return;
@@ -397,14 +374,12 @@ function startMultiplayerGame() {
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) return;
 
-  // Önceki oyunu temizle
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();
   }
 
-  // Yeni oyunu başlat
   const game = new PongMultiplayer(canvas);
   (window as any).currentGame = game;
-  game.start(); // Artık bu metod var
+  game.start();
 }

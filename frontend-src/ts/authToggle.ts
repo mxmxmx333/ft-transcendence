@@ -1,13 +1,15 @@
 import { handleSignup, handleLogin } from "./auth.js";
 import { navigateTo } from "./router.js";
 
+
+// For input security issues I'll use these as I got errors for now it's hashed.
 // const validateEmail = (email: string): boolean => {
 //   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
 //   return re.test(email.trim());
 // };
 
 // const validatePassword = (password: string): boolean => {
-//   // En az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 sayı
+//   // for 8 chars and a number.
 //   const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 //   return re.test(password);
 // };
@@ -15,7 +17,7 @@ import { navigateTo } from "./router.js";
 // const sanitizeInput = (input: string): string => {
 //   return input.trim().replace(/\s+/g, ' ');
 // };
-// Form submit handler'ları
+// Form submits
 const setupLoginValidation = () => {
   const form = document.getElementById('loginForm') as HTMLFormElement;
   
@@ -26,12 +28,12 @@ const setupLoginValidation = () => {
     const password = (document.getElementById('login-pw') as HTMLInputElement).value;
     
     // if (!validateEmail(email)) {
-    //   alert('Lütfen geçerli bir email adresi giriniz');
+    //   alert('enter a valid email');
     //   return;
     // }
     
     // if (!validatePassword(password)) {
-    //   alert('Şifre en az 8 karakter ve harf+sayı içermelidir');
+    //   alert('At least 8 characters!');
     //   return;
     // }
     
@@ -55,17 +57,16 @@ const setupSignupValidation = () => {
     const password = (document.getElementById('signup-pw') as HTMLInputElement).value;
     
     if (nickname.length < 3) {
-      alert('Nickname en az 3 karakter olmalıdır');
+      alert('Nickname should be at least 3 characters!');
       return;
     }
-    
     // if (!validateEmail(email)) {
-    //   alert('Lütfen geçerli bir email adresi giriniz');
+    //   alert('enter a valid email');
     //   return;
     // }
     
     // if (!validatePassword(password)) {
-    //   alert('Şifre en az 8 karakter ve harf+sayı içermelidir');
+    //   alert('At least 8 characters!');
     //   return;
     // }
 
@@ -80,7 +81,6 @@ const setupSignupValidation = () => {
 
 // Function to handle the toggle between login and signup forms
 export function setupAuthToggle() {
-    // Get the necessary elements
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
     const switchToSignup = document.getElementById('switchToSignup');
@@ -91,7 +91,6 @@ export function setupAuthToggle() {
       return;
     }
 
-    // Add event listeners for the toggle links
     switchToSignup.addEventListener('click', () => {
         loginForm.classList.add('hidden');
         signupForm.classList.remove('hidden');

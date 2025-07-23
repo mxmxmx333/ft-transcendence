@@ -19,15 +19,13 @@ export default class AuthController {
   const { nickname, email, password } = request.body;
 
   try {
-    // Validasyonlar
+    // Validations
     if (!nickname || !email || !password) {
       return reply.status(400).send({ 
         error: 'Tüm alanlar zorunludur',
         details: ['nickname', 'email', 'password']
       });
     }
-
-    // Kullanıcı var mı kontrolü
     const existingUser = await this.authService.getUserByEmail(email);
     if (existingUser) {
       return reply.status(409).send({ 
@@ -36,23 +34,23 @@ export default class AuthController {
       });
     }
 
-    // Şifreyi hashle
+    // Hashing the pw
     const hashedPassword = await this.fastify.bcrypt.hash(password, 10);
     
-    // Kullanıcı oluştur
+    // We need to expend user's variables.
     const user = await this.authService.createUser({
       nickname,
       email,
       password_hash: hashedPassword
     });
 
-    // JWT token oluştur
+    // jwt for each
     const token = this.fastify.jwt.sign({ 
       id: user.id, 
       email: user.email 
     });
 
-    // Başarılı yanıt
+    // status codes have to be correct :/
     return reply.status(201).send({
       success: true,
       token,
@@ -66,7 +64,7 @@ export default class AuthController {
   } catch (error) {
     console.error('Signup error:', error);
     return reply.status(500).send({ 
-      error: 'Sunucu hatası',
+      error: 'Network error',
       details: error
     });
   }

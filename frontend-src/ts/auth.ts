@@ -6,7 +6,7 @@ export async function handleSignup(formData: {
   password: string;
 }) {
   try {
-    const response = await fetch('http://localhost:3000/api/signup', {
+    const response = await fetch('/api/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -14,15 +14,14 @@ export async function handleSignup(formData: {
       body: JSON.stringify(formData),
     });
 
-    // Response'u bir değişkene atayarak tekrar kullanabiliriz
-    const responseClone = response.clone(); // Response'u klonla
+    const responseClone = response.clone();
     
     if (!response.ok) {
-      const errorData = await responseClone.json(); // Klon üzerinden oku
-      throw new Error(errorData.error || 'Kayıt işlemi başarısız');
+      const errorData = await responseClone.json();
+      throw new Error(errorData.error || 'Authentication failed');
     }
 
-    const data = await responseClone.json(); // Aynı klondan oku
+    const data = await responseClone.json();
     localStorage.setItem('authToken', data.token);
     return data;
   } catch (error) {
@@ -36,7 +35,7 @@ export async function handleLogin(formData: {
   password: string;
 }) {
   try {
-    const response = await fetch('http://localhost:3000/api/login', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ export async function handleLogin(formData: {
 
     localStorage.setItem('authToken', data.token);
     
-    // Navbar'ı göster ve profile yönlendir
+    // Re-show the nav-bar (I know I shoud crate a function that adds and removes hidden from classlists later on.)
     document.querySelector('.main-nav')?.classList.remove('hidden');
     navigateTo('/profile');
     

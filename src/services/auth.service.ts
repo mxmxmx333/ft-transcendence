@@ -52,3 +52,5 @@ export default class AuthService {
     return stmt.get(id);
   }
 }
+
+// YOU CAN USE THIS EXPORTED CLASS FOR USER MANAGEMENT.

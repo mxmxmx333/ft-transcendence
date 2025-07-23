@@ -1,4 +1,4 @@
-import { PongMultiplayer } from './multiPlayerGame'; // Veya doğru dosya yolunu yazın
+import { PongMultiplayer } from './multiPlayerGame';
 
 
 export class SocketManager {
@@ -10,7 +10,7 @@ export class SocketManager {
     private reconnectDelay = 1000;
     private pendingResolve: ((roomId: string) => void) | null = null;
 
-    private constructor() {} // Private constructor for singleton pattern
+    private constructor() {} 
     public onGameStart: ((message: any) => void) | null = null;
 
     public static getInstance(): SocketManager {
@@ -20,7 +20,6 @@ export class SocketManager {
         return SocketManager.instance;
     }
 
-    // socketManager.ts'de connect metodunu güçlendirin
 public connect(): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
@@ -30,7 +29,6 @@ public connect(): Promise<void> {
         return;
       }
 
-      // WebSocket URL'ini kontrol edin
       const wsUrl = `ws://${window.location.hostname}:3000/ws`;
       this.socket = new WebSocket(wsUrl, token);
 
@@ -38,27 +36,22 @@ public connect(): Promise<void> {
   console.log('WebSocket connected');
   this.reconnectAttempts = 0;
   
-  // 100ms gecikme ile create_room gibi mesajları gönder
-  setTimeout(() => resolve(), 100); // resolve() demek "connect tamamlandı" demek
+  setTimeout(() => resolve(), 100);
 };
 
       this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
         reject(error);
       };
 
       this.socket.onclose = (event) => {
         if (!event.wasClean) {
-          console.error('WebSocket connection died:', event.reason);
           this.handleReconnection();
         }
       };
 
-      // Mesaj dinleyiciyi bir kez ayarla
       this.socket.onmessage = (event) => this.handleMessage(event.data);
 
     } catch (error) {
-      console.error('Connection setup error:', error);
       reject(error);
     }
   });
@@ -77,7 +70,6 @@ public connect(): Promise<void> {
         } else {
             console.error('Max reconnection attempts reached');
             if (this.gameInstance) {
-                // Notify game instance about connection failure
                 this.gameInstance.handleConnectionLost();
             }
         }
@@ -107,7 +99,6 @@ public connect(): Promise<void> {
     console.error('Message parse error:', error);
   }
 }
-// socketManager.ts'de oda fonksiyonlarını güncelleyin
 public createRoom(): Promise<string> {
   return new Promise((resolve, reject) => {
     console.log("[Client] createRoom called");
@@ -122,7 +113,7 @@ public createRoom(): Promise<string> {
     const timeout = setTimeout(() => {
       console.error("[Client] Room creation timeout");
       reject(new Error('Room creation timeout'));
-    }, 10000); // 10 saniyeye çıkardık
+    }, 10000);
 
     const messageHandler = (event: MessageEvent) => {
       try {

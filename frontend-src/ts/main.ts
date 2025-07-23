@@ -2,12 +2,10 @@ import { setupAuthToggle } from './authToggle.js';
 import { setupMobileMenu } from './mobilMenu.js';
 import { navigateTo } from "./router.js";
 
-// Initialize all frontend functionality
 function initializeApp() {
     setupAuthToggle();
     setupMobileMenu();
-    
-    // Check auth status and redirect if needed
+    // Checking auth status and redirect if needed
     const currentPath = window.location.pathname;
     const protectedRoutes = ['/profile', '/game', '/tournament'];
     
@@ -16,5 +14,4 @@ function initializeApp() {
     }
 }
 
-// Start the app when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);

@@ -2,25 +2,18 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Diğer stilleriniz */
 
 
-/* Tailwind temel katmanları */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
-/* .hidden {
-  display: none !important;
-} */
-/* Özel font tanımları */
 @font-face {
   font-family: 'CustomFont';
   src: url('../imgs/fonts/custom-font.woff2') format('woff2');
 }
 
-/* Özel temel stiller */
 @layer base {
   html {
     @apply scroll-smooth;
@@ -33,7 +26,6 @@
   }
 }
 
-/* Özel bileşenler */
 @layer components {
   .btn-primary {
     @apply px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors;
@@ -44,7 +36,6 @@
            focus:outline-none focus:ring-2 focus:ring-blue-500;
   }
 
-  /* Özel neon buton component'i */
   .btn-neon {
     @apply w-full py-3 font-bold rounded-lg transition-all duration-300;
     
@@ -60,10 +51,8 @@
   }
 }
 
-/* Özel utility class'lar */
 @layer utilities {
   
-  /* Metin efektleri */
   .neon-text-blue {
     @apply text-cyan-400;
     text-shadow: 0 0 5px rgba(34, 211, 238, 0.7);
@@ -77,7 +66,6 @@
     text-shadow: 0 0 5px rgba(253, 224, 71, 0.7);
   }
 
-  /* Border efektleri */
   .neon-border-blue {
     @apply border-cyan-400;
     box-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
@@ -91,7 +79,6 @@
     box-shadow: 0 0 10px rgba(253, 224, 71, 0.7);
   }
 
-  /* Arkaplan efektleri */
   .neon-bg-pink {
     @apply bg-pink-600;
     box-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
@@ -122,7 +109,6 @@
   @apply bg-yellow-400;
   box-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
 }
-  /* Hover efektleri */
   .hover\:neon-bg-blue:hover {
     @apply neon-bg-blue;
   }
@@ -130,13 +116,11 @@
     @apply neon-bg-pink;
   }
 
-  /* Özel animasyon */
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 
-/* Keyframes tanımları */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

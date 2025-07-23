@@ -12,12 +12,12 @@
     <!-- Header -->
     <header class="bg-dark sticky top-0 z-50 py-4 px-4 sm:px-8 border-b border-gray-800">
         <div class="flex justify-between items-center max-w-7xl mx-auto">
-            <ul class="hidden md:flex space-x-6" id="main-nav">
+            <ul class="main-nav md:flex space-x-6 hidden">
                 <li><a href="/game" data-link class="neon-text-blue hover:neon-text-pink">New Game</a></li>
                 <li><a href="/tournament" data-link class="neon-text-blue hover:neon-text-pink">Join/Create Tournament</a></li>
                 <li><a href="/profile" data-link class="neon-text-blue hover:neon-text-pink">Profile</a></li>
                 <li><a href="/livechat" data-link class="neon-text-blue hover:neon-text-pink">Live-chat</a></li>
-                <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Best of five</a></li>
+                <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Top Ranking</a></li>
                 <li><a href="/logout" data-link class="neon-text-blue hover:neon-text-pink">Logout</a></li>
 
 
@@ -43,53 +43,53 @@
                     <p class="mb-6 text-gray-300">Sign in to play!</p>
 
                     <div class="space-y-4">
-                        <!-- Login Form -->
-                         <form id="loginForm" class="space-y-4">
-  <div>
-    <input id="login-email" type="email" placeholder="Email" 
-           class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
-           required 
-           title="Please enter a valid email address">
-  </div>
-  <div>
-    <input id="login-pw" type="password" placeholder="Password" 
-           class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
-           required
-           minlength="8">
-  </div>
-  <button id="loginsbmt" type="submit" 
-          class="w-full py-3 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
-    Sign In
-  </button>
-</form>
+                <!-- Login Form -->
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <input id="login-email" type="email" placeholder="Email" 
+                             class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
+                             required 
+                             title="Please enter a valid email address">
+                    </div>
+                    <div>
+                         <input id="login-pw" type="password" placeholder="Password" 
+                            class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
+                            required
+                            minlength="8">
+                    </div>
+                            <button id="loginsbmt" type="submit" 
+                            class="w-full py-3 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
+                            Sign In
+                            </button>
+                    </form>
 
-                        <!-- Signup Form -->
-       <form id="signupForm" class="hidden space-y-4">
-  <div>
-    <input id="signup-nickname" type="text" placeholder="Nickname" 
-           class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
-           required 
-        
-           minlength="3" maxlength="20">
-  </div>
-  <div>
-    <input id="signup-email" type="email" placeholder="Email" 
-           class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
-           required 
-           >
-  </div>
-  <div>
-    <input id="signup-pw" type="password" placeholder="Password" 
-           class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
-           required 
-           
-           minlength="8">
-  </div>
-  <button id="signup_btn" type="submit" 
-          class="w-full py-3 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
-    Sign Up
-  </button>
-</form>
+                                        <!-- Signup Form -->
+                        <form id="signupForm" class="hidden space-y-4">
+                    <div>
+                             <input id="signup-nickname" type="text" placeholder="Nickname" 
+                            class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
+                            required 
+                        
+                            minlength="3" maxlength="20">
+                    </div>
+                    <div>
+                             <input id="signup-email" type="email" placeholder="Email" 
+                            class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
+                            required 
+                            >
+                    </div>
+                    <div>
+                             <input id="signup-pw" type="password" placeholder="Password" 
+                            class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300" 
+                            required 
+                            
+                            minlength="8">
+                    </div>
+                             <button id="signup_btn" type="submit" 
+                            class="w-full py-3 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
+                            Sign Up
+                    </button>
+                    </form>
 
                         <button class="w-full py-3 neon-bg-blue text-black rounded-lg flex items-center justify-center gap-2 font-medium hover:neon-bg-yellow transition-all duration-300">
                             <i class="fab fa-google"></i> Sign in with Google
@@ -115,7 +115,7 @@
                     <p class="neon-text-yellow">Nick Name: <span id="profile-nickname" class="neon-text-blue font-bold"></span></p>
                     <p class="neon-text-yellow">Email: <span id="profile-email" class="neon-text-blue font-bold"></span></p>
                     <p class="neon-text-yellow">Last Game: <span id="profile-gamestatistics" class="neon-text-blue font-bold"></span></p>
-                    <button id="start-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+                    <button id="options-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
                         Options
                     </button>
                 </div>
@@ -168,19 +168,17 @@
                 </div>
             </div>
         </section>
-<!-- game-page'den sonra ekleyin -->
+<!-- Multiplayer -->
 <section class="multiplayer-lobby hidden w-full max-w-6xl px-4 hidden">
   <div class="flex flex-col items-center gap-6">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-      <!-- Yeni Oda -->
+      <!-- Room content -->
       <div class="bg-dark p-6 rounded-lg neon-border-blue">
         <h3 class="neon-text-yellow mb-4">Create Private Room</h3>
         <button id="create-room-btn" class="w-full px-4 py-2 neon-bg-pink rounded-lg">
           Create
         </button>
       </div>
-      
-      <!-- Odaya Katıl -->
       <div class="bg-dark p-6 rounded-lg neon-border-green">
         <h3 class="neon-text-yellow mb-4">Join Existing Room</h3>
         <input type="text" id="room-id-input" placeholder="Room ID" class="w-full px-4 py-2 mb-3 text-black rounded">

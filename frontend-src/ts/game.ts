@@ -18,8 +18,10 @@ export class PongGame {
     private upPressed = false;
     private downPressed = false;
     
+    
     // Constants
     private readonly INITIAL_BALL_SPEED = 5;
+    private savedBallSpeed = this.INITIAL_BALL_SPEED;
     private readonly MAX_BALL_SPEED = 18;
     private readonly BALL_ACCELERATION = 0.2;
     private ballSpeed = this.INITIAL_BALL_SPEED;
@@ -30,7 +32,7 @@ export class PongGame {
     private readonly ballRadius = 10;
     private readonly winningScore = 10;
     
-    constructor(canvas: HTMLCanvasElement) { // Client parametresini kaldırdık
+    constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d")!;
         this.init();
@@ -43,17 +45,15 @@ export class PongGame {
     }
 
 private setupCanvas() {
-    // Sabit en-boy oranı (16:9) koruyarak canvas boyutlandırma
+    
     const aspectRatio = 16 / 9;
     const maxWidth = 800;
     const maxHeight = 600;
     
-    // Container boyutlarını al
     const container = this.canvas.parentElement;
     const containerWidth = container?.clientWidth || maxWidth;
     const containerHeight = container?.clientHeight || maxHeight;
     
-    // Boyutları hesapla
     let width = Math.min(containerWidth, maxWidth);
     let height = width / aspectRatio;
     
@@ -62,13 +62,11 @@ private setupCanvas() {
         width = height * aspectRatio;
     }
     
-    // Canvas boyutlarını ayarla
     this.canvas.width = width;
     this.canvas.height = height;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
     
-    // Yeniden boyutlandırma için event listener
     window.addEventListener("resize", () => this.resizeCanvas());
     window.addEventListener("orientationchange", () => {
         setTimeout(() => this.resizeCanvas(), 300);
@@ -76,11 +74,10 @@ private setupCanvas() {
 }
 
 private resizeCanvas() {
-    this.setupCanvas(); // Aynı mantıkla yeniden boyutlandır
+    this.setupCanvas();
     this.resetBall();
 }
     private setupControls() {
-        // Remove previous event listeners
         document.removeEventListener("keydown", this.keyDownHandler);
         document.removeEventListener("keyup", this.keyUpHandler);
 
@@ -100,10 +97,10 @@ private resizeCanvas() {
 
         // Touch controls for mobile
         const upBtn = document.getElementById("up-btn");
-    const downBtn = document.getElementById("down-btn");
+        const downBtn = document.getElementById("down-btn");
 
     if (upBtn && downBtn) {
-        // Touch event'leri
+        // Touch events
         const handleTouchStart = (direction: 'up' | 'down') => (e: TouchEvent) => {
             e.preventDefault();
             if (direction === 'up') this.upPressed = true;
@@ -121,7 +118,7 @@ private resizeCanvas() {
         downBtn.addEventListener("touchstart", handleTouchStart('down'));
         downBtn.addEventListener("touchend", handleTouchEnd('down'));
 
-        // Dikey mod için kontrolleri göster/gizle
+        // UpDown mod 
         const checkOrientation = () => {
             const isPortrait = window.matchMedia("(orientation: portrait)").matches;
             const controls = document.querySelector(".mobile-controls");
@@ -151,39 +148,40 @@ private resizeCanvas() {
         const pauseBtn = document.getElementById("pause-btn") as HTMLButtonElement;
 
          try {
-            // Database'den kullanıcı bilgilerini çek
             const user = await this.fetchCurrentUser();
             if (user) {
                 nicknameDisplay.textContent = user.nickname;
             }
         } catch (error) {
-            console.error("Kullanıcı bilgileri yüklenemedi:", error);
+            console.error("Could not find the user:", error);
             nicknameDisplay.textContent = "Player";
         }
-        startBtn.addEventListener("click", () => {
-            if (!this.gameRunning || this.gameOver) {
-                this.resetGame();
-                this.gameRunning = true;
-                this.isPaused = false;
-                this.gameOver = false;
-                this.draw();
-            } else if (this.isPaused) {
-                this.isPaused = false;
-            }
-        });
+           startBtn.addEventListener("click", () => {
+        if (!this.gameRunning || this.gameOver) {
+            this.resetGame();
+            this.gameRunning = true;
+            this.isPaused = false;
+            this.gameOver = false;
+            this.draw();
+        } else if (this.isPaused) {
+            this.isPaused = false;
+            this.ballSpeed = this.savedBallSpeed;
+        }
+    });
 
-        pauseBtn.addEventListener("click", () => {
-            if (this.gameRunning && !this.isPaused) {
-                this.isPaused = true;
-            }
-        });
+    pauseBtn.addEventListener("click", () => {
+        if (this.gameRunning && !this.isPaused) {
+            this.isPaused = true;
+            this.savedBallSpeed = this.ballSpeed;
+        }
+    });
     }
     private async fetchCurrentUser(): Promise<{nickname: string} | null> {
         const token = localStorage.getItem('authToken');
         if (!token) return null;
 
         try {
-            const response = await fetch('http://localhost:3000/api/profile', {
+            const response = await fetch('/api/profile', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -191,12 +189,11 @@ private resizeCanvas() {
             });
 
             if (!response.ok) {
-                throw new Error('Profil bilgileri alınamadı');
+                throw new Error('Failed to load profile!');
             }
 
             return await response.json();
         } catch (error) {
-            console.error("Kullanıcı bilgisi çekme hatası:", error);
             return null;
         }
     }
@@ -212,15 +209,15 @@ private resizeCanvas() {
         this.resetBall();
     }
 
- private resetBall(scoredByFirstPlayer = true) {
-    this.ballX = this.canvas.width / 2;
-    this.ballY = this.canvas.height / 2;
-    this.ballSpeed = this.INITIAL_BALL_SPEED; // Hızı sıfırla
-    
-    const angle = (Math.random() * Math.PI/3) - Math.PI/6; // -30° ile +30° arası
-    this.ballVX = this.ballSpeed * Math.cos(angle) * (scoredByFirstPlayer ? 1 : -1);
-    this.ballVY = this.ballSpeed * Math.sin(angle);
-}
+     private resetBall(scoredByFirstPlayer = true) {
+        this.ballX = this.canvas.width / 2;
+        this.ballY = this.canvas.height / 2;
+        this.ballSpeed = scoredByFirstPlayer ? this.INITIAL_BALL_SPEED : this.savedBallSpeed;
+        
+        const angle = (Math.random() * Math.PI/3) - Math.PI/6;
+        this.ballVX = this.ballSpeed * Math.cos(angle) * (scoredByFirstPlayer ? 1 : -1);
+        this.ballVY = this.ballSpeed * Math.sin(angle);
+    }
 
     private drawRoundedRect(x: number, y: number, width: number, height: number, radius: number) {
         this.ctx.beginPath();
@@ -250,10 +247,10 @@ private resizeCanvas() {
         this.ctx.fillText(`${winner} WON`, this.canvas.width/2, this.canvas.height/2 + 20);
         
         this.ctx.font = "24px Arial";
-        this.ctx.fillText("The re-Game will start in 1 second", this.canvas.width/2, this.canvas.height/2 + 80);
+        this.ctx.fillText("The re-Game will start in 2 second", this.canvas.width/2, this.canvas.height/2 + 80);
         setTimeout(() => {
         this.resetGame();
-    }, 1000);
+    }, 2000);
     }
 
     private draw() {
@@ -262,7 +259,7 @@ private resizeCanvas() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (!this.isPaused && !this.gameOver) {
-            // Draw middle line
+            // net
             this.ctx.strokeStyle = "#ffff00";
             this.ctx.setLineDash([10, 10]);
             this.ctx.beginPath();
@@ -271,7 +268,7 @@ private resizeCanvas() {
             this.ctx.stroke();
             this.ctx.setLineDash([]);
 
-            // Draw paddles
+            // paddles
             const paddleRadius = 8;
             this.ctx.fillStyle = "#ff00ff";
             this.drawRoundedRect(10, this.playerY, this.paddleWidth, this.paddleHeight, paddleRadius);
@@ -279,13 +276,12 @@ private resizeCanvas() {
             this.ctx.fillStyle = "#00ffff";
             this.drawRoundedRect(this.canvas.width - 25, this.aiY, this.paddleWidth, this.paddleHeight, paddleRadius);
 
-            // Draw ball
+            // ball
             this.ctx.fillStyle = "#ffff00";
             this.ctx.beginPath();
             this.ctx.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Update game state
             this.updateGameState();
         } else if (this.gameOver) {
             this.drawGameOver(this.playerScore === this.winningScore ? "YOU" : "AI");
@@ -301,7 +297,7 @@ private resizeCanvas() {
     this.ballX += this.ballVX;
     this.ballY += this.ballVY;
 
-    // Paddle çarpışma kontrolü
+    // Paddle coll.
     const ballHitsPlayerPaddle = 
         this.ballX - this.ballRadius <= 25 && 
         this.ballY >= this.playerY && 
@@ -312,19 +308,18 @@ private resizeCanvas() {
         this.ballY >= this.aiY && 
         this.ballY <= this.aiY + this.paddleHeight;
 
-    // Paddle çarpışmalarında top hızını artır
+    // ball speed
     if (ballHitsPlayerPaddle || ballHitsAIPaddle) {
         this.ballSpeed = Math.min(this.ballSpeed + this.BALL_ACCELERATION, this.MAX_BALL_SPEED);
         const angle = (Math.random() * Math.PI/6) - Math.PI/12; // -15° ile +15° arası
         
-        // Yönü belirle (player paddle'a çarptıysa sağa, AI paddle'a çarptıysa sola)
         const direction = ballHitsPlayerPaddle ? 1 : -1;
         
         this.ballVX = this.ballSpeed * Math.cos(angle) * direction;
         this.ballVY = this.ballSpeed * Math.sin(angle);
     }
 
-    // Score handling
+    // Scores
     if (this.ballX - this.ballRadius > this.canvas.width) {
         this.playerScore++;
         document.getElementById("score")!.textContent = this.playerScore.toString();
@@ -352,14 +347,14 @@ private resizeCanvas() {
         this.ballVY *= -1;
     }
 
-    // AI movement
+    // basic ai moves
     if (this.ballY > this.aiY + this.paddleHeight / 2 + this.aiErrorMargin) {
         this.aiY = Math.min(this.aiY + this.aiSpeed, this.canvas.height - this.paddleHeight);
     } else if (this.ballY < this.aiY + this.paddleHeight / 2 - this.aiErrorMargin) {
         this.aiY = Math.max(this.aiY - this.aiSpeed, 0);
     }
 
-    // Player movement
+    // Player moves
     if (this.upPressed) {
         this.playerY = Math.max(0, this.playerY - 10);
     }

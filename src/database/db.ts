@@ -8,15 +8,13 @@ export default fp(async (fastify) => {
     const dbPath = path.join(process.cwd(), 'pong.db');
     console.log(`Veritabanı yolu: ${dbPath}`);
 
-    // Veritabanı dosyasını oluştur (eğer yoksa)
     if (!fs.existsSync(dbPath)) {
-      fs.writeFileSync(dbPath, ''); // Boş dosya oluştur
+      fs.writeFileSync(dbPath, '');
       console.log('Yeni veritabanı dosyası oluşturuldu');
     }
 
-    const db = new Database(dbPath, { verbose: console.log }); // Tüm SQL işlemlerini logla
+    const db = new Database(dbPath, { verbose: console.log });
 
-    // Tabloyu oluştur
     db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,10 +26,9 @@ export default fp(async (fastify) => {
     `);
 
     fastify.decorate('db', db);
-    console.log('Veritabanı başarıyla bağlandı');
 
   } catch (err) {
-    console.error('Veritabanı bağlantı hatası:', err);
+    console.error('Error loading DB', err);
     throw err;
   }
 }, {
