@@ -1,0 +1,13 @@
+
+# === Backend Build ===
+src/dist/
+
+# === Frontend Build ===
+public/css/output.css
+public/js/
+
+# === Node Modules ===
+node_modules/
+
+# === Database ===
+pong.db

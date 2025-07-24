@@ -11,6 +11,7 @@
     "watch:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css --watch",
     "build": "npm run build:backend && npm run build:frontend && npm run build:css",
     "start": "ts-node src/server.ts",
+    "clean": "rm -rf src/dist && rm -rf public/css/output.css && rm -rf public/js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
