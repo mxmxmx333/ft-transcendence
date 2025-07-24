@@ -1,36 +1,37 @@
 {
   "name": "transcendence",
   "version": "1.0.0",
+  "private": true,
   "main": "dist/server.js",
   "type": "commonjs",
+  "workspaces": [
+    "services/backend",
+    "services/api-gateway"
+    ],
   "scripts": {
-    "dev": "ts-node src/server.ts",
-    "build:frontend": "tsc -p frontend-src/tsconfig.json",
-    "build:backend": "tsc -p src/tsconfig.json",
-    "build:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css",
-    "watch:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css --watch",
-    "build": "npm run build:backend && npm run build:frontend && npm run build:css",
-    "start": "ts-node src/server.ts",
-    "clean": "rm -rf src/dist && rm -rf public/css/output.css && rm -rf public/js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently -k -n backend,api-gateway,frontend-js,frontend-css -c cyan,green,magenta,yellow \"npm:dev:backend\" \"npm:dev:api-gateway\" \"npm:dev:frontend-js\" \"npm:dev:frontend-css\"",
+    "dev:backend":   "NODE_ENV=development ts-node-dev --project services/backend/tsconfig.json --respawn --transpile-only services/backend/src/server.ts",
+    "dev:api-gateway": "NODE_ENV=development ts-node-dev --project services/api-gateway/tsconfig.json --respawn --transpile-only services/api-gateway/src/server.ts",
+    "dev:frontend-js":  "tsc --project frontend-src/tsconfig.json --watch",
+    "dev:frontend-css": "tailwindcss -c tailwind.config.ts -i public/css/input.css -o public/css/output.css --watch",
+
+    "frontend:build": "tsc -p frontend-src/tsconfig.json",
+    "frontend:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css",
+    "frontend:buildAll": "npm run frontend:build && npm run frontend:css",
+    "docker:build:backend": "docker compose build backend",
+    "docker:build:api-gateway": "docker compose build api-gateway",
+    "docker:build": "npm run docker:build:backend && npm run docker:build:api-gateway",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:ps": "docker compose ps",
+    "build": "npm run docker:build && npm run frontend:buildAll",
+    "start": "npm run build && npm run docker:up"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
-  "dependencies": {
-    "@fastify/jwt": "^9.1.0",
-    "@fastify/static": "^8.2.0",
-    "@fastify/websocket": "^11.2.0",
-    "bcrypt": "^6.0.0",
-    "bcryptjs": "^3.0.2",
-    "better-sqlite3": "^12.0.0",
-    "dotenv": "^16.5.0",
-    "fastify": "^5.4.0",
-    "fastify-static": "^4.6.1",
-    "qrcode": "^1.5.4",
-    "speakeasy": "^2.0.0"
-  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
@@ -39,9 +40,12 @@
     "@types/speakeasy": "^2.0.10",
     "@types/websocket": "^1.0.10",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.0",
     "postcss": "^8.4.31",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
   }
 }

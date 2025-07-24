@@ -2,12 +2,9 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 @font-face {
   font-family: 'CustomFont';
@@ -21,7 +18,9 @@
   body {
     @apply bg-dark text-gray-100 font-sans antialiased;
   }
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     @apply font-bold tracking-tighter;
   }
 }
@@ -30,7 +29,7 @@
   .btn-primary {
     @apply px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors;
   }
-  
+
   .auth-input {
     @apply w-full px-4 py-3 bg-gray-800 rounded-lg border border-gray-700 
            focus:outline-none focus:ring-2 focus:ring-blue-500;
@@ -38,11 +37,11 @@
 
   .btn-neon {
     @apply w-full py-3 font-bold rounded-lg transition-all duration-300;
-    
+
     &-pink {
       @apply bg-pink-600 text-black;
       box-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
-      
+
       &:hover {
         @apply bg-cyan-500;
         box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
@@ -52,7 +51,6 @@
 }
 
 @layer utilities {
-  
   .neon-text-blue {
     @apply text-cyan-400;
     text-shadow: 0 0 5px rgba(34, 211, 238, 0.7);
@@ -88,27 +86,27 @@
     box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
   }
   .neon-bg-green {
-  @apply bg-green-500;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
-}
-.neon-bg-purple {
-  @apply bg-purple-500;
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
-}
-.neon-bg-orange {
-  @apply bg-orange-500;
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
-}
+    @apply bg-green-500;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+  }
+  .neon-bg-purple {
+    @apply bg-purple-500;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
+  }
+  .neon-bg-orange {
+    @apply bg-orange-500;
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
+  }
 
-.neon-bg-red {
-  @apply bg-red-500;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-}
+  .neon-bg-red {
+    @apply bg-red-500;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+  }
 
-.neon-bg-yellow {
-  @apply bg-yellow-400;
-  box-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
-}
+  .neon-bg-yellow {
+    @apply bg-yellow-400;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
+  }
   .hover\:neon-bg-blue:hover {
     @apply neon-bg-blue;
   }
@@ -122,6 +120,11 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }

@@ -11,10 +11,10 @@ declare module 'fastify' {
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { id: string }; 
+    payload: { id: string };
     user: {
       id: string;
       email: string;
-    }
+    };
   }
 }
