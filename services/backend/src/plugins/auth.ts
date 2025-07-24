@@ -5,7 +5,7 @@ import jwt from '@fastify/jwt';
 
 const authPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(jwt, {
-    secret: process.env.JWT_SECRET || 'your-very-secure-secret-key-here' // We'll use .env for this
+    secret: process.env.JWT_SECRET || 'your-very-secure-secret-key-here', // We'll use .env for this
   });
 
   // Bcryptjs - plugin could be used.
@@ -20,5 +20,5 @@ declare module 'fastify' {
 }
 
 export default fp(authPlugin, {
-  name: 'auth-plugin'
+  name: 'auth-plugin',
 });

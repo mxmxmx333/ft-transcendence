@@ -3,7 +3,6 @@ import { PongGame } from './game.js';
 import { PongMultiplayer } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 
-
 type Route = {
   path: string;
   view: () => void;
@@ -13,33 +12,33 @@ type Route = {
 const routes: Route[] = [
   {
     path: '/',
-    view: showAuthPage
+    view: showAuthPage,
   },
   {
     path: '/profile',
     view: showProfilePage,
-    authRequired: true
+    authRequired: true,
   },
   {
     path: '/game',
     view: showGamePage,
-    authRequired: true
+    authRequired: true,
   },
   {
     path: '/tournament',
     view: showTournamentPage,
-    authRequired: true
+    authRequired: true,
   },
   {
     path: '/statistics',
     view: showStatistics,
-    authRequired: true
+    authRequired: true,
   },
   {
     path: '/livechat',
     view: showLiveChat,
-    authRequired: true
-  }
+    authRequired: true,
+  },
 ];
 
 export function manageNavbar() {
@@ -51,39 +50,32 @@ export function manageNavbar() {
   }
 }
 
-function showLiveChat()
-{
+function showLiveChat() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
   const gamePage = document.querySelector('.game-page');
   const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
 
   manageNavbar();
   loginPage?.classList.add('hidden');
   profilePage?.classList.add('hidden');
   gamePage?.classList.add('hidden');
   multiPGamePage?.classList.add('hidden');
-
 }
-function showStatistics()
-{
+function showStatistics() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
   const gamePage = document.querySelector('.game-page');
   const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
 
   manageNavbar();
   loginPage?.classList.add('hidden');
   profilePage?.classList.add('hidden');
   gamePage?.classList.add('hidden');
   multiPGamePage?.classList.add('hidden');
-
 }
 
-function showTournamentPage()
-{
+function showTournamentPage() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
   const gamePage = document.querySelector('.game-page');
@@ -133,7 +125,6 @@ function showGamePage() {
   document.querySelector('.game-page')?.classList.add('hidden');
   document.querySelector('.newgame-page')?.classList.remove('hidden');
   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-
 }
 
 export function navigateTo(path: string) {
@@ -143,8 +134,8 @@ export function navigateTo(path: string) {
 
 function handleRouting() {
   const currentPath = window.location.pathname;
-  const route = routes.find(r => r.path === currentPath) || routes[0];
-  
+  const route = routes.find((r) => r.path === currentPath) || routes[0];
+
   if (route.authRequired && !isAuthenticated()) {
     navigateTo('/');
     return;
@@ -158,7 +149,7 @@ window.addEventListener('popstate', handleRouting);
 
 // Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', () => {
-    manageNavbar();
+  manageNavbar();
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-link]')) {
@@ -166,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navigateTo(target.getAttribute('href') || '/');
     }
   });
-    document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.closest('#singlegame-btn')) {
       e.preventDefault();
@@ -175,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-     if (target.closest('#multiplayergame-btn')) {
+    if (target.closest('#multiplayergame-btn')) {
       e.preventDefault();
       initMultiplayerGame();
     }
@@ -185,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (target.matches('[data-link]')) {
       e.preventDefault();
       const href = target.getAttribute('href');
-      
+
       if (href === '/logout') {
         handleLogout();
       } else {
@@ -193,9 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-  
-  handleRouting();
 
+  handleRouting();
 });
 
 async function loadProfileData() {
@@ -207,11 +197,11 @@ async function loadProfileData() {
 
     const response = await fetch('/api/profile', {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem('authToken');
@@ -222,17 +212,16 @@ async function loadProfileData() {
     }
 
     const data = await response.json();
-    
+
     if (!data.nickname || !data.email) {
       throw new Error('Invalid profile data received');
     }
 
     const nicknameElement = document.getElementById('profile-nickname');
     const emailElement = document.getElementById('profile-email');
-    
+
     if (nicknameElement) nicknameElement.textContent = data.nickname;
     if (emailElement) emailElement.textContent = data.email;
-    
   } catch (error) {
     console.error('Profile data load error:', error);
     localStorage.removeItem('authToken');
@@ -248,17 +237,16 @@ async function handleLogout() {
       await fetch('/api/logout', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
     }
-    
+
     localStorage.removeItem('authToken');
     document.querySelector('.main-nav')?.classList.add('hidden');
 
-      manageNavbar();
+    manageNavbar();
     navigateTo('/');
-    
   } catch (error) {
     localStorage.removeItem('authToken');
     navigateTo('/');
@@ -270,13 +258,12 @@ function initGame() {
     navigateTo('/');
     return;
   }
-  
+
   document.querySelector('.login-page')?.classList.add('hidden');
   document.querySelector('.profile-page')?.classList.add('hidden');
   document.querySelector('.newgame-page')?.classList.add('hidden');
-  
-  document.querySelector('.game-page')?.classList.remove('hidden');
 
+  document.querySelector('.game-page')?.classList.remove('hidden');
 
   const gameCanvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!gameCanvas) {
@@ -313,33 +300,32 @@ async function initMultiplayerGame() {
 
   try {
     const socketManager = SocketManager.getInstance();
-    
+
     await socketManager.connect();
-    document.getElementById('lobby-status')!.textContent = "Connected to server";
-    
+    document.getElementById('lobby-status')!.textContent = 'Connected to server';
   } catch (error) {
-    document.getElementById('lobby-status')!.textContent = "Connection failed";
+    document.getElementById('lobby-status')!.textContent = 'Connection failed';
   }
 }
 
 function setupLobbyUI() {
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
-    statusElement.textContent = "Creating room...";
-    
+    statusElement.textContent = 'Creating room...';
+
     try {
       const socketManager = SocketManager.getInstance();
       const roomId = await socketManager.createRoom();
-      
+
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
-      
+
       socketManager.onGameStart = () => {
         document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
         document.querySelector('.game-page')?.classList.remove('hidden');
         startMultiplayerGame();
       };
     } catch (error) {
-      statusElement.textContent = "Error creating room";
+      statusElement.textContent = 'Error creating room';
     }
   });
 
@@ -348,24 +334,24 @@ function setupLobbyUI() {
     if (!roomId) return;
 
     const statusElement = document.getElementById('lobby-status')!;
-    statusElement.textContent = "Joining room...";
-    
+    statusElement.textContent = 'Joining room...';
+
     try {
       const socketManager = SocketManager.getInstance();
       const success = await socketManager.joinRoom(roomId);
-      
+
       if (success) {
-        statusElement.textContent = "Joined successfully! Starting game...";
+        statusElement.textContent = 'Joined successfully! Starting game...';
         socketManager.onGameStart = () => {
           document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
           document.querySelector('.game-page')?.classList.remove('hidden');
           startMultiplayerGame();
         };
       } else {
-        statusElement.textContent = "Room not found or full";
+        statusElement.textContent = 'Room not found or full';
       }
     } catch (error) {
-      statusElement.textContent = "Connection error";
+      statusElement.textContent = 'Connection error';
     }
   });
 }

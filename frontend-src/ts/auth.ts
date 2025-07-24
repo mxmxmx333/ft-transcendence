@@ -1,4 +1,4 @@
-import { navigateTo } from "./router.js";
+import { navigateTo } from './router.js';
 
 export async function handleSignup(formData: {
   nickname: string;
@@ -15,7 +15,7 @@ export async function handleSignup(formData: {
     });
 
     const responseClone = response.clone();
-    
+
     if (!response.ok) {
       const errorData = await responseClone.json();
       throw new Error(errorData.error || 'Authentication failed');
@@ -30,10 +30,7 @@ export async function handleSignup(formData: {
   }
 }
 
-export async function handleLogin(formData: {
-  email: string;
-  password: string;
-}) {
+export async function handleLogin(formData: { email: string; password: string }) {
   try {
     const response = await fetch('/api/login', {
       method: 'POST',
@@ -50,17 +47,17 @@ export async function handleLogin(formData: {
     }
 
     const data = await response.json();
-    
+
     if (!data.token) {
       throw new Error('Authentication token not received');
     }
 
     localStorage.setItem('authToken', data.token);
-    
+
     // Re-show the nav-bar (I know I shoud crate a function that adds and removes hidden from classlists later on.)
     document.querySelector('.main-nav')?.classList.remove('hidden');
     navigateTo('/profile');
-    
+
     return data;
   } catch (error) {
     console.error('Login error:', error);
