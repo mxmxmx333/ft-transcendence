@@ -1,35 +1,47 @@
 import fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import websocketPlugin from '@fastify/websocket';
-import path from 'path';
-import dbConnector from './database/db';
-import authPlugin from './plugins/auth';
-import AuthService from './services/auth.service';
-import AuthController from './controllers/auth.controller';
+import dotenv from 'dotenv';
+import jwt from '@fastify/jwt';
+// import type { SocketStream } from '@fastify/websocket';
+
+dotenv.config();
+const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
+const isDevelopment = process.env.NODE_ENV === 'development';
+const JWT_TOKEN_SECRET = process.env.JWT_SECRET;
 
 const server = fastify({
-  logger: {level: 'debug'},
-  ignoreTrailingSlash: true,
+  logger: {
+    level: LOG_LEVEL,
+    ...(isDevelopment
+      ? {
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              singleLine: false,
+            },
+          },
+        }
+      : {}),
+  },
+});
+
+server.register(websocketPlugin, {
+  options: { maxPayload: 1048576 }, // 1MB
+});
+
+server.register(jwt, {
+  secret: JWT_TOKEN_SECRET!,
 });
 
 server.setErrorHandler((error, request, reply) => {
   console.log('Error occurred:', error);
-  server.log.error(error);        // ganzer Stacktrace im Log
+  server.log.error(error); // ganzer Stacktrace im Log
   reply.status(500).send({ error: 'Internal Server Error' });
 });
 
 const activeConnections = new Map<string, WebSocket>();
-
-interface SignupBody {
-  nickname: string;
-  email: string;
-  password: string;
-}
-
-interface LoginBody {
-  email: string;
-  password: string;
-}
 
 // Multiplayer Interfaces
 interface Player {
@@ -60,107 +72,46 @@ const gameRooms: Record<string, GameRoom> = {};
 const waitingPlayers: Player[] = [];
 
 async function start() {
-  await server.register(dbConnector);
+  server.get(
+  '/ws',
+  { websocket: true },
+  (connection) => {
+    const { request, socket } = connection as any;
+    // request ist jetzt defined
+    const token = request.headers['sec-websocket-protocol'];
 
-  await server.register(authPlugin);
 
-  await server.register(websocketPlugin, {
-    options: { maxPayload: 1048576 }, // 1MB
-  });
-  // await server.register(fastifyStatic, {
-  //   root: path.join(__dirname, '../../../public'),
-  //   prefix: '/',
-  //   wildcard: false,
-  // });
-
-  const authService = new AuthService(server);
-  const authController = new AuthController(authService, server);
-
-  server.post<{ Body: SignupBody }>('/api/signup', (request, reply) =>
-    authController.signup(request, reply)
-  );
-
-  server.post<{ Body: LoginBody }>('/api/login', (request, reply) =>
-    authController.login(request, reply)
-  );
-
-  server.post('/api/logout', async (req, reply) => {
     try {
-      return reply.send({ success: true });
-    } catch (err) {
-      return reply.status(500).send({ error: 'Logout failed' });
-    }
-  });
-  server.get('/api/profile', async (req, reply) => {
-    try {
-      const decoded = await req.jwtVerify<{ id: string }>();
-      const user = await authService.getUserById(Number(decoded.id));
+      // 2) JWT prüfen (gibt bei Erfolg das decoded payload zurück)
+      const decoded = (server.jwt.verify(token)) as { id: string };
 
-      if (!user) {
-        return reply.status(404).send({ error: 'User not found' });
-      }
-
-      return reply.send({
-        nickname: user.nickname,
-        email: user.email,
-      });
-    } catch (err) {
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-  });
-
-  server.get('/ws', { websocket: true }, (connection, req) => {
-    const socket = connection;
-
-    const token = req.headers['sec-websocket-protocol'];
-    if (!token) {
-      socket?.close(1008, 'Unauthorized');
-      return;
-    }
-
-    server.jwt.verify(token, async (err, decoded) => {
-      if (err) {
-        socket?.close(1008, 'Invalid token');
-        return;
-      }
-
-      try {
-        const user = await authService.getUserById(Number(decoded.id));
-        if (!user) {
-          socket?.close(1008, 'User not found');
-          return;
+      // 3) Player bauen (hier am besten id + nickname direkt aus dem Token holen)
+      const player: Player = {
+        conn: socket,
+        id: decoded.id,
+        nickname: (decoded as any).nickname ?? 'Guest',
+        score: 0,
+        paddleY: 250,
+      };
+      waitingPlayers.push(player);
+      handlePlayerConnection(player);
+      type WebSocketMessage = string | Buffer | ArrayBuffer | Buffer[];
+      socket.on('message', (message: WebSocketMessage) => {
+        try {
+          const data = JSON.parse(message.toString());
+          handleWebSocketMessage(socket, data);
+        } catch (error) {
+          console.error('Error parsing message:', error);
         }
-
-        const player: Player = {
-          conn: socket,
-          id: user?.id?.toString() || 'unknown',
-          nickname: user?.nickname || 'Guest',
-          score: 0,
-          paddleY: 250,
-        };
-        waitingPlayers.push(player);
-
+      });
+      socket.on('close', () => {
+        console.log(`Player ${player.id} disconnected`);
         handlePlayerConnection(player);
-        type WebSocketMessage = string | Buffer | ArrayBuffer | Buffer[];
-
-        socket.on('message', (message: WebSocketMessage) => {
-          try {
-            const data = JSON.parse(message.toString());
-            handleWebSocketMessage(socket, data);
-          } catch (error) {
-            console.error('Error parsing message:', error);
-          }
-        });
-
-        socket.on('close', () => {
-          console.log(`Player ${player.id} disconnected`);
-          handlePlayerConnection(player);
-        });
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        socket?.close(1008, 'Internal error');
-      }
-    });
+      });
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
+      socket?.close(1008, 'Internal error');
+    }
   });
 
   // server.setNotFoundHandler((_, reply) => {
@@ -168,7 +119,7 @@ async function start() {
   // });
 
   await server.listen({ port: 3001, host: '0.0.0.0' });
-  console.log('Server http://localhost:3000 adresinde çalışıyor');
+  console.log('Server backend is listening: http://localhost:3001 adresinde çalışıyor');
 }
 
 // Multiplayer Game Functions
@@ -536,7 +487,8 @@ function cleanupRoom(room: GameRoom) {
 
   delete gameRooms[room.id];
 }
+
 start().catch((err) => {
-  console.error('Sunucu başlatma hatası:', err);
+  console.error('Error: Server initialization failed', err);
   process.exit(1);
 });

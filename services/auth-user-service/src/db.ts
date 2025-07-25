@@ -7,11 +7,11 @@ export default fp(
   async (fastify) => {
     try {
       const dbPath = path.join(process.cwd(), 'pong.db');
-      console.log(`Veritabanı yolu: ${dbPath}`);
+      console.log(`Database path: ${dbPath}`);
 
       if (!fs.existsSync(dbPath)) {
         fs.writeFileSync(dbPath, '');
-        console.log('Yeni veritabanı dosyası oluşturuldu');
+        console.log('New Database created at:', dbPath);
       }
 
       const db = new Database(dbPath, { verbose: console.log });

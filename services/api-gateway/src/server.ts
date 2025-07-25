@@ -10,10 +10,14 @@ const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-
-const upstreamUrl = process.env.GATEWAY_UPSTREAM;
-if (!upstreamUrl) {
+const upstreamGameService = process.env.GAME_SERVICE_UPSTREAM;
+if (!upstreamGameService) {
   throw new Error('GATEWAY_UPSTREAM environment variable is not set');
+}
+
+const upstreamAuthAndUserService = process.env.AUTH_USER_SERVICE_UPSTREAM;
+if (!upstreamAuthAndUserService) {
+  throw new Error('AUTH_USER_SERVICE_UPSTREAM environment variable is not set');
 }
 
 async function buildServer() {
@@ -38,37 +42,87 @@ async function buildServer() {
   const publicRoot = isDevelopment
     ? path.join(__dirname, '../../../public')
     : path.join(__dirname, '../public');
-    await server.register(fastifyStatic, {
-        root: publicRoot,
-        prefix: '/',
-        wildcard: false,
-    });
-    // Proxy to the bakend service
-    await server.register(proxy, {
-        upstream: upstreamUrl || 'http://backend:3001',
-        prefix: '/api',
-        rewritePrefix: '/api',
-        httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-    });
+  await server.register(fastifyStatic, {
+    root: publicRoot,
+    prefix: '/',
+    wildcard: false,
+  });
+  // === ROUTE GAME SERVICE === 
+  await server.register(proxy, {
+    upstream: upstreamGameService || 'http://localhost:3001',
+    prefix: '/ws',
+    rewritePrefix: '/ws',
+    websocket: true,
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
 
-    // Error handling
-    server.setNotFoundHandler((request, reply) => {
-        server.log.warn({url: request.url, method: request.method}, 'Not Found');
-        reply.status(404).send({ error: 'Not Found' });
-    });
-    return server;
+  await server.register(proxy, {
+    upstream: upstreamGameService || 'http://localhost:3001',
+    prefix: '/api/game',
+    rewritePrefix: '/api/game',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  // === ROUTE AUTH AND USER SERVICE ===
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/auth',
+    rewritePrefix: '/api/auth',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/user',
+    rewritePrefix: '/api/user',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/signup',
+    rewritePrefix: '/api/signup',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/login',
+    rewritePrefix: '/api/login',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/logout',
+    rewritePrefix: '/api/logout',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+    prefix: '/api/profile',
+    rewritePrefix: '/api/profile',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  // Error handling
+  server.setNotFoundHandler((request, reply) => {
+    server.log.warn({ url: request.url, method: request.method }, 'Not Found');
+    reply.status(404).send({ error: 'Not Found' });
+  });
+  return server;
 }
 
 async function start() {
-    const server = await buildServer();
-    
-    try {
-        await server.listen({ port: 3000, host: '0.0.0.0' });
-        server.log.info(`API Gateway running at http://localhost:3000`);
-    } catch (err) {
-        server.log.error(err);
-        process.exit(1);
-    }
+  const server = await buildServer();
+  try {
+    await server.listen({ port: 3000, host: '0.0.0.0' });
+    server.log.info(`API Gateway running at http://localhost:3000`);
+  } catch (err) {
+    server.log.error(err);
+    process.exit(1);
+  }
 }
 
 start();

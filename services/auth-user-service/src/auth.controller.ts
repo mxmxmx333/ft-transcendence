@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import AuthService from '../services/auth.service';
+import AuthService from './auth.service';
 
 interface SignupBody {
   nickname: string;
@@ -49,6 +49,7 @@ export default class AuthController {
 
       // jwt for each
       const token = this.fastify.jwt.sign({
+        nickname: user.nickname,
         id: user.id,
         email: user.email,
       });
@@ -96,6 +97,7 @@ export default class AuthController {
       }
 
       const token = this.fastify.jwt.sign({
+        nickname: user.nickname,
         id: user.id,
         email: user.email,
       });
