@@ -72,28 +72,36 @@ const gameRooms: Record<string, GameRoom> = {};
 const waitingPlayers: Player[] = [];
 
 async function start() {
-  server.get(
-  '/ws',
-  { websocket: true },
-  (connection) => {
-    const { request, socket } = connection as any;
-    // request ist jetzt defined
-    const token = request.headers['sec-websocket-protocol'];
-
-
+  server.get('/ws', { websocket: true }, (connection, request) => {
+    // Zugriff auf IP:
+    // console.log('[WS] New connection from:', connection.socket.remoteAddress);
+  
+    // Header korrekt loggen
+    console.log('[WS] All headers:', request.headers);
+  
+    // Token aus dem "sec-websocket-protocol"-Header
+    const tokenHeader = request.headers['sec-websocket-protocol'];
+    const token = Array.isArray(tokenHeader) ? tokenHeader[0] : tokenHeader;
+  
+    console.log('[WS] Extracted token:', token);
+  
+    if (!token) {
+      console.warn('❌ Kein Token im Header gefunden!');
+      connection.close(4001, 'No token provided');
+      return;
+    }
+  
     try {
-      // 2) JWT prüfen (gibt bei Erfolg das decoded payload zurück)
-      const decoded = (server.jwt.verify(token)) as { id: string };
-
-      // 3) Player bauen (hier am besten id + nickname direkt aus dem Token holen)
+      const { id, nickname = 'Guest' } = server.jwt.verify(token) as { id: string; nickname?: string };
+      console.log('[WS] User ID:', id, 'Nickname:', nickname);
       const player: Player = {
-        conn: socket,
-        id: decoded.id,
-        nickname: (decoded as any).nickname ?? 'Guest',
+        conn: connection.socket,
+        id,
+        nickname,
         score: 0,
         paddleY: 250,
       };
-      waitingPlayers.push(player);
+            waitingPlayers.push(player);
       handlePlayerConnection(player);
       type WebSocketMessage = string | Buffer | ArrayBuffer | Buffer[];
       socket.on('message', (message: WebSocketMessage) => {
@@ -110,7 +118,7 @@ async function start() {
       });
     } catch (error) {
       console.error('WebSocket connection error:', error);
-      socket?.close(1008, 'Internal error');
+      // socket.socket?.close(1008, 'Internal error');
     }
   });
 
