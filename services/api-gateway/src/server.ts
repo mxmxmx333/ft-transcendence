@@ -45,13 +45,13 @@ async function buildServer() {
   await server.register(fastifyStatic, {
     root: publicRoot,
     prefix: '/',
-    wildcard: false,
+    wildcard: true,
   });
-  // === ROUTE GAME SERVICE === 
+  // === ROUTE GAME SERVICE ===
   await server.register(proxy, {
     upstream: upstreamGameService || 'http://localhost:3001',
-    prefix: '/ws',
-    rewritePrefix: '/ws',
+    prefix: '/socket.io',
+    rewritePrefix: '',
     websocket: true,
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
@@ -106,11 +106,14 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  // Error handling
   server.setNotFoundHandler((request, reply) => {
-    server.log.warn({ url: request.url, method: request.method }, 'Not Found');
-    reply.status(404).send({ error: 'Not Found' });
+    if (request.raw.method === 'GET' && !request.raw.url?.startsWith('/api')) {
+      reply.sendFile('index.html');
+    } else {
+      reply.status(404).send({ error: 'Not Found' });
+    }
   });
+
   return server;
 }
 

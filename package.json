@@ -41,7 +41,6 @@
     "@types/node": "^24.0.1",
     "@types/qrcode": "^1.5.5",
     "@types/speakeasy": "^2.0.10",
-    "@types/websocket": "^1.0.10",
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.0",
     "postcss": "^8.4.31",
@@ -50,5 +49,8 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

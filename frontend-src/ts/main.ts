@@ -1,7 +1,7 @@
 import { setupAuthToggle } from './authToggle.js';
 import { setupMobileMenu } from './mobilMenu.js';
 import { navigateTo } from './router.js';
-
+import './socketManager.js';
 function initializeApp() {
   setupAuthToggle();
   setupMobileMenu();

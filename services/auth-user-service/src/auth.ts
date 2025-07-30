@@ -10,10 +10,9 @@ if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is not defined in the environment variables');
 }
 
-
 const authPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(jwt, {
-    secret: process.env.JWT_SECRET || 'our-very-secret' // We'll use .env for this
+    secret: process.env.JWT_SECRET || 'our-very-secret', // We'll use .env for this
   });
 
   // Bcryptjs - plugin could be used.
