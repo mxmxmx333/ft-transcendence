@@ -1,6 +1,3 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
 
 @tailwind base;
 @tailwind components;
@@ -9,6 +6,12 @@
 @font-face {
   font-family: 'CustomFont';
   src: url('../imgs/fonts/custom-font.woff2') format('woff2');
+}
+
+@layer utilities {
+  .bg-dark {
+    background-color: #0f0f0f;
+  }
 }
 
 @layer base {
@@ -35,17 +38,13 @@
            focus:outline-none focus:ring-2 focus:ring-blue-500;
   }
 
-  .btn-neon {
-    @apply w-full py-3 font-bold rounded-lg transition-all duration-300;
+  .btn-neon-pink {
+    @apply bg-pink-600 text-black;
+    box-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
 
-    &-pink {
-      @apply bg-pink-600 text-black;
-      box-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
-
-      &:hover {
-        @apply bg-cyan-500;
-        box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
-      }
+    &:hover {
+      @apply bg-cyan-500;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
     }
   }
 }

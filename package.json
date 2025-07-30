@@ -10,15 +10,11 @@
     "services/auth-user-service"
   ],
   "scripts": {
-    "dev": "concurrently -k -n auth-user-service,game-service,api-gateway,frontend-js,frontend-css -c cyan,green,magenta,yellow \"npm:dev:auth-user-service\" \"npm:dev:game-service\" \"npm:dev:api-gateway\" \"npm:dev:frontend-js\" \"npm:dev:frontend-css\"",
+    "dev": "concurrently -k -n auth-user-service,game-service,api-gateway,frontend -c cyan,green,magenta,yellow \"npm:dev:auth-user-service\" \"npm:dev:game-service\" \"npm:dev:api-gateway\" \"npm:dev:frontend\"",
     "dev:auth-user-service": "NODE_ENV=development ts-node-dev --project services/auth-user-service/tsconfig.json --respawn --transpile-only services/auth-user-service/src/server.ts",
     "dev:game-service": "NODE_ENV=development ts-node-dev --project services/game-service/tsconfig.json --respawn --transpile-only services/game-service/src/server.ts",
     "dev:api-gateway": "NODE_ENV=development ts-node-dev --project services/api-gateway/tsconfig.json --respawn --transpile-only services/api-gateway/src/server.ts",
-    "dev:frontend-js": "tsc --project frontend-src/tsconfig.json --watch",
-    "dev:frontend-css": "tailwindcss -c tailwind.config.ts -i public/css/input.css -o public/css/output.css --watch",
-    "frontend:build": "tsc -p frontend-src/tsconfig.json",
-    "frontend:css": "tailwindcss -c tailwind.config.ts -i ./public/css/input.css -o ./public/css/output.css",
-    "frontend:buildAll": "npm run frontend:build && npm run frontend:css",
+    "dev:frontend": "cd frontend-src && vite",
     "docker:build:game-service": "docker compose build game-service",
     "docker:build:auth-user-service": "docker compose build auth-user-service",
     "docker:build:api-gateway": "docker compose build api-gateway",
@@ -27,7 +23,8 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:ps": "docker compose ps",
-    "build": "npm run docker:build && npm run frontend:buildAll",
+    "build": "npm run docker:build && npm run build:frontend",
+    "build:frontend": "cd frontend-src && vite build",
     "start": "npm run build && npm run docker:up",
     "format": "prettier --write \"**/*.ts\""
   },

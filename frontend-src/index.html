@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/css/style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transcendence</title>
     <!-- Production-ready Tailwind CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="/css/output.css" rel="stylesheet">
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen flex flex-col">
     <!-- Header -->
@@ -25,8 +24,8 @@
             </ul>
             
             <div class="md:hidden flex items-center">
-                <img class="w-10 h-10 cursor-pointer" src="../imgs/icons8-menu.svg" alt="Menu" id="hamburger">
-                <img class="w-8 h-8 hidden cursor-pointer" src="../imgs/icons8-x-vpn.svg" alt="Close Menu" id="close-menu">
+                <img class="w-10 h-10 cursor-pointer" src="/imgs/icons8-menu.svg" alt="Menu" id="hamburger">
+                <img class="w-8 h-8 hidden cursor-pointer" src="/imgs/icons8-x-vpn.svg" alt="Close Menu" id="close-menu">
             </div>
         </div>
     </header>
@@ -34,7 +33,7 @@
     <!-- Main Content -->
     <main class="flex-grow flex items-center justify-center p-4 relative">
         <!-- Background pattern -->
-        <div id= "background-img" class="absolute inset-0 bg-[url('../imgs/background.svg')] bg-cover bg-center opacity-20 -z-10"></div>
+        <div id= "background-img" class="absolute inset-0 bg-[url('/imgs/background.svg')] bg-cover bg-center opacity-20 -z-10"></div>
         
         <!-- Login Page -->
         <section class="login-page w-full max-w-md">
@@ -237,6 +236,6 @@
         </div>
     </footer>
 
-<script type="module" src="js/ts/main.js"></script>
+<script type="module" src="/ts/main.ts"></script>
 </body>
 </html>
