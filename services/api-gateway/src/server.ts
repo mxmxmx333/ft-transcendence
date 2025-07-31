@@ -40,7 +40,7 @@ async function buildServer() {
   });
   // CORS
   const publicRoot = isDevelopment
-    ? path.join(__dirname, '../../../public')
+    ? path.join(__dirname, '../public')
     : path.join(__dirname, '../public');
   await server.register(fastifyStatic, {
     root: publicRoot,
@@ -51,7 +51,7 @@ async function buildServer() {
   await server.register(proxy, {
     upstream: upstreamGameService || 'http://localhost:3001',
     prefix: '/socket.io',
-    rewritePrefix: '',
+    rewritePrefix: '/socket.io',
     websocket: true,
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });

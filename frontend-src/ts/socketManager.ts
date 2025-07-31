@@ -27,9 +27,10 @@ export class SocketManager {
       const token = localStorage.getItem('authToken');
       if (!token) return reject(new Error('No authentication token found'));
 
-      this.socket = io(`https://${window.location.hostname}:3000`, {
-        path: '/socket.io',
+      this.socket = io({
+        path: '/socket.io',              // match your proxy prefix
         auth: { token },
+        transports: ['websocket'],       // optional: skip polling
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
       });
