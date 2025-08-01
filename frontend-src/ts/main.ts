@@ -1,6 +1,15 @@
-import { setupAuthToggle } from './authToggle.js';
-import { setupMobileMenu } from './mobilMenu.js';
-import { navigateTo } from './router.js';
+import '../css/style.css';
+
+import './auth';
+import './authToggle';
+import './game';
+import './mobilMenu';
+import './multiPlayerGame';
+import './router';
+import './socketManager';
+import { setupAuthToggle } from './authToggle';
+import { setupMobileMenu } from './mobilMenu';
+import { navigateTo } from './router';
 
 function initializeApp() {
   setupAuthToggle();

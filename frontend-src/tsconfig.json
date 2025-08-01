@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
     "module": "ESNext",
     "target": "ES6",
     "outDir": "../public/js",

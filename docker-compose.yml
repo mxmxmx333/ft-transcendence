@@ -6,28 +6,42 @@ services:
     ports:
       - "3000:3000"          # Gate­way wird auf Host‑Port 3000 verfügbar
     depends_on:
-      - backend
+      - auth-user-service
+      - game-service
     environment:
       NODE_ENV: production
-      GATEWAY_UPSTREAM: http://backend:3001
-
+      LOG_LEVEL: ${LOG_LEVEL:-info} # Fallback 'info'
+      GAME_SERVICE_UPSTREAM: http://game-service:3001
+      AUTH_USER_SERVICE_UPSTREAM: http://auth-user-service:3002
     networks:
       - api-network
     volumes:
-      - ./public:/app/public‚
+      - ./public:/app/public
     restart: always
 
-  backend:
-    build: ./services/backend
-    # kein 'ports:' hier, Backend nur im Docker‑Netzwerk
+  game-service:
+    build: ./services/game-service
     environment:
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - ./database:/app/database
     networks:
       - api-network
     restart: always
+  
+  auth-user-service:
+    build: ./services/auth-user-service
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - api-network
+    restart: always
+    volumes:
+      - ./database:/app/database
 
 networks:
   api-network:
