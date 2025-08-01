@@ -96,12 +96,12 @@ function updateGameState(room: GameRoom) {
     room.guest!.score++;
     resetBall(room, false);
     scoreChanged = true;
-    console.log(`[Server] Guest scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
+    // console.log(`[Server] Guest scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   } else if (gameState.ballX >= 800) {
     room.owner!.score++;
     resetBall(room, true);
     scoreChanged = true;
-    console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
+    // console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   }
   
   // Skor değiştiyse hemen broadcast et
@@ -110,7 +110,7 @@ function updateGameState(room: GameRoom) {
   }
   
   // Oyun bitti mi kontrol et
-  if (room.owner!.score >= 10 || room.guest!.score >= 10) {
+  if (room.owner!.score >= 100 || room.guest!.score >= 100) {
     endGame(room);
     return; // Game loop'u durdur
   }

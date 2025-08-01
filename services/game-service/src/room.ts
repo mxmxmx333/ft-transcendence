@@ -24,9 +24,9 @@ export function handleCreateRoom(player: Player) {
     return;
   }
   const socket = player.conn;
-  console.log(`[Server] Player ${player.id} is creating a room`);
+  console.log(`[Server] Player ${player.nickname} is creating a room`);
   const roomId = generateUniqueRoomId();
-  console.log(`[Server] Player ${player.id} creating room ${roomId}...`);
+  console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
   try {
     const room: GameRoom = {
       id: roomId,
@@ -76,6 +76,7 @@ export function joinRoom(player: Player, roomId: string) {
     return;
   }
   if (!room.owner) {
+    console.log(`Player ${player.nickname} joining room ${roomId} as owner`);
     room.owner = player;
     player.roomId = roomId;
     player.conn.emit('joined_room', {
@@ -93,6 +94,8 @@ export function joinRoom(player: Player, roomId: string) {
     return;
   }
   room.guest = player;
+  console.log(`Player ${player.nickname} joining room ${roomId} as guest`);
+
   player.roomId = roomId;
   player.conn.join(roomId);
   io.to(roomId).emit('joined_room', {

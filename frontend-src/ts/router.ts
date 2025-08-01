@@ -3,6 +3,9 @@ import { PongGame } from './game.js';
 import { PongMultiplayer } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 
+const socketManager = SocketManager.getInstance();
+socketManager.connect();
+
 type Route = {
   path: string;
   view: () => void;
@@ -299,9 +302,6 @@ async function initMultiplayerGame() {
   setupLobbyUI();
 
   try {
-    const socketManager = SocketManager.getInstance();
-
-    await socketManager.connect();
     document.getElementById('lobby-status')!.textContent = 'Connected to server';
   } catch (error) {
     document.getElementById('lobby-status')!.textContent = 'Connection failed';
@@ -314,7 +314,6 @@ function setupLobbyUI() {
     statusElement.textContent = 'Creating room...';
 
     try {
-      const socketManager = SocketManager.getInstance();
       const roomId = await socketManager.createRoom();
 
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
@@ -365,7 +364,8 @@ function startMultiplayerGame() {
     existingGame.stop();
   }
 
-  const game = new PongMultiplayer(canvas);
+  const game = new PongMultiplayer(canvas, socketManager);
   (window as any).currentGame = game;
-  game.start();
+  socketManager.setGameInstance(game);
+  // game.start();
 }

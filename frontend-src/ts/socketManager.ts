@@ -16,7 +16,9 @@ export class SocketManager {
   public onGameStart: ((payload: GameStartPayload) => void) | null = null;
 
   public static getInstance(): SocketManager {
+    
     if (!SocketManager.instance) {
+      console.log('Creating new SocketManager instance');
       SocketManager.instance = new SocketManager();
     }
     return SocketManager.instance;
@@ -53,13 +55,12 @@ export class SocketManager {
       });
 
       // Game event listeners
-      this.socket.on('game_start', (message: ServerToClientEvents['game_start']) => {
-        console.log('Game start received:', message);
-        if (this.gameInstance) {
-          this.gameInstance.handleGameStart(message);
-        }
+      this.socket.on('game_start', (payload: ServerToClientEvents['game_start']) => {
+        console.log('Game start received:', payload);
+        console.log('Game Instance true;: ', this.gameInstance !== null);
+        this.gameInstance?.handleGameStart(payload);
         if (this.onGameStart) {
-          this.onGameStart(message);
+          this.onGameStart(payload);
         }
       });
 
@@ -75,6 +76,7 @@ export class SocketManager {
 
       this.socket.on('game_state', (state: ServerToClientEvents['game_state']) => {
         // Console log'u kaldır - çok spam yapıyor
+        // console.log('Game state update:', state);
         this.gameInstance?.updateFromServer(state);
       });
 
@@ -198,13 +200,16 @@ export class SocketManager {
 
   public paddleMove(yPos: number): void {
     if (this.socket?.connected) {
+      console.log('Paddle move:', yPos);
       this.socket.emit('paddle_move', { yPos });
       // Console log'u kaldır - çok spam yapıyor
     }
   }
 
   public setGameInstance(gameInstance: PongMultiplayer): void {
+    console.log('Setting game instance:', gameInstance);
     this.gameInstance = gameInstance;
+    console.log('Game instance set:', this.gameInstance);
   }
 
   public disconnect(): void {
