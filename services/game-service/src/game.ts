@@ -6,13 +6,23 @@ export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
     throw new Error('Cannot start game without both players');
   }
+
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
   }
-  console.log(`Starting game in room ${room.id}`);
+
+  console.log(`[Server] Starting game in room ${room.id}`);
+  console.log(`[Server] Owner: ${room.owner.nickname} (${room.owner.id})`);
+  console.log(`[Server] Guest: ${room.guest.nickname} (${room.guest.id})`);
+
+  // Skorları sıfırla
+  room.owner.score = 0;
+  room.guest.score = 0;
+
   try {
-    io.to(room.id).emit('game_start', {
+    const gameStartPayload = {
       message: 'Game is starting',
+      roomId: room.id,
       ballX: room.gameState.ballX,
       ballY: room.gameState.ballY,
       paddle1Y: room.owner.paddleY,
@@ -28,20 +38,43 @@ export function startGame(room: GameRoom) {
         nickname: room.guest.nickname,
       },
       success: true,
+    };
+
+    // Owner'a gönder (Player 1)
+    room.owner.conn.emit('game_start', {
+      ...gameStartPayload,
+      isPlayer1: true,
+      opponent: room.guest.nickname,
     });
+
+    // Guest'e gönder (Player 2)  
+    room.guest.conn.emit('game_start', {
+      ...gameStartPayload,
+      isPlayer1: false,
+      opponent: room.owner.nickname,
+    });
+
+    console.log(`[Server] Game start messages sent to both players`);
   } catch (err) {
+    console.error(`[Server] Error sending game start messages:`, err);
     throw new Error(`[startGame] Failed to send game start message: ${err}`);
   }
 
+  // Game loop başlat
   room.gameLoop = setInterval(() => {
-    if (!gameRooms[room.id]) {
+    if (!gameRooms[room.id] || !room.owner || !room.guest) {
+      console.log(`[Server] Game loop stopped for room ${room.id}`);
       clearInterval(room.gameLoop);
+      room.gameLoop = undefined;
       return;
     }
     updateGameState(room);
     broadcastGameState(room);
   }, 1000 / 60);
+
+  console.log(`[Server] Game loop started for room ${room.id}`);
 }
+
 
 function updateGameState(room: GameRoom) {
   const { gameState } = room;
@@ -49,20 +82,37 @@ function updateGameState(room: GameRoom) {
   const deltaTime = (now - gameState.lastUpdate) / 1000;
   gameState.lastUpdate = now;
 
+  // Top hareketini güncelle
   gameState.ballX += gameState.ballVX * deltaTime * 60;
   gameState.ballY += gameState.ballVY * deltaTime * 60;
 
+  // Çarpışmaları kontrol et
   handleCollisions(room);
 
+  // Skor kontrolü
+  let scoreChanged = false;
+  
   if (gameState.ballX <= 0) {
     room.guest!.score++;
     resetBall(room, false);
+    scoreChanged = true;
+    console.log(`[Server] Guest scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   } else if (gameState.ballX >= 800) {
     room.owner!.score++;
     resetBall(room, true);
+    scoreChanged = true;
+    console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   }
+  
+  // Skor değiştiyse hemen broadcast et
+  if (scoreChanged) {
+    broadcastGameState(room);
+  }
+  
+  // Oyun bitti mi kontrol et
   if (room.owner!.score >= 10 || room.guest!.score >= 10) {
     endGame(room);
+    return; // Game loop'u durdur
   }
 }
 
@@ -119,6 +169,9 @@ export function abortGame(room: GameRoom) {
 
 export function endGame(room: GameRoom) {
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
+  
+  // Kazananın nickname'ini doğru şekilde al
+  const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
   io.to(room.id).emit('game_over', {
     winner,
@@ -126,14 +179,31 @@ export function endGame(room: GameRoom) {
       owner: room.owner!.score,
       guest: room.guest!.score,
     },
-    message: `Game over! ${room[winner]!.nickname} wins!`,
+    message: `Game over! ${winnerNickname} wins!`,
   });
 
-  clearInterval(room.gameLoop);
-  room.gameLoop = undefined;
+  if (room.gameLoop) {
+    clearInterval(room.gameLoop);
+    room.gameLoop = undefined;
+  }
 
-  if (room.owner) handleLeaveRoom(room.owner.conn);
-  if (room.guest) handleLeaveRoom(room.guest.conn);
+  // Oyuncuları odadan çıkar ama bağlantıyı kesme
+  // handleLeaveRoom yerine daha nazik bir yaklaşım:
+  console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
+  
+  // 5 saniye sonra oyuncuları lobby'e yönlendir
+  setTimeout(() => {
+    if (room.owner) {
+      room.owner.roomId = undefined;
+      room.owner.conn.leave(room.id);
+    }
+    if (room.guest) {
+      room.guest.roomId = undefined;
+      room.guest.conn.leave(room.id);
+    }
+    delete gameRooms[room.id];
+    console.log(`[Server] Room ${room.id} cleaned up`);
+  }, 5000);
 }
 
 function broadcastGameState(room: GameRoom) {
@@ -145,10 +215,10 @@ function broadcastGameState(room: GameRoom) {
     ownerScore: room.owner?.score ?? 0,
     guestScore: room.guest?.score ?? 0,
   };
+  
   try {
     io.to(room.id).emit('game_state', gameState);
-  } catch (error) {
-    console.error(`[broadcastGameState] Error broadcasting game state: ${error}`);
+  } catch(error){
+    console.log(`[Server] Game state broadcasted for room ${room.id}`);
   }
-  console.log(`[Server] Game state broadcasted for room ${room.id}`);
 }
