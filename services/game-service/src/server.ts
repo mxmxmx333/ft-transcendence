@@ -1,10 +1,9 @@
 import fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { Socket } from 'socket.io';
-// import { createServer } from 'http';
 import dotenv from 'dotenv';
 import jwt from '@fastify/jwt';
-import { AuthPayload } from './types/types'; // Adjust the import path as necessary
+import { AuthPayload } from './types/types';
 
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
@@ -26,16 +25,12 @@ const server = fastify({
   },
 });
 
-// const httpServer = createServer(server.server);
-
 export const io = new SocketIOServer(server.server, {
   cors: {
     origin: FRONTEND_URL,
     methods: ['GET', 'POST'],
   },
 });
-
-import './io.handler'; // Import the io handler to set up the connection
 
 server.register(jwt, {
   secret: JWT_TOKEN_SECRET!,
@@ -44,21 +39,29 @@ server.register(jwt, {
 // === WebSocket Authentication Middleware ===
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  if (!token) return next(new Error('Authentication error'));
+  if (!token) {
+    console.log('[Auth] No token provided');
+    return next(new Error('Authentication error: No token provided'));
+  }
+  
   try {
     const payload = server.jwt.verify(token) as AuthPayload;
     socket.user = payload;
+    console.log(`[Auth] User ${payload.nickname} authenticated successfully`);
     next();
   } catch (err) {
-    console.error('JWT verification error:', err);
+    console.error('[Auth] JWT verification error:', err);
     next(new Error('Missing or invalid token'));
   }
 });
 
+// ÖNEMLI: io handler'ı io tanımlandıktan SONRA import et
+import './io.handler';
+
 //  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {
   console.log('Error occurred:', error);
-  server.log.error(error); // ganzer Stacktrace im Log
+  server.log.error(error);
   reply.status(500).send({ error: 'Internal Server Error' });
 });
 
