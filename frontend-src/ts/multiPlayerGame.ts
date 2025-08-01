@@ -259,7 +259,7 @@ export class PongMultiplayer {
     }
 
     // Important!! paddle possition for server!
-    SocketManager.getInstance().sendPaddlePosition(this.playerY);
+    SocketManager.getInstance().paddleMove(this.playerY);
 
     // scores
     document.getElementById('score')!.textContent = this.playerScore.toString();

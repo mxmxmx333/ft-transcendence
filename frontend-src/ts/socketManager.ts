@@ -1,8 +1,10 @@
 import { PongMultiplayer } from './multiPlayerGame';
+import type { GameStartPayload, ServerToClientEvents } from './types/socket-interfaces';
+import { io, Socket } from 'socket.io-client';
 
 export class SocketManager {
   private static instance: SocketManager;
-  private socket: WebSocket | null = null;
+  private socket?: Socket;
   private gameInstance: PongMultiplayer | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -10,7 +12,8 @@ export class SocketManager {
   private pendingResolve: ((roomId: string) => void) | null = null;
 
   private constructor() {}
-  public onGameStart: ((message: any) => void) | null = null;
+
+  public onGameStart: ((payload: GameStartPayload) => void) | null = null;
 
   public static getInstance(): SocketManager {
     if (!SocketManager.instance) {
@@ -21,178 +24,178 @@ export class SocketManager {
 
   public connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          reject(new Error('No authentication token found'));
-          return;
+      const token = localStorage.getItem('authToken');
+      if (!token) return reject(new Error('No authentication token found'));
+
+      this.socket = io({
+        path: '/socket.io',              // match your proxy prefix
+        auth: { token },
+        transports: ['websocket'],       // optional: skip polling
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: this.reconnectDelay,
+      });
+      this.socket.on('connect', () => {
+        console.log('Socket connected:', this.socket?.id);
+        this.reconnectAttempts = 0;
+        resolve();
+      });
+      this.socket.on('connect_error', (error: Error) => reject(error));
+      this.socket.on('disconnect', () => {
+        console.warn('Socket disconnected');
+        this.handleReconnection();
+      });
+      this.socket!.on('game_start', (message: ServerToClientEvents['game_start']) => {
+        console.log('Game start received:', message);
+        if (this.gameInstance) {
+          this.gameInstance.handleGameStart(message);
         }
-
-        const wsUrl = `ws://${window.location.hostname}:3000/ws`;
-        this.socket = new WebSocket(wsUrl, token);
-
-        this.socket.onopen = () => {
-          console.log('WebSocket connected');
-          this.reconnectAttempts = 0;
-
-          setTimeout(() => resolve(), 100);
-        };
-
-        this.socket.onerror = (error) => {
-          reject(error);
-        };
-
-        this.socket.onclose = (event) => {
-          if (!event.wasClean) {
-            this.handleReconnection();
-          }
-        };
-
-        this.socket.onmessage = (event) => this.handleMessage(event.data);
-      } catch (error) {
-        reject(error);
-      }
+        if (this.onGameStart) {
+          this.onGameStart(message);
+        }
+      });
+      this.socket!.on('game_over', (message: ServerToClientEvents['game_over']) => {
+        console.log('Game over:', message);
+        this.gameInstance?.handleGameOver(message);
+      });
+      this.socket!.on(
+        'game_aborted',
+        (message: { message: ServerToClientEvents['game_aborted'] }) =>
+          this.gameInstance?.handleRoomTerminated()
+      );
+      this.socket!.on('game_state', (state: ServerToClientEvents['game_state']) => {
+        console.log('Game state update:', state);
+      });
+      this.socket!.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
+        console.log('Joined room:', data);
+        if (this.pendingResolve) {
+          this.pendingResolve(data.roomId);
+          this.pendingResolve = null;
+        }
+      });
+      this.socket!.on('join_error', (error: ServerToClientEvents['join_error']) => {
+        console.error('Join error:', error.message);
+        if (this.pendingResolve) {
+          this.pendingResolve('');
+          this.pendingResolve = null;
+        }
+      });
+      this.socket!.on('create_error', (error: ServerToClientEvents['create_error']) => {
+        console.error('Create error:', error.message);
+        if (this.pendingResolve) {
+          this.pendingResolve('');
+          this.pendingResolve = null;
+        }
+      });
+      this.socket!.on('room_created', (data: ServerToClientEvents['room_created']) => {
+        console.log('Room created:', data);
+        if (this.pendingResolve) {
+          this.pendingResolve(data.roomId);
+          this.pendingResolve = null;
+        }
+      });
     });
   }
-
   private handleReconnection() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(
-        `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-      );
-
+      console.warn(`Reconnecting... Attempt ${this.reconnectAttempts}`);
       setTimeout(() => {
-        if (this.gameInstance) {
-          this.connect().catch(console.error);
-        }
+        this.socket?.connect();
       }, this.reconnectDelay);
     } else {
-      console.error('Max reconnection attempts reached');
-      if (this.gameInstance) {
-        this.gameInstance.handleConnectionLost();
-      }
-    }
-  }
-
-  private handleMessage(data: string) {
-    try {
-      const message = JSON.parse(data);
-      console.log('Received message type:', message.type);
-
-      switch (message.type) {
-        case 'game_start':
-          console.log('Game starting with:', message);
-          if (this.onGameStart) this.onGameStart(message);
-          break;
-        case 'game_state':
-          if (this.gameInstance) this.gameInstance.updateFromServer(message);
-          break;
-        case 'room_terminated':
-          console.warn('Room terminated:', message.reason);
-          if (this.gameInstance) this.gameInstance.handleRoomTerminated();
-          break;
-        default:
-          console.warn('Unknown message type:', message.type);
-      }
-    } catch (error) {
-      console.error('Message parse error:', error);
+      console.error('Max reconnection attempts reached. Please refresh the page.');
+      this.gameInstance?.handleConnectionLost();
     }
   }
   public createRoom(): Promise<string> {
     return new Promise((resolve, reject) => {
-      console.log('[Client] createRoom called');
-
-      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-        const errorMsg = `Socket not ready, state: ${this.socket?.readyState}`;
-        console.error('[Client]', errorMsg);
-        reject(new Error(errorMsg));
-        return;
+      if (!this.socket?.connected) {
+        return reject(new Error('Socket not connected'));
       }
 
       const timeout = setTimeout(() => {
-        console.error('[Client] Room creation timeout');
         reject(new Error('Room creation timeout'));
-      }, 10000);
+      }, 10_000);
 
-      const messageHandler = (event: MessageEvent) => {
-        try {
-          console.log('[Client] Received message:', event.data);
-          const data = JSON.parse(event.data);
-
-          if (data.type === 'room_created') {
-            console.log('[Client] Room created successfully, roomId:', data.roomId);
-            clearTimeout(timeout);
-            this.socket?.removeEventListener('message', messageHandler);
-            resolve(data.roomId);
-          } else if (data.type === 'error') {
-            console.error('[Client] Error from server:', data.message);
-            clearTimeout(timeout);
-            this.socket?.removeEventListener('message', messageHandler);
-            reject(new Error(data.message));
-          }
-        } catch (error) {
-          console.error('[Client] Error parsing message:', error);
+      this.socket.once('room_created', (msg) => {
+        clearTimeout(timeout);
+        if (msg.success) {
+          resolve(msg.roomId);
+        } else {
+          reject(new Error(msg.message ?? 'Unknown error'));
         }
-      };
+      });
 
-      this.socket.addEventListener('message', messageHandler);
+      this.socket.once('create_error', (err) => {
+        clearTimeout(timeout);
+        reject(new Error(err.message));
+      });
 
-      const createMsg = { type: 'create_room' };
-      console.log('[Client] Sending create_room message:', createMsg);
-      this.socket.send(JSON.stringify(createMsg));
+      this.socket.emit('create_room');
+      console.log('[Client] create_room emitted');
     });
   }
-
-  public joinRoom(roomId: string): Promise<boolean> {
+  public joinRoom(roomId: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-        reject(new Error('WebSocket not connected'));
-        return;
+      if (!this.socket?.connected) {
+        return reject(new Error('Socket not connected'));
       }
 
-      const timeout = setTimeout(() => {
-        reject(new Error('Join room timeout'));
-      }, 5000);
+      this.pendingResolve = resolve;
 
-      const tempListener = (event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'join_result') {
-            clearTimeout(timeout);
-            this.socket?.removeEventListener('message', tempListener);
-            resolve(data.success);
-          }
-        } catch (error) {
-          console.error('Error parsing message:', error);
-        }
-      };
-
-      this.socket.addEventListener('message', tempListener);
-      this.socket.send(
-        JSON.stringify({
-          type: 'join_room',
-          roomId,
-        })
-      );
+      this.socket.emit('join_room', { roomId });
+      console.log('[Client] join_room emitted');
     });
   }
-  public sendPaddlePosition(yPos: number) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(
-        JSON.stringify({
-          type: 'paddle_move',
-          yPos,
-          timestamp: Date.now(),
-        })
-      );
+  public leaveRoom(): void {
+    if (this.socket?.connected) {
+      this.socket.emit('leave_room');
+      console.log('[Client] leave_room emitted');
+    } else {
+      console.warn('Socket not connected, cannot leave room');
     }
   }
-
-  public disconnect() {
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
+  public paddleMove(yPos: number): void {
+    if (this.socket?.connected) {
+      this.socket.emit('paddle_move', { yPos });
+      console.log('[Client] paddle_move emitted with yPos:', yPos);
+    } else {
+      console.warn('Socket not connected, cannot send paddle move');
     }
+  }
+  public setGameInstance(gameInstance: PongMultiplayer): void {
+    this.gameInstance = gameInstance;
+    if (this.socket) {
+      this.socket.on('game_start', (message: ServerToClientEvents['game_start']) => {
+        this.gameInstance?.handleGameStart(message);
+      });
+      this.socket.on('game_over', (message: ServerToClientEvents['game_over']) => {
+        this.gameInstance?.handleGameOver(message);
+      });
+      this.socket.on('game_aborted', () => {
+        this.gameInstance?.handleRoomTerminated();
+      });
+    }
+  }
+  public disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = undefined;
+      console.log('Socket disconnected');
+    } else {
+      console.warn('Socket already disconnected or not initialized');
+    }
+  }
+  public isConnected(): boolean {
+    return this.socket?.connected ?? false;
+  }
+  public getSocket(): Socket | undefined {
+    return this.socket;
+  }
+  public getSocketId(): string | undefined {
+    return this.socket?.id;
+  }
+  public getGameInstance(): PongMultiplayer | null {
+    return this.gameInstance;
   }
 }

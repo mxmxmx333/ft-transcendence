@@ -1,4 +1,4 @@
-import User from '../models/user';
+import User from './user';
 
 // ENVIRONMENT VARIABLES
 import * as dotenv from 'dotenv';

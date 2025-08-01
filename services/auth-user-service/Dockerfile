@@ -1,21 +1,22 @@
 # === Build Stage ===
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-COPY services/api-gateway/package*.json services/api-gateway/tsconfig.json ./
-COPY public ./public
-
+COPY package*.json tsconfig.json ./
 RUN npm install
-COPY services/api-gateway/src ./src/
+
+COPY src/ ./src/
 RUN npm run build
 
 # === Production Stage ===
 FROM node:20-alpine AS runner
+
 WORKDIR /app
 
 COPY package*.json ./
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
 
 CMD ["node", "dist/server.js"]
