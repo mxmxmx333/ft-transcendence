@@ -319,7 +319,7 @@ export class PongMultiplayer {
 
   private handlePaddleMovement() {
     let moved = false;
-    const moveSpeed = 5;
+    const moveSpeed = 1;
 
     if (this.isPlayer1) {
       // Player 1 - W/S tuşları
