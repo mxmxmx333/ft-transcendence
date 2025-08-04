@@ -7,9 +7,9 @@ export class PongMultiplayer {
   private animationId!: number;
   private isPlayer1 = false;
   private roomId: string | null = null;
-  private opponentNickname = 'Waiting...';
+  private opponentNickname = '';
   private myNickname = 'Player';
-
+  private socketManager?: SocketManager;
   // Game state
   private playerY = 250;
   private opponentY = 250;
@@ -30,28 +30,24 @@ export class PongMultiplayer {
   private readonly ballRadius = 10;
   private readonly winningScore = 10;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, socketManager: SocketManager) {
+    console.log('Initializing PongMultiplayer');
+    this.socketManager = socketManager;
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
-    // Socket manager'a bu instance'ı ver
-    SocketManager.getInstance().setGameInstance(this);
     this.init();
   }
 
   public async init() {
     this.setupCanvas();
     this.setupControls();
-    await this.setupMultiplayerConnection();
     this.setupSocketListeners();
     this.setupUI();
   }
 
   private setupSocketListeners() {
-    const socket = SocketManager.getInstance();
-    socket.onGameStart = (msg) => {
-      console.log('Game start triggered', msg);
-      this.handleGameStart(msg);
-    };
+    const socket = this.socketManager;
+    console.log('Setting up socket listeners');
   }
 
   private setupCanvas() {
@@ -87,10 +83,12 @@ export class PongMultiplayer {
     // Keyboard
     const keyDownHandler = (e: KeyboardEvent) => {
       if (this.isPlayer1) {
+        console.log('Player 1 controls');
         // Player 1 uses W/S
         if (e.key === 'w' || e.key === 'W') this.wPressed = true;
         else if (e.key === 's' || e.key === 'S') this.sPressed = true;
       } else {
+        console.log('Player 2 controls');
         // Player 2 uses Arrow Keys
         if (e.key === 'ArrowUp') this.upPressed = true;
         else if (e.key === 'ArrowDown') this.downPressed = true;
@@ -134,16 +132,6 @@ export class PongMultiplayer {
     }
   }
 
-  private async setupMultiplayerConnection() {
-    try {
-      const socketManager = SocketManager.getInstance();
-      await socketManager.connect();
-    } catch (error) {
-      console.error('Connection failed:', error);
-      this.updateStatus('Connection failed. Please try again.');
-    }
-  }
-
   private async setupUI() {
     try {
       const response = await fetch('/api/profile', {
@@ -163,7 +151,7 @@ export class PongMultiplayer {
       document.getElementById('game-nick')!.textContent = 'Player';
     }
 
-    document.getElementById('game-nick2')!.textContent = 'Waiting...';
+    // document.getElementById('game-nick2')!.textContent = 'Waiting...';
   }
 
   private updateStatus(message: string) {
@@ -186,6 +174,7 @@ export class PongMultiplayer {
       this.opponentScore = gameState.ownerScore;
       this.opponentY = gameState.paddle1Y;
     }
+    this.draw();
   }
 
   public updateOpponentPaddle(yPos: number) {
@@ -197,12 +186,14 @@ export class PongMultiplayer {
   console.log('Is Player 1:', message.isPlayer1);
   console.log('Owner info:', message.owner);
   console.log('Guest info:', message.guest);
-  
+  console.log('Message.owner.nickname:', message.owner.nickname);
+  console.log('Message.guest.nickname:', message.guest.nickname);
   if (this.gameRunning) this.stop();
 
-  this.isPlayer1 = message.isPlayer1;
+  this.isPlayer1 = message.owner.nickname === this.myNickname;
   this.roomId = message.roomId;
-  this.opponentNickname = message.opponent;
+  this.opponentNickname = message.guest.nickname;
+  document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
   // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et
   console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
@@ -328,7 +319,7 @@ export class PongMultiplayer {
 
   private handlePaddleMovement() {
     let moved = false;
-    const moveSpeed = 5;
+    const moveSpeed = 1;
 
     if (this.isPlayer1) {
       // Player 1 - W/S tuşları
@@ -366,7 +357,7 @@ export class PongMultiplayer {
 
     // Sadece hareket varsa server'a gönder
     if (moved) {
-      SocketManager.getInstance().paddleMove(this.playerY);
+      this.socketManager?.paddleMove(this.playerY);
     }
   }
 
@@ -425,7 +416,7 @@ export class PongMultiplayer {
 
   public start() {
     this.gameRunning = true;
-    this.draw();
+    // this.draw();
   }
 
   public stop() {

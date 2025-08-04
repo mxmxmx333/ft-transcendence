@@ -4,8 +4,8 @@ import { io } from './server';
 
 // io connection handler
 io.on('connection', (socket) => {
-  console.log(`[Socket] New connection from ${socket.id}`);
-  
+  console.log(`[Socket] New connection from ${socket.id} by user ${socket.user?.nickname || 'unknown'}`);
+
   // socket.user kontrolü ekleyelim
   if (!socket.user) {
     console.error(`[Socket] No user data found for socket ${socket.id}`);
@@ -31,10 +31,10 @@ io.on('connection', (socket) => {
 
   socket.on('paddle_move', (data: { yPos: number }) => {
     if (!data || typeof data.yPos !== 'number') {
-      console.error(`[Socket] Invalid paddle_move data from ${player.id}`);
+      console.error(`[Socket] Invalid paddle_move data from ${player.id} in room ${player.roomId}`);
       return;
     }
-    
+    console.log(`[Socket] Player ${player.id} paddle moved to ${data.yPos} in room ${player.roomId}`);
     player.paddleY = data.yPos;
     // Paddle pozisyonu güncellendiğinde oda bilgisini kontrol et
     if (player.roomId) {

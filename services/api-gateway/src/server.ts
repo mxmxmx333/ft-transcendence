@@ -23,7 +23,7 @@ if (!upstreamAuthAndUserService) {
 async function buildServer() {
   const server = Fastify({
     logger: {
-      level: LOG_LEVEL,
+      level: 'info',
 
       ...(process.env.NODE_ENV === 'development'
         ? {

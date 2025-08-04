@@ -3,6 +3,9 @@ import { PongGame } from './game.js';
 import { PongMultiplayer } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 
+const socketManager = SocketManager.getInstance();
+socketManager.connect();
+
 type Route = {
   path: string;
   view: () => void;
@@ -299,9 +302,6 @@ async function initMultiplayerGame() {
   setupLobbyUI();
 
   try {
-    const socketManager = SocketManager.getInstance();
-
-    await socketManager.connect();
     document.getElementById('lobby-status')!.textContent = 'Connected to server';
   } catch (error) {
     document.getElementById('lobby-status')!.textContent = 'Connection failed';
@@ -309,12 +309,15 @@ async function initMultiplayerGame() {
 }
 
 function setupLobbyUI() {
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const game = new PongMultiplayer(canvas, socketManager);
+    socketManager.setGameInstance(game);
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';
 
     try {
-      const socketManager = SocketManager.getInstance();
       const roomId = await socketManager.createRoom();
 
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
@@ -322,7 +325,7 @@ function setupLobbyUI() {
       socketManager.onGameStart = () => {
         document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
         document.querySelector('.game-page')?.classList.remove('hidden');
-        startMultiplayerGame();
+        startMultiplayerGame(game);
       };
     } catch (error) {
       statusElement.textContent = 'Error creating room';
@@ -337,15 +340,13 @@ function setupLobbyUI() {
     statusElement.textContent = 'Joining room...';
 
     try {
-      const socketManager = SocketManager.getInstance();
       const success = await socketManager.joinRoom(roomId);
-
       if (success) {
         statusElement.textContent = 'Joined successfully! Starting game...';
         socketManager.onGameStart = () => {
           document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
           document.querySelector('.game-page')?.classList.remove('hidden');
-          startMultiplayerGame();
+          startMultiplayerGame(game);
         };
       } else {
         statusElement.textContent = 'Room not found or full';
@@ -356,16 +357,13 @@ function setupLobbyUI() {
   });
 }
 
-function startMultiplayerGame() {
-  const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-  if (!canvas) return;
+function startMultiplayerGame(game: PongMultiplayer) {
 
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();
   }
 
-  const game = new PongMultiplayer(canvas);
   (window as any).currentGame = game;
-  game.start();
+  // game.start();
 }
