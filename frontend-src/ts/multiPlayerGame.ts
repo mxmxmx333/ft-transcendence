@@ -1,6 +1,7 @@
 import { SocketManager } from './socketManager.js';
 
 export class PongMultiplayer {
+  private lastTimeStamp = 0;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private gameRunning = false;
@@ -307,9 +308,6 @@ export class PongMultiplayer {
     this.ctx.arc(this.ballX * scaleX, this.ballY * scaleY, this.ballRadius * Math.min(scaleX, scaleY), 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Paddle hareketini kontrol et
-    this.handlePaddleMovement();
-
     // Skorları güncelle
     document.getElementById('score')!.textContent = this.playerScore.toString();
     document.getElementById('score2')!.textContent = this.opponentScore.toString();
@@ -317,10 +315,10 @@ export class PongMultiplayer {
     this.animationId = requestAnimationFrame(() => this.draw());
   }
 
-  private handlePaddleMovement() {
+  private handlePaddleMovement(deltaTime: number) {
     let moved = false;
-    const moveSpeed = 1;
-
+    const speedPxPerSecond = 300; // px/s
+    const moveSpeed = speedPxPerSecond * (deltaTime / 1000);
     if (this.isPlayer1) {
       // Player 1 - W/S tuşları
       if (this.wPressed) {
@@ -354,7 +352,6 @@ export class PongMultiplayer {
         }
       }
     }
-
     // Sadece hareket varsa server'a gönder
     if (moved) {
       this.socketManager?.paddleMove(this.playerY);
@@ -415,10 +412,30 @@ export class PongMultiplayer {
   }
 
   public start() {
+    if (this.gameRunning) {
+      console.warn('Game is already running');
+      return;
+    }
     this.gameRunning = true;
-    // this.draw();
+    this.lastTimeStamp = performance.now();
+    this.animationId = requestAnimationFrame((this.gameLoop));
   }
 
+  private gameLoop = (timestamp: number) => {
+    if (!this.gameRunning) return;
+    const deltaTime = timestamp - this.lastTimeStamp;
+    this.lastTimeStamp = timestamp;
+
+    // Her frame'de server'a paddle pozisyonunu gönder
+    this.handlePaddleMovement(deltaTime);
+
+    // Oyun durumunu güncelle
+    this.draw();
+
+    if (this.gameRunning) {
+      requestAnimationFrame(this.gameLoop);
+    }
+  };
   public stop() {
     this.gameRunning = false;
     if (this.animationId) {
