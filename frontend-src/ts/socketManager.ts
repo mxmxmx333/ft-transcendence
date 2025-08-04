@@ -30,7 +30,7 @@ export class SocketManager {
       if (!token) return reject(new Error('No authentication token found'));
 
       // SERVER URL'i düzelt!
-      this.socket = io('http://localhost:3001', {
+      this.socket = io({
         path: '/socket.io',
         auth: { token },
         transports: ['websocket'],
