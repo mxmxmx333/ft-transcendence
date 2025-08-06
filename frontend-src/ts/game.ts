@@ -180,7 +180,7 @@ export class PongGame {
       const response = await fetch('/api/profile', {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          // 'Content-Type': 'application/json',
         },
       });
 

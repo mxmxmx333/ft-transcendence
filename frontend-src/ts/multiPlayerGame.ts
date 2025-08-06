@@ -138,7 +138,7 @@ export class PongMultiplayer {
       const response = await fetch('/api/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json',
+          // 'Content-Type': 'application/json',
         },
       });
 

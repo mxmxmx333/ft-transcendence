@@ -1,4 +1,16 @@
 services:
+  web-application-firewall:
+    build:
+      context: ./services/web-application-firewall
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"          # WAF wird auf Host‑Port 8080 verfügbar
+    depends_on:
+      - api-gateway
+    networks:
+      - api-network
+    restart: always
+
   api-gateway:
     build: 
       context: .
@@ -47,3 +59,6 @@ networks:
   api-network:
     driver: bridge
 
+volumes:
+  database:
+    driver: local

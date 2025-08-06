@@ -13,7 +13,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 async function buildServer() {
   const server = fastify({
     logger: {
-      level: LOG_LEVEL,
+      level: 'debug',
       ...(isDevelopment
         ? {
             transport: {
@@ -64,9 +64,19 @@ async function start() {
     authController.signup(request, reply)
   );
 
-  server.post<{ Body: LoginBody }>('/api/login', (request, reply) =>
-    authController.login(request, reply)
-  );
+  server.post<{ Body: LoginBody }>('/api/login', async (request, reply) => {
+    // 1) Logge eingehende Payload
+    request.log.info({ headers: request.headers }, 'Incoming login request headers');
+    request.log.info({ body: request.body }, 'Incoming login request');
+    
+    // 2) Rufe deinen Controller auf
+    const result = await authController.login(request, reply);
+
+    // 3) (Optional) Logge die Antwort
+    request.log.info({ result }, 'Login response');
+
+    return result;
+  });
 
   server.post('/api/logout', async (req, reply) => {
     try {
@@ -77,6 +87,8 @@ async function start() {
   });
 
   server.get('/api/profile', async (req, reply) => {
+    req.log.info({ headers: req.headers }, 'Incoming profile request');
+    req.log.info({ auth: req.headers.authorization }, 'Auth header');
     try {
       const decoded = await req.jwtVerify<{ id: string }>();
       const user = await authService.getUserById(Number(decoded.id));
@@ -84,7 +96,6 @@ async function start() {
       if (!user) {
         return reply.status(404).send({ error: 'User not found' });
       }
-
       return reply.send({
         nickname: user.nickname,
         email: user.email,

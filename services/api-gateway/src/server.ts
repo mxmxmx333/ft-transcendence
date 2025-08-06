@@ -6,7 +6,7 @@ import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const LOG_LEVEL = 'debug'///process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -23,7 +23,7 @@ if (!upstreamAuthAndUserService) {
 async function buildServer() {
   const server = Fastify({
     logger: {
-      level: 'info',
+      level: 'debug',
 
       ...(process.env.NODE_ENV === 'development'
         ? {
@@ -38,15 +38,15 @@ async function buildServer() {
         : {}), // In Production füge nichts hinzu
     },
   });
-  // CORS
-  const publicRoot = isDevelopment
-    ? path.join(__dirname, '../public')
-    : path.join(__dirname, '../public');
-  await server.register(fastifyStatic, {
-    root: publicRoot,
-    prefix: '/',
-    wildcard: true,
-  });
+  // // CORS
+  // const publicRoot = isDevelopment
+  //   ? path.join(__dirname, '../public')
+  //   : path.join(__dirname, '../public');
+  // await server.register(fastifyStatic, {
+  //   root: publicRoot,
+  //   prefix: '/',
+  //   wildcard: true,
+  // });
   // === ROUTE GAME SERVICE ===
   await server.register(proxy, {
     upstream: upstreamGameService || 'http://localhost:3001',

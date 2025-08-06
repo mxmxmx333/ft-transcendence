@@ -4,7 +4,7 @@ import path from 'path'
 export default defineConfig({
   publicDir: path.resolve(__dirname, '../public'),
   build: {
-    outDir: path.resolve(__dirname, '../services/api-gateway/public'),
+    outDir: path.resolve(__dirname, '../services/web-application-firewall/html'),
     emptyOutDir: true,
     assetsDir: 'js',
     rollupOptions: {

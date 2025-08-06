@@ -1,0 +1,43 @@
+<svg width="100%" height="100%" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <!-- Turkuaz neon (sol raket) -->
+    <filter id="neon-left" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00ffff" flood-opacity="1" />
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#00ffff" flood-opacity="0.6" />
+    </filter>
+
+    <!-- Pembe neon (sağ raket) -->
+    <filter id="neon-right" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff66cc" flood-opacity="1" />
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ff66cc" flood-opacity="0.6" />
+    </filter>
+
+    <!-- Sarı top glow -->
+    <filter id="neon-ball" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffff00" flood-opacity="1" />
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#ffff99" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Arka plan -->
+  <rect width="100%" height="100%" fill="#000000" />
+
+  <!-- Ortadaki kesikli çizgi -->
+  <line x1="400" y1="0" x2="400" y2="400" stroke="#ffffff" stroke-width="4" stroke-dasharray="20,20" />
+
+  <!-- Sol raket (turkuaz) -->
+  <rect x="30" y="150" width="10" height="100" fill="#00ffff" rx="2" filter="url(#neon-left)">
+    <animate attributeName="y" values="50;250;50" dur="3s" repeatCount="indefinite" />
+  </rect>
+
+  <!-- Sağ raket (pembe) -->
+  <rect x="760" y="150" width="10" height="100" fill="#ff66cc" rx="2" filter="url(#neon-right)">
+    <animate attributeName="y" values="250;50;250" dur="3s" repeatCount="indefinite" />
+  </rect>
+
+  <!-- Sarı top (hareketli) -->
+  <circle cx="400" cy="200" r="8" fill="#ffff00" filter="url(#neon-ball)">
+    <animate attributeName="cx" values="100;700;100" dur="4s" repeatCount="indefinite" />
+  </circle>
+</svg>
+
