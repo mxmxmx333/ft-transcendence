@@ -4,7 +4,9 @@ import { io } from './server';
 
 // io connection handler
 io.on('connection', (socket) => {
-  console.log(`[Socket] New connection from ${socket.id} by user ${socket.user?.nickname || 'unknown'}`);
+  console.log(
+    `[Socket] New connection from ${socket.id} by user ${socket.user?.nickname || 'unknown'}`
+  );
 
   // socket.user kontrolü ekleyelim
   if (!socket.user) {
@@ -34,13 +36,15 @@ io.on('connection', (socket) => {
       console.error(`[Socket] Invalid paddle_move data from ${player.id} in room ${player.roomId}`);
       return;
     }
-    console.log(`[Socket] Player ${player.id} paddle moved to ${data.yPos} in room ${player.roomId}`);
+    console.log(
+      `[Socket] Player ${player.id} paddle moved to ${data.yPos} in room ${player.roomId}`
+    );
     player.paddleY = data.yPos;
     // Paddle pozisyonu güncellendiğinde oda bilgisini kontrol et
     if (player.roomId) {
       socket.to(player.roomId).emit('paddle_update', {
         playerId: player.id,
-        yPos: data.yPos
+        yPos: data.yPos,
       });
     }
   });

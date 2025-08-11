@@ -16,7 +16,6 @@ export class SocketManager {
   public onGameStart: ((payload: GameStartPayload) => void) | null = null;
 
   public static getInstance(): SocketManager {
-    
     if (!SocketManager.instance) {
       console.log('Creating new SocketManager instance');
       SocketManager.instance = new SocketManager();
@@ -110,7 +109,7 @@ export class SocketManager {
       this.socket.on('room_created', (data: ServerToClientEvents['room_created']) => {
         console.log('Room created:', data);
         // Room oluşturuldu mesajını göster
-        document.getElementById('lobby-status')!.textContent = 
+        document.getElementById('lobby-status')!.textContent =
           `Room created: ${data.roomId}. Waiting for opponent...`;
         if (this.pendingResolve) {
           this.pendingResolve(data.roomId);

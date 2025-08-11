@@ -165,7 +165,7 @@ export class PongMultiplayer {
   public updateFromServer(gameState: any) {
     this.ballX = gameState.ballX;
     this.ballY = gameState.ballY;
-    
+
     if (this.isPlayer1) {
       this.playerScore = gameState.ownerScore;
       this.opponentScore = gameState.guestScore;
@@ -183,52 +183,54 @@ export class PongMultiplayer {
   }
 
   public handleGameStart(message: any) {
-  console.log('Game start received:', message);
-  console.log('Is Player 1:', message.isPlayer1);
-  console.log('Owner info:', message.owner);
-  console.log('Guest info:', message.guest);
-  console.log('Message.owner.nickname:', message.owner.nickname);
-  console.log('Message.guest.nickname:', message.guest.nickname);
-  if (this.gameRunning) this.stop();
+    console.log('Game start received:', message);
+    console.log('Is Player 1:', message.isPlayer1);
+    console.log('Owner info:', message.owner);
+    console.log('Guest info:', message.guest);
+    console.log('Message.owner.nickname:', message.owner.nickname);
+    console.log('Message.guest.nickname:', message.guest.nickname);
+    if (this.gameRunning) this.stop();
 
-  this.isPlayer1 = message.owner.nickname === this.myNickname;
-  this.roomId = message.roomId;
-  this.opponentNickname = message.guest.nickname;
-  document.getElementById('game-nick2')!.textContent = this.opponentNickname;
+    this.isPlayer1 = message.owner.nickname === this.myNickname;
+    this.roomId = message.roomId;
+    this.opponentNickname = message.guest.nickname;
+    document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
-  // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et
-  console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
-  console.log(`My opponent is: ${this.opponentNickname}`);
+    // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et
+    console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
+    console.log(`My opponent is: ${this.opponentNickname}`);
 
-  // UI güncellemeleri - BU KISIM ÇOK ÖNEMLİ
-  const gameNick1 = document.getElementById('game-nick');
-  const gameNick2 = document.getElementById('game-nick2');
-  
-  if (gameNick1 && gameNick2) {
-    if (this.isPlayer1) {
-      // Ben owner'ım, sol tarafta benim ismim olacak
-      gameNick1.textContent = message.owner.nickname;
-      gameNick2.textContent = message.guest.nickname;
-      console.log(`Set nicknames: ${message.owner.nickname} vs ${message.guest.nickname}`);
+    // UI güncellemeleri - BU KISIM ÇOK ÖNEMLİ
+    const gameNick1 = document.getElementById('game-nick');
+    const gameNick2 = document.getElementById('game-nick2');
+
+    if (gameNick1 && gameNick2) {
+      if (this.isPlayer1) {
+        // Ben owner'ım, sol tarafta benim ismim olacak
+        gameNick1.textContent = message.owner.nickname;
+        gameNick2.textContent = message.guest.nickname;
+        console.log(`Set nicknames: ${message.owner.nickname} vs ${message.guest.nickname}`);
+      } else {
+        // Ben guest'im, ama UI'da kendi ismimi sol tarafa koyalım
+        gameNick1.textContent = message.guest.nickname;
+        gameNick2.textContent = message.owner.nickname;
+        console.log(`Set nicknames: ${message.guest.nickname} vs ${message.owner.nickname}`);
+      }
     } else {
-      // Ben guest'im, ama UI'da kendi ismimi sol tarafa koyalım
-      gameNick1.textContent = message.guest.nickname;
-      gameNick2.textContent = message.owner.nickname;
-      console.log(`Set nicknames: ${message.guest.nickname} vs ${message.owner.nickname}`);
+      console.error('Could not find game-nick elements!');
     }
-  } else {
-    console.error('Could not find game-nick elements!');
+
+    // Kontrol bilgisini göster
+    this.updateStatus(
+      `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
+    );
+
+    // Sayfa geçişi
+    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+    document.querySelector('.game-page')?.classList.remove('hidden');
+
+    this.start();
   }
-
-  // Kontrol bilgisini göster
-  this.updateStatus(`You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`);
-
-  // Sayfa geçişi
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.remove('hidden');
-
-  this.start();
-}
 
   public handleRoomTerminated() {
     console.warn('Room terminated, returning to lobby');
@@ -240,9 +242,14 @@ export class PongMultiplayer {
 
   public handleGameOver(message: any) {
     this.gameRunning = false;
-    const winner = message.winner === 'owner' ? 
-      (this.isPlayer1 ? 'YOU' : this.opponentNickname) : 
-      (this.isPlayer1 ? this.opponentNickname : 'YOU');
+    const winner =
+      message.winner === 'owner'
+        ? this.isPlayer1
+          ? 'YOU'
+          : this.opponentNickname
+        : this.isPlayer1
+          ? this.opponentNickname
+          : 'YOU';
     this.drawGameOver(winner);
   }
 
@@ -279,10 +286,10 @@ export class PongMultiplayer {
 
     // Paddles
     const paddleRadius = 8;
-    
+
     // Kendi paddle'ımız (sol tarafta player1, sağ tarafta player2)
     this.ctx.fillStyle = this.isPlayer1 ? '#ff00ff' : '#00ffff';
-    const myPaddleX = this.isPlayer1 ? 10 * scaleX : (this.canvas.width - 25 * scaleX);
+    const myPaddleX = this.isPlayer1 ? 10 * scaleX : this.canvas.width - 25 * scaleX;
     this.drawRoundedRect(
       myPaddleX,
       this.playerY * scaleY,
@@ -293,7 +300,7 @@ export class PongMultiplayer {
 
     // Rakip paddle'ı
     this.ctx.fillStyle = this.isPlayer1 ? '#00ffff' : '#ff00ff';
-    const opponentPaddleX = this.isPlayer1 ? (this.canvas.width - 25 * scaleX) : 10 * scaleX;
+    const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 * scaleX : 10 * scaleX;
     this.drawRoundedRect(
       opponentPaddleX,
       this.opponentY * scaleY,
@@ -305,7 +312,13 @@ export class PongMultiplayer {
     // Top
     this.ctx.fillStyle = '#ffff00';
     this.ctx.beginPath();
-    this.ctx.arc(this.ballX * scaleX, this.ballY * scaleY, this.ballRadius * Math.min(scaleX, scaleY), 0, Math.PI * 2);
+    this.ctx.arc(
+      this.ballX * scaleX,
+      this.ballY * scaleY,
+      this.ballRadius * Math.min(scaleX, scaleY),
+      0,
+      Math.PI * 2
+    );
     this.ctx.fill();
 
     // Skorları güncelle
@@ -418,7 +431,7 @@ export class PongMultiplayer {
     }
     this.gameRunning = true;
     this.lastTimeStamp = performance.now();
-    this.animationId = requestAnimationFrame((this.gameLoop));
+    this.animationId = requestAnimationFrame(this.gameLoop);
   }
 
   private gameLoop = (timestamp: number) => {

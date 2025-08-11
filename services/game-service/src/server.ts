@@ -43,7 +43,7 @@ io.use((socket, next) => {
     console.log('[Auth] No token provided');
     return next(new Error('Authentication error: No token provided'));
   }
-  
+
   try {
     const payload = server.jwt.verify(token) as AuthPayload;
     socket.user = payload;

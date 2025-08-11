@@ -309,10 +309,10 @@ async function initMultiplayerGame() {
 }
 
 function setupLobbyUI() {
-    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-    if (!canvas) return;
-    const game = new PongMultiplayer(canvas, socketManager);
-    socketManager.setGameInstance(game);
+  const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  const game = new PongMultiplayer(canvas, socketManager);
+  socketManager.setGameInstance(game);
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';
@@ -358,7 +358,6 @@ function setupLobbyUI() {
 }
 
 function startMultiplayerGame(game: PongMultiplayer) {
-
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();

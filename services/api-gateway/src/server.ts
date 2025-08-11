@@ -6,7 +6,7 @@ import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const LOG_LEVEL = 'debug'///process.env.LOG_LEVEL || 'debug';
+const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -71,6 +71,7 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
+  
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'http://localhost:3002',
     prefix: '/api/user',
