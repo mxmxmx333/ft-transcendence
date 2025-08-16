@@ -53,7 +53,7 @@ export function startGame(room: GameRoom) {
       isPlayer1: false,
       opponent: room.owner.nickname,
     });
-
+ 
     console.log(`[Server] Game start messages sent to both players`);
   } catch (err) {
     console.error(`[Server] Error sending game start messages:`, err);

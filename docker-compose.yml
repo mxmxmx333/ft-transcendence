@@ -9,7 +9,7 @@ services:
         LMDB_VERSION: ${LMDB_VERSION:-0.9.29} 
     ports:
       - "8080:80"          # WAF wird auf Host‑Port 8080 verfügbar
-      - "8443:443"         # HTTPS Port für WAF
+      - "8443:8443"         # HTTPS Port für WAF
 
     depends_on:
       - api-gateway

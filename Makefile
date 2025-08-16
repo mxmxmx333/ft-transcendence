@@ -46,7 +46,7 @@ $(CERT_KEY) $(CERT_CRT):
 	@echo "🔐 Generating self-signed certificate..."
 	@mkdir -p $(CERT_DIR)
 	@openssl req -x509 -days 365 -new -nodes \
-	  -config $(OPENSSL_CONF) \
+	  -config $(OPENSSL_CONF) -extensions req_ext\
 	  -keyout $(CERT_KEY) \
 	  -out   $(CERT_CRT)
 	@echo "✅ Wrote $(CERT_KEY) & $(CERT_CRT)"
