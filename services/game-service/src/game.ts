@@ -47,13 +47,13 @@ export function startGame(room: GameRoom) {
       opponent: room.guest.nickname,
     });
 
-    // Guest'e gönder (Player 2)  
+    // Guest'e gönder (Player 2)
     room.guest.conn.emit('game_start', {
       ...gameStartPayload,
       isPlayer1: false,
       opponent: room.owner.nickname,
     });
-
+ 
     console.log(`[Server] Game start messages sent to both players`);
   } catch (err) {
     console.error(`[Server] Error sending game start messages:`, err);
@@ -75,7 +75,6 @@ export function startGame(room: GameRoom) {
   console.log(`[Server] Game loop started for room ${room.id}`);
 }
 
-
 function updateGameState(room: GameRoom) {
   const { gameState } = room;
   const now = Date.now();
@@ -91,7 +90,7 @@ function updateGameState(room: GameRoom) {
 
   // Skor kontrolü
   let scoreChanged = false;
-  
+
   if (gameState.ballX <= 0) {
     room.guest!.score++;
     resetBall(room, false);
@@ -103,12 +102,12 @@ function updateGameState(room: GameRoom) {
     scoreChanged = true;
     // console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   }
-  
+
   // Skor değiştiyse hemen broadcast et
   if (scoreChanged) {
     broadcastGameState(room);
   }
-  
+
   // Oyun bitti mi kontrol et
   if (room.owner!.score >= 100 || room.guest!.score >= 100) {
     endGame(room);
@@ -169,7 +168,7 @@ export function abortGame(room: GameRoom) {
 
 export function endGame(room: GameRoom) {
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
-  
+
   // Kazananın nickname'ini doğru şekilde al
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
@@ -190,7 +189,7 @@ export function endGame(room: GameRoom) {
   // Oyuncuları odadan çıkar ama bağlantıyı kesme
   // handleLeaveRoom yerine daha nazik bir yaklaşım:
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
-  
+
   // 5 saniye sonra oyuncuları lobby'e yönlendir
   setTimeout(() => {
     if (room.owner) {
@@ -215,10 +214,10 @@ function broadcastGameState(room: GameRoom) {
     ownerScore: room.owner?.score ?? 0,
     guestScore: room.guest?.score ?? 0,
   };
-  
+
   try {
     io.to(room.id).emit('game_state', gameState);
-  } catch(error){
+  } catch (error) {
     console.log(`[Server] Game state broadcasted for room ${room.id}`);
   }
 }

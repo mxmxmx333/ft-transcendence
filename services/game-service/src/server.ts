@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
-import { Socket } from 'socket.io';
+import { registerIoHandlers } from './io.handler';
 import dotenv from 'dotenv';
 import jwt from '@fastify/jwt';
 import { AuthPayload } from './types/types';
@@ -43,7 +43,7 @@ io.use((socket, next) => {
     console.log('[Auth] No token provided');
     return next(new Error('Authentication error: No token provided'));
   }
-  
+
   try {
     const payload = server.jwt.verify(token) as AuthPayload;
     socket.user = payload;
@@ -55,8 +55,7 @@ io.use((socket, next) => {
   }
 });
 
-// ÖNEMLI: io handler'ı io tanımlandıktan SONRA import et
-import './io.handler';
+registerIoHandlers(io);
 
 //  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {

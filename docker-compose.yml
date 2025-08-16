@@ -1,10 +1,33 @@
 services:
+  web-application-firewall:
+    build:
+      context: ./services/web-application-firewall
+      dockerfile: Dockerfile
+      args: 
+        MODSEC_VERSION: ${MODSEC_VERSION:-3.0.8} 
+        NGINX_VERSION: ${NGINX_VERSION:-1.22.1} 
+        LMDB_VERSION: ${LMDB_VERSION:-0.9.29} 
+    ports:
+      - "8080:80"          # WAF wird auf Host‑Port 8080 verfügbar
+      - "8443:8443"         # HTTPS Port für WAF
+
+    depends_on:
+      - api-gateway
+    volumes:
+      - ./services/web-application-firewall/configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/web-application-firewall/modsecurity.d:/etc/modsecurity.d:ro
+      - ./services/web-application-firewall/html:/usr/share/nginx/html:ro
+      - ./services/web-application-firewall/certs/server.crt:/etc/nginx/conf/server.crt:ro
+      - ./services/web-application-firewall/certs/server.key:/etc/nginx/conf/server.key:ro
+    networks:
+      - api-network
+    restart: always
+
   api-gateway:
     build: 
       context: .
       dockerfile: services/api-gateway/Dockerfile
-    ports:
-      - "3000:3000"          # Gate­way wird auf Host‑Port 3000 verfügbar
+          # Gate­way wird auf Host‑Port 3000 verfügbar
     depends_on:
       - auth-user-service
       - game-service
@@ -47,3 +70,6 @@ networks:
   api-network:
     driver: bridge
 
+volumes:
+  database:
+    driver: local
