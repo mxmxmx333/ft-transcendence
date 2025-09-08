@@ -8,7 +8,6 @@ dotenv.config();
 // AUTHENTICATION SERVICE
 export default class AuthService {
   private db: any;
-
   constructor(fastify: any) {
     if (!fastify.db) {
       throw new Error('Database not initialized');
