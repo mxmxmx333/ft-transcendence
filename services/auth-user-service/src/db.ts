@@ -6,13 +6,16 @@ import fs from 'fs';
 export default fp(
   async (fastify) => {
     try {
-      const dbPath = path.join(process.cwd(), 'pong.db');
+      const dbPath = path.join(process.cwd(), 'database', 'pong.db');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
       console.log(`Database path: ${dbPath}`);
 
-      if (!fs.existsSync(dbPath)) {
-        fs.writeFileSync(dbPath, '');
-        console.log('New Database created at:', dbPath);
-      }
+      // ---->  unneccessairy because better-sqlite3 creates the file if it doesn't exist
+      // 
+      // if (!fs.existsSync(dbPath)) {
+      //   fs.writeFileSync(dbPath, '');
+      //   console.log('New Database created at:', dbPath);
+      // }
 
       const db = new Database(dbPath, { verbose: console.log });
 
