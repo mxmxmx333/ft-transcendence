@@ -62,10 +62,15 @@ export class SocketManager {
           this.onGameStart(payload);
         }
       });
-
       this.socket.on('game_over', (message: ServerToClientEvents['game_over']) => {
         console.log('Game over:', message);
-        this.gameInstance?.handleGameOver(message);
+        
+        let winner = '';
+        if (this.gameInstance) {
+          winner = this.gameInstance.determineWinner(message);
+        }
+        
+        this.gameInstance?.handleGameOver({...message, winner});
       });
 
       this.socket.on('game_aborted', (message: { message: string }) => {
