@@ -10,10 +10,27 @@ export interface Player {
   roomId?: string;
 }
 
+export interface PaddleMovePayload {
+  paddle_move: {
+    moveP1: 'up' | 'down' | 'none';
+    moveP2: 'up' | 'down' | 'none';
+  };
+}
+
+export interface CreateRoomPayload {
+  create_room: {
+    isSinglePlayer: boolean;
+    isRemote: boolean;
+  };
+}
+
 export interface GameRoom {
   id: string;
+  gameType: 'single' | 'multi' | 'remote';
   owner: Player | null;
   guest: Player | null;
+  ownerMovement: 'up' | 'down' | 'none';
+  guestMovement: 'up' | 'down' | 'none';
   gameState: {
     ballX: number;
     ballY: number;

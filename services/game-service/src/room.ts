@@ -2,7 +2,7 @@ import { Player, GameRoom, activeConnections, gameRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
-
+import { PaddleMovePayload, CreateRoomPayload } from './types/types';
 // === Room Management ===
 
 function generateUniqueRoomId(): string {
@@ -13,9 +13,8 @@ function generateUniqueRoomId(): string {
   return id;
 }
 
-export function handleCreateRoom(player: Player) {
+export function handleCreateRoom(player: Player, payload: CreateRoomPayload['create_room']) {
   console.log(`[Server] handleCreateRoom called by player ${player.id}`);
-
   if (player.roomId) {
     console.log(`[Server] Player ${player.id} is already in a room`);
     player.conn.emit('create_error', {
@@ -30,8 +29,11 @@ export function handleCreateRoom(player: Player) {
   try {
     const room: GameRoom = {
       id: roomId,
+      gameType: payload.isSinglePlayer ? 'single' : (payload.isRemote ? 'remote' : 'multi'),
       owner: player,
       guest: null,
+      ownerMovement: 'none',
+      guestMovement: 'none',
       gameState: {
         ballX: 400,
         ballY: 300,

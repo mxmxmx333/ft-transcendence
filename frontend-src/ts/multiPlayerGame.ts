@@ -1,6 +1,10 @@
+import { Server } from 'http';
 import { SocketManager } from './socketManager.js';
+import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces.js';
 
-export class PongMultiplayer {
+export class PongGame {
+  public isSinglePlayer = false;
+  public isRemote = false;
   private lastTimeStamp = 0;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -32,7 +36,7 @@ export class PongMultiplayer {
   private readonly winningScore = 10;
 
   constructor(canvas: HTMLCanvasElement, socketManager: SocketManager) {
-    console.log('Initializing PongMultiplayer');
+    console.log('Initializing Pong Game');
     this.socketManager = socketManager;
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -162,25 +166,22 @@ export class PongMultiplayer {
     }
   }
 
-  public updateFromServer(gameState: any) {
+
+  // UPDATED
+  public updateFromServer(gameState: ServerToClientEvents['game_state']) {
     this.ballX = gameState.ballX;
     this.ballY = gameState.ballY;
-
-    if (this.isPlayer1) {
-      this.playerScore = gameState.ownerScore;
-      this.opponentScore = gameState.guestScore;
-      this.opponentY = gameState.paddle2Y;
-    } else {
-      this.playerScore = gameState.guestScore;
-      this.opponentScore = gameState.ownerScore;
-      this.opponentY = gameState.paddle1Y;
-    }
+    this.playerY = gameState.paddle1Y;
+    this.opponentY = gameState.paddle2Y;
+    this.playerScore = gameState.ownerScore;
+    this.opponentScore = gameState.guestScore;
     this.draw();
   }
-
-  public updateOpponentPaddle(yPos: number) {
-    this.opponentY = yPos;
-  }
+  // REMOVED
+  // public updatePaddles(yPos1: number, yPos2: number) {
+  //   this.playerY = yPos1;
+  //   this.opponentY = yPos2;
+  // }
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
@@ -325,50 +326,34 @@ export class PongMultiplayer {
     document.getElementById('score')!.textContent = this.playerScore.toString();
     document.getElementById('score2')!.textContent = this.opponentScore.toString();
 
-    this.animationId = requestAnimationFrame(() => this.draw());
+    // this.animationId = requestAnimationFrame(() => this.draw());
   }
 
   private handlePaddleMovement(deltaTime: number) {
-    let moved = false;
-    const speedPxPerSecond = 300; // px/s
-    const moveSpeed = speedPxPerSecond * (deltaTime / 1000);
-    if (this.isPlayer1) {
-      // Player 1 - W/S tuşları
-      if (this.wPressed) {
-        const newY = Math.max(0, this.playerY - moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
-      if (this.sPressed) {
-        const newY = Math.min(600 - this.paddleHeight, this.playerY + moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
+    let moveP1: 'up' | 'down' | 'none' = 'none';
+    let moveP2: 'up' | 'down' | 'none' = 'none';
+    if (this.wPressed && !this.sPressed) {
+        moveP1 = 'up';
+    } else if (this.sPressed && !this.wPressed) {
+        moveP1 = 'down';
     } else {
+        moveP1 = 'none';
+    }
+    
       // Player 2 - Ok tuşları
-      if (this.upPressed) {
-        const newY = Math.max(0, this.playerY - moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
-      if (this.downPressed) {
-        const newY = Math.min(600 - this.paddleHeight, this.playerY + moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
+    if (this.upPressed && !this.downPressed) {
+        moveP2 = 'up';
+    } else if (this.downPressed && !this.upPressed) {
+        moveP2 = 'down';
+    } else {
+        moveP2 = 'none';
     }
+    let Payload: ClientToServerEvents['paddle_move'] = {
+      moveP1,
+      moveP2
+    };
     // Sadece hareket varsa server'a gönder
-    if (moved) {
-      this.socketManager?.paddleMove(this.playerY);
-    }
+    this.socketManager?.paddleMove(Payload);
   }
 
   private drawRoundedRect(x: number, y: number, width: number, height: number, radius: number) {
@@ -443,7 +428,7 @@ export class PongMultiplayer {
     this.handlePaddleMovement(deltaTime);
 
     // Oyun durumunu güncelle
-    this.draw();
+    // this.draw();
 
     if (this.gameRunning) {
       requestAnimationFrame(this.gameLoop);

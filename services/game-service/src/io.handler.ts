@@ -1,6 +1,7 @@
 import { Player, activeConnections } from './types/types';
 import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect } from './room';
 import type { Server, Socket } from 'socket.io';
+import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -30,27 +31,22 @@ export function registerIoHandlers(io: Server) {
       handleDisconnect(player);
     });
 
-    socket.on('paddle_move', (data: { yPos: number }) => {
-      if (!data || typeof data.yPos !== 'number') {
-        console.error(`[Socket] Invalid paddle_move data from ${player.id} in room ${player.roomId}`);
+    socket.on('paddle_move', (data: PaddleMovePayload) => {
+      if (!data || !('moveP1' in data) || !('moveP2' in data)) {
+        console.error(`[Socket] Invalid paddle_move data from ${player.id}`);
         return;
       }
-      console.log(
-        `[Socket] Player ${player.id} paddle moved to ${data.yPos} in room ${player.roomId}`
-      );
-      player.paddleY = data.yPos;
-
-      if (player.roomId) {
-        socket.to(player.roomId).emit('paddle_update', {
-          playerId: player.id,
-          yPos: data.yPos,
-        });
+      if (socket === socket.room.guest?.conn) {
+        socket.room.guestMovement = data.moveP2 === 'none' ? 'stop' : data.moveP2;
+      }
+      else if (socket === socket.room.owner?.conn) {
+        socket.room.ownerMovement = data.moveP1 === 'none' ? 'stop' : data.moveP1;
       }
     });
 
-    socket.on('create_room', () => {
+    socket.on('create_room', (payload: CreateRoomPayload['create_room']) => {
       console.log(`[Socket] Player ${player.id} creating room`);
-      handleCreateRoom(player);
+      handleCreateRoom(player, payload);
     });
 
     socket.on('join_room', (data: { roomId: string }) => {
@@ -59,7 +55,6 @@ export function registerIoHandlers(io: Server) {
         socket.emit('join_error', { message: 'Invalid room ID' });
         return;
       }
-
       console.log(`[Socket] Player ${player.id} joining room ${data.roomId}`);
       joinRoom(player, data.roomId);
     });

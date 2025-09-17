@@ -19,7 +19,6 @@ export interface GameStartPayload {
 
 export interface ServerToClientEvents {
   game_start: GameStartPayload;
-
   game_aborted: {
     message: string;
   };
@@ -57,13 +56,17 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  create_room: {};
+  create_room: {
+    isSinglePlayer: boolean;
+    isRemote: boolean;
+  };
   join_room: {
     roomId: string;
   };
   leave_room: {};
   paddle_move: {
-    yPos: number;
+    moveP1: 'up' | 'down' | 'none';
+    moveP2: 'up' | 'down' | 'none';
   };
   disconnect: {};
 }
