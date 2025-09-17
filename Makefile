@@ -1,10 +1,12 @@
-.PHONY: all dep-check cert build run hosts-add hosts-remove assert-ip
+.PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
+        ca vault-bootstrap-cert print-vault clean-vault-certs \
+        vault:dev vault:prod
 
 ################################################################################
 # VARIABLES
 ################################################################################
 
-# Compose (v2 Plugin bevorzugt, sonst v1)
+# docker compose v2 bevorzugt
 COMPOSE := $(shell sh -c 'docker compose version >/dev/null 2>&1 && echo "docker compose" || (command -v docker-compose >/dev/null 2>&1 && echo "docker-compose" || echo "")')
 
 LAN_IP ?= $(shell sh -c '\
@@ -21,16 +23,11 @@ DOMAIN       ?= ft-transcendence.at
 HOSTS_FILE   ?= /etc/hosts
 HOSTS_LINE   := $(LAN_IP) $(DOMAIN)
 
-CERT_DIR     ?= ./services/web-application-firewall/certs
-OPENSSL_CONF ?= ./services/web-application-firewall/configs/openssl.conf
-CERT_KEY     := $(CERT_DIR)/server.key
-CERT_CRT     := $(CERT_DIR)/server.crt
-
 ################################################################################
 # TARGETS
 ################################################################################
 
-all: dep-check cert build run
+all: dep-check build run
 
 dep-check:
 	@command -v openssl >/dev/null 2>&1 || { echo "❌ openssl missing"; exit 1; }
@@ -40,17 +37,7 @@ dep-check:
 	@echo "✅ deps ok"
 	@if [ -f package-lock.json ]; then echo "📦 npm ci"; npm ci; else echo "📦 npm install"; npm install; fi
 
-cert: $(CERT_KEY) $(CERT_CRT)
-
-$(CERT_KEY) $(CERT_CRT):
-	@echo "🔐 Generating self-signed certificate..."
-	@mkdir -p $(CERT_DIR)
-	@openssl req -x509 -days 365 -new -nodes \
-	  -config $(OPENSSL_CONF) -extensions req_ext\
-	  -keyout $(CERT_KEY) \
-	  -out   $(CERT_CRT)
-	@echo "✅ Wrote $(CERT_KEY) & $(CERT_CRT)"
-
+# ---- Build/Run deiner App (unverändert) ----
 build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
@@ -60,7 +47,7 @@ run:
 	@echo "🚀 Starting services..."
 	@$(COMPOSE) up -d web-application-firewall
 
-# Optional: Systemweite Domain → LAN-IP (nicht in all!)
+# ---- /etc/hosts Helpers (unverändert) ----
 assert-ip:
 	@if [ -z "$(LAN_IP)" ]; then echo "Could not detect LAN_IP. Use: make hosts-add LAN_IP=192.168.x.y"; exit 1; fi
 
@@ -76,6 +63,7 @@ hosts-remove: assert-ip
 	@sudo mv "$(HOSTS_FILE).tmp" "$(HOSTS_FILE)"
 	@echo "💾 Backup at $(HOSTS_FILE).bak"
 
+# ---- NPM Dependencies (unverändert) ----
 deps-update-minor:
 	@npx npm-check-updates -w . -t minor -u
 	@npx npm-check-updates -w services/api-gateway -t minor -u

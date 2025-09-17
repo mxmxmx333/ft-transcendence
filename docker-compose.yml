@@ -8,7 +8,7 @@ services:
         NGINX_VERSION: ${NGINX_VERSION:-1.22.1} 
         LMDB_VERSION: ${LMDB_VERSION:-0.9.29} 
     ports:
-      - "8080:80"          # WAF wird auf Host‑Port 8080 verfügbar
+      - "8080:80"           # WAF wird auf Host‑Port 8080 verfügbar
       - "8443:8443"         # HTTPS Port für WAF
 
     depends_on:
@@ -21,7 +21,7 @@ services:
       - ./services/web-application-firewall/certs/server.key:/etc/nginx/conf/server.key:ro
     networks:
       - api-network
-    restart: always
+    restart: unless-stopped
 
   api-gateway:
     build: 
@@ -40,7 +40,7 @@ services:
       - api-network
     volumes:
       - ./public:/app/public
-    restart: always
+    restart: unless-stopped
 
   game-service:
     build: ./services/game-service
@@ -48,11 +48,9 @@ services:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       JWT_SECRET: ${JWT_SECRET}
-    volumes:
-      - ./database:/app/database
     networks:
       - api-network
-    restart: always
+    restart: unless-stopped
   
   auth-user-service:
     build: ./services/auth-user-service
@@ -62,14 +60,127 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     networks:
       - api-network
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./database:/app/database
+
+  vault-seed-config:
+    image: alpine:3.20
+    profiles: [ "dev", "prod" ]
+    volumes: 
+      - ./services/vault/config/:/source:ro
+      - ./services/vault/scripts/:/scripts:ro
+      - vault-dev-config:/dest-dev
+      - vault1-config:/dest-1
+      - vault2-config:/dest-2
+      - vault3-config:/dest-3
+    entrypoint: ["sh", "/scripts/vault-seed-config.sh"]
+    restart: "no"
+
+    # --- Dev: Single node with local UI/CLI
+  
+  vault-dev-seed:
+    image: alpine:3.20
+    profiles: [ "dev" ]          # nur mit --profile dev
+    volumes: 
+      - vault-dev-runtime-certs:/destination
+      - ./services/vault/scripts/:/scripts:ro
+    environment:
+      CN: "vault-dev"
+      EXTRASAN: ",DNS:localhost,IP:127.0.0.1"
+      DAYS: "7"
+      DEST: "/destination"
+    entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
+    restart: "no"
+
+  vault-dev:
+    image: hashicorp/vault:1.17
+    profiles: [ "dev" ]
+    command: server -config=/vault/config/vault1.hcl   # single-node config ok
+    cap_add: [ "IPC_LOCK" ]
+    ulimits: { memlock: -1 }
+    volumes:
+      - vault-dev-config:/vault/config:ro
+      - vault-dev-runtime-certs:/vault/certs:ro   # initiale Zertifikate von vault-dev-seed
+      - vault1_data:/vault/raft
+      - vault1_logs:/vault/logs
+    ports:  
+      - "127.0.0.1:8200:8200"
+    networks: [ api-network ]
+  
+  # --- Prod/Staging: 3-node cluster (no host ports)
+  vault-1-seed:
+    image: alpine:3.20
+    profiles: [ "prod" ]
+    volumes: 
+      - vault1-runtime-certs:/destination
+      - ./services/vault/scripts/:/scripts:ro
+    entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
+    restart: "no"
+
+  vault-1:
+    image: hashicorp/vault:1.17
+    profiles: [ "prod" ]          # nur mit --profile prod
+    command: server -config=/vault/config/vault1.hcl
+    cap_add: [ "IPC_LOCK" ]
+    ulimits: { memlock: -1 }
+    volumes:
+      - vault1-config:/vault/config:ro
+      - vault1-runtime-certs:/vault/certs:ro   # initiale Zertifikate von vault-1-seed
+      - vault1_data:/vault/raft
+      - vault1_logs:/vault/logs
+    expose: [ "8200" ]
+    networks: [ api-network ]
+
+  vault-2:
+    image: hashicorp/vault:1.17
+    profiles: [ "prod" ]
+    command: server -config=/vault/config/vault2.hcl   # mit retry_join auf vault-1
+    cap_add: [ "IPC_LOCK" ]
+    ulimits: { memlock: -1 }
+    volumes:
+      - vault2-config:/vault/config:ro
+      - vault2-runtime-certs:/vault/certs:ro 
+      - vault2_data:/vault/raft
+      - vault2_logs:/vault/logs
+    expose: [ "8200" ]
+    networks: [ api-network ]
+
+  vault-3:
+    image: hashicorp/vault:1.17
+    profiles: [ "prod" ]
+    command: server -config=/vault/config/vault3.hcl   # mit retry_join auf vault-1
+    cap_add: [ "IPC_LOCK" ]
+    ulimits: { memlock: -1 }
+    volumes:
+      - vault3-config:/vault/config:ro
+      - vault3-runtime-certs:/vault/certs:ro
+      - vault3_data:/vault/raft
+      - vault3_logs:/vault/logs
+    expose: [ "8200" ]
+    networks: [ api-network ]
 
 networks:
   api-network:
     driver: bridge
 
 volumes:
-  database:
-    driver: local
+  vault-dev-config: {}
+  vault-dev-data: {}
+  vault-dev-logs: {}
+  vault-dev-runtime-certs: {}
+
+  vault1-config: {}
+  vault1_data: {}
+  vault1_logs: {}
+  vault1-runtime-certs: {}
+
+  vault2-config: {}
+  vault2_data: {}
+  vault2_logs: {}
+  vault2-runtime-certs: {}
+
+  vault3-config: {}
+  vault3_data: {}
+  vault3_logs: {}
+  vault3-runtime-certs: {}
