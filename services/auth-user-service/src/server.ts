@@ -68,7 +68,7 @@ async function start() {
     // 1) Logge eingehende Payload
     request.log.info({ headers: request.headers }, 'Incoming login request headers');
     request.log.info({ body: request.body }, 'Incoming login request');
- 
+
     // 2) Rufe deinen Controller auf
     const result = await authController.login(request, reply);
 

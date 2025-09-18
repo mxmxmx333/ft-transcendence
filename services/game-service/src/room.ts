@@ -29,7 +29,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
   try {
     const room: GameRoom = {
       id: roomId,
-      gameType: payload.isSinglePlayer ? 'single' : (payload.isRemote ? 'remote' : 'multi'),
+      gameType: payload.isSinglePlayer ? 'single' : payload.isRemote ? 'remote' : 'multi',
       owner: player,
       guest: null,
       ownerMovement: 'none',
@@ -44,6 +44,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
       isPrivate: true,
     };
     gameRooms[roomId] = room;
+    socket.room = room;
     console.log(`[Server] Room ${roomId} created successfully`);
   } catch (error) {
     if (gameRooms[roomId]) {
@@ -100,6 +101,7 @@ export function joinRoom(player: Player, roomId: string) {
 
   player.roomId = roomId;
   player.conn.join(roomId);
+  player.conn.room = room;
   io.to(roomId).emit('joined_room', {
     roomId: room.id,
     message: `Player ${player.nickname} has joined the room`,

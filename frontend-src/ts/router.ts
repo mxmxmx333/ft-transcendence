@@ -254,7 +254,6 @@ async function handleLogout() {
   }
 }
 
-
 // QUESTION: what's happening here? is it more of a "show game options?" --> is the funciton name appropriate?
 function showMultiplayerLobby() {
   document.querySelector('.game-page')?.classList.add('hidden');
@@ -262,7 +261,7 @@ function showMultiplayerLobby() {
   document.querySelector('.newgame-page')?.classList.add('hidden');
 }
 
-async function initPongGame( singlePlayer: boolean, remote: boolean) {
+async function initPongGame(singlePlayer: boolean, remote: boolean) {
   if (!isAuthenticated()) {
     alert('Multiplayer oynamak için giriş yapmalısınız');
     navigateTo('/');
@@ -332,7 +331,7 @@ function startMultiplayerGame(game: PongGame) {
   if (existingGame) {
     existingGame.stop();
   }
-  
+
   (window as any).currentGame = game;
   // game.start();
 }

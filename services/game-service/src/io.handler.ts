@@ -31,16 +31,24 @@ export function registerIoHandlers(io: Server) {
       handleDisconnect(player);
     });
 
-    socket.on('paddle_move', (data: PaddleMovePayload) => {
-      if (!data || !('moveP1' in data) || !('moveP2' in data)) {
-        console.error(`[Socket] Invalid paddle_move data from ${player.id}`);
-        return;
-      }
-      if (socket === socket.room.guest?.conn) {
-        socket.room.guestMovement = data.moveP2 === 'none' ? 'stop' : data.moveP2;
-      }
-      else if (socket === socket.room.owner?.conn) {
-        socket.room.ownerMovement = data.moveP1 === 'none' ? 'stop' : data.moveP1;
+    socket.on('paddle_move', (payload: PaddleMovePayload) => {
+      try {
+        if (!socket.room) {
+          console.error(`[Socket] Socket ${socket.id} has no room assigned`);
+          return;
+        }
+
+        const room = socket.room;
+
+        if (socket === room.owner?.conn) {
+          room.ownerMovement = payload.moveP1;
+        } else if (socket === room.guest?.conn) {
+          room.guestMovement = payload.moveP2;
+        } else {
+          console.error(`[Socket] Socket ${socket.id} not found in room players`);
+        }
+      } catch (error) {
+        console.error('[Socket] Error in paddle_move handler:', error);
       }
     });
 

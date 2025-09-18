@@ -10,11 +10,30 @@ export interface Player {
   roomId?: string;
 }
 
+export interface GameStartPayload {
+  message: string;
+  roomId: string;
+  ballX: number;
+  ballY: number;
+  paddle1Y: number;
+  paddle2Y: number;
+  ownerScore: number;
+  guestScore: number;
+  owner: {
+    id: string;
+    nickname: string;
+  };
+  guest: {
+    id: string;
+    nickname: string;
+  };
+  success: boolean;
+}
+
 export interface PaddleMovePayload {
-  paddle_move: {
+ 
     moveP1: 'up' | 'down' | 'none';
     moveP2: 'up' | 'down' | 'none';
-  };
 }
 
 export interface CreateRoomPayload {

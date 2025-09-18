@@ -1,5 +1,6 @@
 export interface GameStartPayload {
   message: string;
+  roomId: string;
   ballX: number;
   ballY: number;
   paddle1Y: number;

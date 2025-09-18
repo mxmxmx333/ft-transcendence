@@ -71,7 +71,6 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'http://localhost:3002',
     prefix: '/api/user',
