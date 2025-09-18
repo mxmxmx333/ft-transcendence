@@ -254,6 +254,8 @@ async function handleLogout() {
   }
 }
 
+
+// QUESTION: what's happening here? is it more of a "show game options?" --> is the funciton name appropriate?
 function showMultiplayerLobby() {
   document.querySelector('.game-page')?.classList.add('hidden');
   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
