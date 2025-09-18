@@ -1,11 +1,12 @@
-import { PongMultiplayer } from './multiPlayerGame';
+import { PongGame } from './multiPlayerGame';
 import type { GameStartPayload, ServerToClientEvents } from './types/socket-interfaces';
 import { io, Socket } from 'socket.io-client';
+import type { ClientToServerEvents } from './types/socket-interfaces';
 
 export class SocketManager {
   private static instance: SocketManager;
   private socket?: Socket;
-  private gameInstance: PongMultiplayer | null = null;
+  private gameInstance: PongGame | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -121,13 +122,13 @@ export class SocketManager {
           this.pendingResolve = null;
         }
       });
-
-      // Paddle güncellemeleri için listener
-      this.socket.on('paddle_update', (data: { playerId: string; yPos: number }) => {
-        if (this.gameInstance) {
-          this.gameInstance.updateOpponentPaddle(data.yPos);
-        }
-      });
+      // # REMOVED
+      // // Paddle güncellemeleri için listener
+      // this.socket.on('paddle_update', (data: { playerId: string; yPos: number }) => {
+      //   if (this.gameInstance) {
+      //     this.gameInstance.updateOpponentPaddle(data.yPos);
+      //   }
+      // });
     });
   }
 
@@ -160,12 +161,12 @@ export class SocketManager {
       this.socket.once('room_created', () => {
         clearTimeout(timeout);
       });
-
       this.socket.once('create_error', () => {
         clearTimeout(timeout);
       });
-
-      this.socket.emit('create_room');
+      let isSinglePlayer = this.gameInstance?.isSinglePlayer ?? false;
+      let isRemote = this.gameInstance?.isRemote ?? false;
+      this.socket.emit('create_room', { isSinglePlayer, isRemote });
       console.log('[Client] create_room emitted');
     });
   }
@@ -202,15 +203,14 @@ export class SocketManager {
     }
   }
 
-  public paddleMove(yPos: number): void {
+  public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
     if (this.socket?.connected) {
-      console.log('Paddle move:', yPos);
-      this.socket.emit('paddle_move', { yPos });
-      // Console log'u kaldır - çok spam yapıyor
+      this.socket.emit('paddle_move', payload);
+      // console.log('[Client] paddle_move emitted:', payload); // Çok spam yapıyor
     }
   }
 
-  public setGameInstance(gameInstance: PongMultiplayer): void {
+  public setGameInstance(gameInstance: PongGame): void {
     console.log('Setting game instance:', gameInstance);
     this.gameInstance = gameInstance;
     console.log('Game instance set:', this.gameInstance);
@@ -236,7 +236,7 @@ export class SocketManager {
     return this.socket?.id;
   }
 
-  public getGameInstance(): PongMultiplayer | null {
+  public getGameInstance(): PongGame | null {
     return this.gameInstance;
   }
 }

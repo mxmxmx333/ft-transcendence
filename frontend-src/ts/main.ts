@@ -2,7 +2,6 @@ import '../css/style.css';
 
 import './auth';
 import './authToggle';
-import './game';
 import './mobilMenu';
 import './multiPlayerGame';
 import { ProfileOptions } from './profileOptions.js';
