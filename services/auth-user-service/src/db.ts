@@ -6,25 +6,31 @@ import fs from 'fs';
 export default fp(
   async (fastify) => {
     try {
-      const dbPath = path.join(process.cwd(), 'pong.db');
+      const dbPath = path.join(process.cwd(), 'database', 'pong.db');
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
       console.log(`Database path: ${dbPath}`);
 
-      if (!fs.existsSync(dbPath)) {
-        fs.writeFileSync(dbPath, '');
-        console.log('New Database created at:', dbPath);
-      }
+      // ---->  unneccessairy because better-sqlite3 creates the file if it doesn't exist
+      // 
+      // if (!fs.existsSync(dbPath)) {
+      //   fs.writeFileSync(dbPath, '');
+      //   console.log('New Database created at:', dbPath);
+      // }
 
       const db = new Database(dbPath, { verbose: console.log });
 
       db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nickname TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    avatar TEXT DEFAULT 'default',
+    status TEXT DEFAULT 'online',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
       fastify.decorate('db', db);
     } catch (err) {

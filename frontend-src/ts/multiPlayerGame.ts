@@ -22,6 +22,7 @@ export class PongGame {
   private ballY = 300;
   private playerScore = 0;
   private opponentScore = 0;
+  private isPaused = false;
 
   // Controls
   private upPressed = false;
@@ -278,6 +279,8 @@ export class PongGame {
     if (!this.gameRunning) return;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Orta çizgi
     this.ctx.strokeStyle = '#ffff00';
@@ -379,31 +382,31 @@ export class PongGame {
   }
 
   private drawGameOver(winner: string) {
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = 'bold 48px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+  this.ctx.fillStyle = '#ffffff';
+  this.ctx.font = 'bold 48px Arial';
+  this.ctx.textAlign = 'center';
+  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
 
-    this.ctx.font = 'bold 36px Arial';
-    this.ctx.fillText(`${winner} WON`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+  this.ctx.font = 'bold 36px Arial';
+  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
 
-    this.ctx.font = '24px Arial';
-    this.ctx.fillText(
-      'Game will return to lobby in 5 seconds',
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 80
-    );
+  this.ctx.font = '24px Arial';
+  this.ctx.fillText(
+    'Game will return to lobby in 5 seconds',
+    this.canvas.width / 2,
+    this.canvas.height / 2 + 80
+  );
 
-    // 5 saniye sonra lobby'e dön
-    setTimeout(() => {
-      this.resetGame();
-      document.querySelector('.game-page')?.classList.add('hidden');
-      document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-    }, 5000);
-  }
+  // 5 saniye sonra lobby'e dön
+  setTimeout(() => {
+    this.resetGame();
+    document.querySelector('.game-page')?.classList.add('hidden');
+    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+  }, 5000);
+}
 
   private resetGame() {
     this.playerScore = 0;
@@ -426,6 +429,47 @@ export class PongGame {
     this.animationId = requestAnimationFrame(this.gameLoop);
   }
 
+public startGame() {
+    if (this.gameRunning && !this.isPaused) {
+      console.warn('Game is already running');
+      return;
+    }
+    
+    if (this.isPaused) {
+      this.resume();
+    } else {
+      this.start();
+    }
+  }
+
+  public pauseGame() {
+    if (!this.gameRunning || this.isPaused) return;
+    
+    this.isPaused = true;
+    this.gameRunning = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+    }
+    this.updateStatus('Game paused');
+  }
+
+  public resume() {
+    if (!this.isPaused) return;
+    
+    this.isPaused = false;
+    this.gameRunning = true;
+    this.lastTimeStamp = performance.now();
+    this.animationId = requestAnimationFrame(this.gameLoop);
+    this.updateStatus('Game resumed');
+  }
+
+  public determineWinner(gameOverMessage: any): string {
+  if (gameOverMessage.winner === 'owner') {
+    return this.isPlayer1 ? 'YOU' : (gameOverMessage.finalScore?.owner?.toString() || 'Opponent');
+  } else {
+    return this.isPlayer1 ? (gameOverMessage.finalScore?.guest?.toString() || 'Opponent') : 'YOU';
+  }
+}
   private gameLoop = (timestamp: number) => {
     if (!this.gameRunning) return;
     console.log('Game loop tick at', timestamp);

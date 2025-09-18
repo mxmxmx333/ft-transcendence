@@ -125,10 +125,10 @@ function updateGameState(room: GameRoom) {
   }
 
   // Oyun bitti mi kontrol et
-  if (room.owner!.score >= 100 || room.guest!.score >= 100) {
-    endGame(room);
-    return; // Game loop'u durdur
-  }
+  if (room.owner!.score >= 10 || room.guest!.score >= 10) {
+  endGame(room);
+  return; // Game loop'u durdur
+}
 }
 
 function handleCollisions(room: GameRoom) {

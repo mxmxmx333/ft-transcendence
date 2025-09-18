@@ -84,6 +84,8 @@ export function setupAuthToggle() {
   const signupForm = document.getElementById('signupForm');
   const switchToSignup = document.getElementById('switchToSignup');
   const switchToLogin = document.getElementById('switchToLogin');
+  document.querySelector('.main-nav')?.classList.add('hidden');
+
 
   if (!loginForm || !signupForm || !switchToSignup || !switchToLogin) {
     console.warn('Auth toggle elements not found');
