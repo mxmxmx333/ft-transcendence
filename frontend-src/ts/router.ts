@@ -1,6 +1,5 @@
 import { isAuthenticated } from './auth.js';
-import { PongGame } from './game.js';
-import { PongMultiplayer } from './multiPlayerGame.js';
+import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
 
@@ -75,7 +74,6 @@ export function manageNavbar() {
   }
 }
 
-
 async function saveProfileChanges() {
     const nickname = (document.getElementById('options-nickname') as HTMLInputElement)?.value;
     const status = (document.getElementById('options-status') as HTMLSelectElement)?.value;
@@ -125,6 +123,7 @@ function setupOptionsPageListeners() {
         await saveProfileChanges();
     });
 }
+
 function showOptionsPage() {
     if (!isAuthenticated()) {
         navigateTo('/');
@@ -577,6 +576,7 @@ function renderUserProfile(userData: any) {
         addUserProfileEventListeners(userData.id);
     }
 }
+
 function addUserProfileEventListeners(userId: number) {
     // Add friend button
     document.querySelector('.friend-request-btn')?.addEventListener('click', async (e) => {
@@ -616,6 +616,7 @@ function addUserProfileEventListeners(userId: number) {
     
     document.getElementById('user-profile-actions')?.appendChild(backButton);
 }
+
 function showLiveChat() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
@@ -627,12 +628,11 @@ function showLiveChat() {
   profilePage?.classList.add('hidden');
   gamePage?.classList.add('hidden');
   multiPGamePage?.classList.add('hidden');
-document.querySelector(".options-page")?.classList.add('hidden');
+  document.querySelector(".options-page")?.classList.add('hidden');
     document.querySelector('.user-search-page')?.classList.add('hidden');
     document.querySelector('.user-profile-page')?.classList.add('hidden');
-
-
 }
+
 function showStatistics() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
@@ -788,29 +788,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const target = e.target as HTMLElement;
     if (target.closest('#singlegame-btn')) {
       e.preventDefault();
-      initGame();
+      initPongGame(true, false);
     }
   });
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.closest('#multiplayergame-btn')) {
       e.preventDefault();
-      initMultiplayerGame();
+      initPongGame(false, true);
     }
   });
-  document.body.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.matches('[data-link]')) {
-      e.preventDefault();
-      const href = target.getAttribute('href');
 
-      if (href === '/logout') {
-        handleLogout();
-      } else {
-        navigateTo(href || '/');
-      }
-    }
-  });
   document.body.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.matches('[data-link]')) {
@@ -828,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
 
   handleRouting();
 });
@@ -902,36 +889,8 @@ async function handleLogout() {
     navigateTo('/');
   }
 }
-function initGame() {
-  if (!isAuthenticated()) {
-    alert('Oyun oynamak için giriş yapmalısınız');
-    navigateTo('/');
-    return;
-  }
 
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-
-  document.querySelector('.game-page')?.classList.remove('hidden');
-
-  const gameCanvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-  if (!gameCanvas) {
-    console.error('Canvas element not found!');
-    return;
-  }
-  gameCanvas.classList.add('bg-black'); //
-
-  const existingGame = (window as any).currentGame;
-  if (existingGame) {
-    existingGame.stop();
-  }
-
-  const game = new PongGame(gameCanvas);
-  (window as any).currentGame = game;
-  game.start();
-}
-
+// QUESTION: what's happening here? is it more of a "show game options?" --> is the funciton name appropriate?
 function showMultiplayerLobby() {
   document.querySelector('.game-page')?.classList.add('hidden');
   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
@@ -943,16 +902,14 @@ function showMultiplayerLobby() {
 
 }
 
-async function initMultiplayerGame() {
+async function initPongGame(singlePlayer: boolean, remote: boolean) {
   if (!isAuthenticated()) {
     alert('Multiplayer oynamak için giriş yapmalısınız');
     navigateTo('/');
     return;
   }
-
   showMultiplayerLobby();
-  setupLobbyUI();
-
+  setupLobbyUI(singlePlayer, remote);
   try {
     document.getElementById('lobby-status')!.textContent = 'Connected to server';
   } catch (error) {
@@ -960,15 +917,16 @@ async function initMultiplayerGame() {
   }
 }
 
-function setupLobbyUI() {
+function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) return;
-  const game = new PongMultiplayer(canvas, socketManager);
+  const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
+  game.isSinglePlayer = singlePlayer;
+  game.isRemote = remote;
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';
-
     try {
       const roomId = await socketManager.createRoom();
 
@@ -1009,7 +967,7 @@ function setupLobbyUI() {
   });
 }
 
-function startMultiplayerGame(game: PongMultiplayer) {
+function startMultiplayerGame(game: PongGame) {
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();

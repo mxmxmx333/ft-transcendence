@@ -1,6 +1,7 @@
 import { GameRoom, gameRooms } from './types/types';
 import { io } from './server';
 import { handleLeaveRoom } from './room';
+import type { GameStartPayload } from './types/types';
 
 export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
@@ -20,7 +21,7 @@ export function startGame(room: GameRoom) {
   room.guest.score = 0;
 
   try {
-    const gameStartPayload = {
+    const gameStartPayload: GameStartPayload = {
       message: 'Game is starting',
       roomId: room.id,
       ballX: room.gameState.ballX,
@@ -37,23 +38,22 @@ export function startGame(room: GameRoom) {
         id: room.guest.id,
         nickname: room.guest.nickname,
       },
+      isOwner: false, 
       success: true,
     };
 
     // Owner'a gönder (Player 1)
     room.owner.conn.emit('game_start', {
       ...gameStartPayload,
-      isPlayer1: true,
-      opponent: room.guest.nickname,
+      isOwner: true,
     });
 
     // Guest'e gönder (Player 2)
     room.guest.conn.emit('game_start', {
       ...gameStartPayload,
-      isPlayer1: false,
-      opponent: room.owner.nickname,
+      isOwner: false,
     });
- 
+
     console.log(`[Server] Game start messages sent to both players`);
   } catch (err) {
     console.error(`[Server] Error sending game start messages:`, err);
@@ -79,7 +79,23 @@ function updateGameState(room: GameRoom) {
   const { gameState } = room;
   const now = Date.now();
   const deltaTime = (now - gameState.lastUpdate) / 1000;
+  const paddleSpeed = 300; // px/s
+  const moveSpeed = paddleSpeed * deltaTime;
+  const paddleHeight = 100;
   gameState.lastUpdate = now;
+
+  // handle player movements
+  if (room.ownerMovement === 'up') {
+    room.owner!.paddleY = Math.max(0, room.owner!.paddleY - moveSpeed);
+  } else if (room.ownerMovement === 'down') {
+    room.owner!.paddleY = Math.min(600 - paddleHeight, room.owner!.paddleY + moveSpeed);
+  }
+
+  if (room.guestMovement === 'up') {
+    room.guest!.paddleY = Math.max(0, room.guest!.paddleY - moveSpeed);
+  } else if (room.guestMovement === 'down') {
+    room.guest!.paddleY = Math.min(600 - paddleHeight, room.guest!.paddleY + moveSpeed);
+  }
 
   // Top hareketini güncelle
   gameState.ballX += gameState.ballVX * deltaTime * 60;
