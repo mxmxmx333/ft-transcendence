@@ -27,6 +27,7 @@ export interface GameStartPayload {
     id: string;
     nickname: string;
   };
+  isOwner: boolean;
   success: boolean;
 }
 

@@ -173,10 +173,17 @@ export class PongGame {
   public updateFromServer(gameState: ServerToClientEvents['game_state']) {
     this.ballX = gameState.ballX;
     this.ballY = gameState.ballY;
-    this.playerY = gameState.paddle1Y;
-    this.opponentY = gameState.paddle2Y;
-    this.playerScore = gameState.ownerScore;
-    this.opponentScore = gameState.guestScore;
+    if (this.isPlayer1) {
+      this.playerY = gameState.paddle1Y;
+      this.opponentY = gameState.paddle2Y;
+      this.playerScore = gameState.ownerScore;
+      this.opponentScore = gameState.guestScore;
+    } else {
+      this.playerY = gameState.paddle2Y;
+      this.opponentY = gameState.paddle1Y;
+      this.playerScore = gameState.guestScore;
+      this.opponentScore = gameState.ownerScore;
+    }
     this.draw();
   }
   // REMOVED
@@ -187,16 +194,21 @@ export class PongGame {
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
-    console.log('Is Player 1:', message.isPlayer1);
+    console.log('Is Owner:', message.isOwner);
     console.log('Owner info:', message.owner);
     console.log('Guest info:', message.guest);
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
     if (this.gameRunning) this.stop();
 
-    this.isPlayer1 = message.owner.nickname === this.myNickname;
+    this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
-    this.opponentNickname = message.guest.nickname;
+    if (message.isOwner) {
+      this.opponentNickname = message.guest.nickname;
+    } else {
+      this.opponentNickname = message.owner.nickname;
+    }
+    // this.opponentNickname = message.guest.nickname;
     document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
     // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et

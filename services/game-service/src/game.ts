@@ -38,21 +38,20 @@ export function startGame(room: GameRoom) {
         id: room.guest.id,
         nickname: room.guest.nickname,
       },
+      isOwner: false, 
       success: true,
     };
 
     // Owner'a gönder (Player 1)
     room.owner.conn.emit('game_start', {
       ...gameStartPayload,
-      isPlayer1: true,
-      opponent: room.guest.nickname,
+      isOwner: true,
     });
 
     // Guest'e gönder (Player 2)
     room.guest.conn.emit('game_start', {
       ...gameStartPayload,
-      isPlayer1: false,
-      opponent: room.owner.nickname,
+      isOwner: false,
     });
 
     console.log(`[Server] Game start messages sent to both players`);
