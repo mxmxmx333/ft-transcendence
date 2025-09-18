@@ -303,7 +303,6 @@ function renderSearchResults(users: any[], container: HTMLElement) {
             </div>
         `;
     }).join('');
-    
     // Event listener'ları ekle
     addSearchResultEventListeners(container);
 }
@@ -331,7 +330,7 @@ function addSearchResultEventListeners(container: HTMLElement) {
             }
         });
     });
-    
+
     container.querySelectorAll('.view-profile-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -898,8 +897,6 @@ function showMultiplayerLobby() {
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector(".options-page")?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
-
-
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
@@ -917,6 +914,21 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
   }
 }
 
+
+ function startSinglePlayerGame(game: PongGame) {
+  try {
+  const roomId = socketManager.createRoom();
+    socketManager.onGameStart = () => {
+      document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+      document.querySelector('.game-page')?.classList.remove('hidden');
+      startMultiplayerGame(game);
+    };
+  } catch (error) {
+    document.getElementById('lobby-status')!.textContent = 'Connection failed';
+  }
+}
+
+
 function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) return;
@@ -924,6 +936,10 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   socketManager.setGameInstance(game);
   game.isSinglePlayer = singlePlayer;
   game.isRemote = remote;
+  if (singlePlayer) {
+    startSinglePlayerGame(game);
+    return;
+  }
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';
@@ -941,7 +957,6 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
       statusElement.textContent = 'Error creating room';
     }
   });
-
   document.getElementById('join-room-btn')?.addEventListener('click', async () => {
     const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
     if (!roomId) return;

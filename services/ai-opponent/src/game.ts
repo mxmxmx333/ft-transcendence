@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { SocketManager } from './socketManager.js';
-import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces.js';
+import { ClientToServerEvents, ServerToClientEvents } from './socket-interfaces.js';
 
 export class PongGame {
   public isSinglePlayer = false;
@@ -15,14 +15,7 @@ export class PongGame {
   private opponentNickname = '';
   private myNickname = 'Player';
   private socketManager?: SocketManager;
-
-  // TODO: CHECK IF THESE VALUES ALSO NEED TO BE RESIZABLE
   // Game state
-
-  // TODO: Fix Lobby message (w/s, up/down )
-
-  // TODO: fix Game Over (on reset game)
-
   private playerY = 250;
   private opponentY = 250;
   private ballX = 400;
@@ -479,6 +472,7 @@ public startGame() {
 }
   private gameLoop = (timestamp: number) => {
     if (!this.gameRunning) return;
+    console.log('Game loop tick at', timestamp);
     // Nur alle X Millisekunden Paddle-Updates senden
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;

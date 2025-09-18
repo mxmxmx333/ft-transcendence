@@ -3,6 +3,7 @@ import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { PaddleMovePayload, CreateRoomPayload } from './types/types';
+import { apiGatewayUpstream } from './server';
 // === Room Management ===
 
 function generateUniqueRoomId(): string {
@@ -62,6 +63,18 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
     roomId: player.roomId,
     success: true,
   });
+  if (payload.isSinglePlayer) {
+    console.log(`[Server] Starting single-player game in room ${roomId}`);
+    try {
+      fetch(`${apiGatewayUpstream}/api/ai`, {
+        method: 'GET',
+        headers: { 'roomid': roomId },
+      })}
+     
+    catch (error) {
+      console.error(`[Server] Error invoking AI service for room ${roomId}:`, error);
+    }
+  }
 }
 
 export function joinRoom(player: Player, roomId: string) {
