@@ -26,6 +26,8 @@ export function startGame(room: GameRoom) {
       roomId: room.id,
       ballX: room.gameState.ballX,
       ballY: room.gameState.ballY,
+      ballVX: room.gameState.ballVX,
+      ballVY: room.gameState.ballVY,
       paddle1Y: room.owner.paddleY,
       paddle2Y: room.guest.paddleY,
       ownerScore: room.owner.score,
@@ -225,6 +227,8 @@ function broadcastGameState(room: GameRoom) {
   const gameState = {
     ballX: room.gameState.ballX,
     ballY: room.gameState.ballY,
+    ballVX: room.gameState.ballVX,
+    ballVY: room.gameState.ballVY,
     paddle1Y: room.owner?.paddleY ?? 250,
     paddle2Y: room.guest?.paddleY ?? 250,
     ownerScore: room.owner?.score ?? 0,

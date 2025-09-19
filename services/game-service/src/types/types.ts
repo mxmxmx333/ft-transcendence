@@ -15,6 +15,8 @@ export interface GameStartPayload {
   roomId: string;
   ballX: number;
   ballY: number;
+  ballVX: number;
+  ballVY: number;
   paddle1Y: number;
   paddle2Y: number;
   ownerScore: number;
