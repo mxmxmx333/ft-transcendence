@@ -35,6 +35,8 @@ export interface ServerToClientEvents {
   game_state: {
     ballX: number;
     ballY: number;
+    ballVX: number;
+    ballVY: number;
     paddle1Y: number;
     paddle2Y: number;
     ownerScore: number;

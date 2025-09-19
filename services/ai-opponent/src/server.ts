@@ -5,6 +5,7 @@ import proxy from '@fastify/http-proxy';
 import * as dotenv from 'dotenv';
 import { io, Socket } from 'socket.io-client';
 import { SocketManager } from './socketManager';
+import { PongGame } from './game';
 
 dotenv.config();
 
@@ -35,7 +36,7 @@ async function buildServer() {
         : {}), // In Production füge nichts hinzu
     },
   });
- 
+
   return server;
 }
 
@@ -57,6 +58,12 @@ async function start() {
       reply.status(400).send({ error: 'Missing or invalid roomId header' });
       return;
     }
+
+    const socketManager = SocketManager.getInstance();
+  
+    // PongGame HIER erstellen, nicht in joinRoom!
+    const game = new PongGame(socketManager);
+    socketManager.setGameInstance(game);
     startSocketConnection(roomId);
     return { message: 'Hello from AI Opponent!' };
   });
@@ -71,7 +78,7 @@ async function start() {
     }
     // TODO: Implement instance deletion logic
   });
-    try {
+  try {
     await server.listen({ port: 3003, host: '0.0.0.0' });
     server.log.info(`API Gateway running at http://localhost:3003`);
   } catch (err) {
