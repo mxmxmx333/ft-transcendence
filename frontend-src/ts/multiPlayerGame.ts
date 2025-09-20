@@ -1,6 +1,10 @@
+import { Server } from 'http';
 import { SocketManager } from './socketManager.js';
+import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces.js';
 
-export class PongMultiplayer {
+export class PongGame {
+  public isSinglePlayer = false;
+  public isRemote = false;
   private lastTimeStamp = 0;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -11,13 +15,21 @@ export class PongMultiplayer {
   private opponentNickname = '';
   private myNickname = 'Player';
   private socketManager?: SocketManager;
+
+  // TODO: CHECK IF THESE VALUES ALSO NEED TO BE RESIZABLE
   // Game state
+
+  // TODO: Fix Lobby message (w/s, up/down )
+
+  // TODO: fix Game Over (on reset game)
+
   private playerY = 250;
   private opponentY = 250;
   private ballX = 400;
   private ballY = 300;
   private playerScore = 0;
   private opponentScore = 0;
+  private isPaused = false;
 
   // Controls
   private upPressed = false;
@@ -31,8 +43,11 @@ export class PongMultiplayer {
   private readonly ballRadius = 10;
   private readonly winningScore = 10;
 
+  // game loop
+  private lastPaddleUpdate = 0;
+  private paddleUpdateInterval = 50; // ms
   constructor(canvas: HTMLCanvasElement, socketManager: SocketManager) {
-    console.log('Initializing PongMultiplayer');
+    console.log('Initializing Pong Game');
     this.socketManager = socketManager;
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -162,38 +177,46 @@ export class PongMultiplayer {
     }
   }
 
-  public updateFromServer(gameState: any) {
+  // UPDATED
+  public updateFromServer(gameState: ServerToClientEvents['game_state']) {
     this.ballX = gameState.ballX;
     this.ballY = gameState.ballY;
-
     if (this.isPlayer1) {
+      this.playerY = gameState.paddle1Y;
+      this.opponentY = gameState.paddle2Y;
       this.playerScore = gameState.ownerScore;
       this.opponentScore = gameState.guestScore;
-      this.opponentY = gameState.paddle2Y;
     } else {
+      this.playerY = gameState.paddle2Y;
+      this.opponentY = gameState.paddle1Y;
       this.playerScore = gameState.guestScore;
       this.opponentScore = gameState.ownerScore;
-      this.opponentY = gameState.paddle1Y;
     }
     this.draw();
   }
-
-  public updateOpponentPaddle(yPos: number) {
-    this.opponentY = yPos;
-  }
+  // REMOVED
+  // public updatePaddles(yPos1: number, yPos2: number) {
+  //   this.playerY = yPos1;
+  //   this.opponentY = yPos2;
+  // }
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
-    console.log('Is Player 1:', message.isPlayer1);
+    console.log('Is Owner:', message.isOwner);
     console.log('Owner info:', message.owner);
     console.log('Guest info:', message.guest);
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
     if (this.gameRunning) this.stop();
 
-    this.isPlayer1 = message.owner.nickname === this.myNickname;
+    this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
-    this.opponentNickname = message.guest.nickname;
+    if (message.isOwner) {
+      this.opponentNickname = message.guest.nickname;
+    } else {
+      this.opponentNickname = message.owner.nickname;
+    }
+    // this.opponentNickname = message.guest.nickname;
     document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
     // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et
@@ -205,17 +228,10 @@ export class PongMultiplayer {
     const gameNick2 = document.getElementById('game-nick2');
 
     if (gameNick1 && gameNick2) {
-      if (this.isPlayer1) {
-        // Ben owner'ım, sol tarafta benim ismim olacak
-        gameNick1.textContent = message.owner.nickname;
-        gameNick2.textContent = message.guest.nickname;
-        console.log(`Set nicknames: ${message.owner.nickname} vs ${message.guest.nickname}`);
-      } else {
-        // Ben guest'im, ama UI'da kendi ismimi sol tarafa koyalım
-        gameNick1.textContent = message.guest.nickname;
-        gameNick2.textContent = message.owner.nickname;
-        console.log(`Set nicknames: ${message.guest.nickname} vs ${message.owner.nickname}`);
-      }
+      // Ben owner'ım, sol tarafta benim ismim olacak
+      gameNick1.textContent = message.owner.nickname;
+      gameNick2.textContent = message.guest.nickname;
+      console.log(`Set nicknames: ${message.owner.nickname} vs ${message.guest.nickname}`);
     } else {
       console.error('Could not find game-nick elements!');
     }
@@ -270,6 +286,8 @@ export class PongMultiplayer {
     if (!this.gameRunning) return;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Orta çizgi
     this.ctx.strokeStyle = '#ffff00';
@@ -325,50 +343,34 @@ export class PongMultiplayer {
     document.getElementById('score')!.textContent = this.playerScore.toString();
     document.getElementById('score2')!.textContent = this.opponentScore.toString();
 
-    this.animationId = requestAnimationFrame(() => this.draw());
+    // this.animationId = requestAnimationFrame(() => this.draw());
   }
 
-  private handlePaddleMovement(deltaTime: number) {
-    let moved = false;
-    const speedPxPerSecond = 300; // px/s
-    const moveSpeed = speedPxPerSecond * (deltaTime / 1000);
-    if (this.isPlayer1) {
-      // Player 1 - W/S tuşları
-      if (this.wPressed) {
-        const newY = Math.max(0, this.playerY - moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
-      if (this.sPressed) {
-        const newY = Math.min(600 - this.paddleHeight, this.playerY + moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
+  private handlePaddleMovement() {
+    let moveP1: 'up' | 'down' | 'none' = 'none';
+    let moveP2: 'up' | 'down' | 'none' = 'none';
+    if (this.wPressed && !this.sPressed) {
+      moveP1 = 'up';
+    } else if (this.sPressed && !this.wPressed) {
+      moveP1 = 'down';
     } else {
-      // Player 2 - Ok tuşları
-      if (this.upPressed) {
-        const newY = Math.max(0, this.playerY - moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
-      if (this.downPressed) {
-        const newY = Math.min(600 - this.paddleHeight, this.playerY + moveSpeed);
-        if (newY !== this.playerY) {
-          this.playerY = newY;
-          moved = true;
-        }
-      }
+      moveP1 = 'none';
     }
+
+    // Player 2 - Ok tuşları
+    if (this.upPressed && !this.downPressed) {
+      moveP2 = 'up';
+    } else if (this.downPressed && !this.upPressed) {
+      moveP2 = 'down';
+    } else {
+      moveP2 = 'none';
+    }
+    let Payload: ClientToServerEvents['paddle_move'] = {
+      moveP1,
+      moveP2,
+    };
     // Sadece hareket varsa server'a gönder
-    if (moved) {
-      this.socketManager?.paddleMove(this.playerY);
-    }
+    this.socketManager?.paddleMove(Payload);
   }
 
   private drawRoundedRect(x: number, y: number, width: number, height: number, radius: number) {
@@ -387,31 +389,31 @@ export class PongMultiplayer {
   }
 
   private drawGameOver(winner: string) {
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = 'bold 48px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+  this.ctx.fillStyle = '#ffffff';
+  this.ctx.font = 'bold 48px Arial';
+  this.ctx.textAlign = 'center';
+  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
 
-    this.ctx.font = 'bold 36px Arial';
-    this.ctx.fillText(`${winner} WON`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+  this.ctx.font = 'bold 36px Arial';
+  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
 
-    this.ctx.font = '24px Arial';
-    this.ctx.fillText(
-      'Game will return to lobby in 5 seconds',
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 80
-    );
+  this.ctx.font = '24px Arial';
+  this.ctx.fillText(
+    'Game will return to lobby in 5 seconds',
+    this.canvas.width / 2,
+    this.canvas.height / 2 + 80
+  );
 
-    // 5 saniye sonra lobby'e dön
-    setTimeout(() => {
-      this.resetGame();
-      document.querySelector('.game-page')?.classList.add('hidden');
-      document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-    }, 5000);
-  }
+  // 5 saniye sonra lobby'e dön
+  setTimeout(() => {
+    this.resetGame();
+    document.querySelector('.game-page')?.classList.add('hidden');
+    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+  }, 5000);
+}
 
   private resetGame() {
     this.playerScore = 0;
@@ -434,21 +436,60 @@ export class PongMultiplayer {
     this.animationId = requestAnimationFrame(this.gameLoop);
   }
 
+public startGame() {
+    if (this.gameRunning && !this.isPaused) {
+      console.warn('Game is already running');
+      return;
+    }
+    
+    if (this.isPaused) {
+      this.resume();
+    } else {
+      this.start();
+    }
+  }
+
+  public pauseGame() {
+    if (!this.gameRunning || this.isPaused) return;
+    
+    this.isPaused = true;
+    this.gameRunning = false;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+    }
+    this.updateStatus('Game paused');
+  }
+
+  public resume() {
+    if (!this.isPaused) return;
+    
+    this.isPaused = false;
+    this.gameRunning = true;
+    this.lastTimeStamp = performance.now();
+    this.animationId = requestAnimationFrame(this.gameLoop);
+    this.updateStatus('Game resumed');
+  }
+
+  public determineWinner(gameOverMessage: any): string {
+  if (gameOverMessage.winner === 'owner') {
+    return this.isPlayer1 ? 'YOU' : (gameOverMessage.finalScore?.owner?.toString() || 'Opponent');
+  } else {
+    return this.isPlayer1 ? (gameOverMessage.finalScore?.guest?.toString() || 'Opponent') : 'YOU';
+  }
+}
   private gameLoop = (timestamp: number) => {
     if (!this.gameRunning) return;
-    const deltaTime = timestamp - this.lastTimeStamp;
-    this.lastTimeStamp = timestamp;
+    // Nur alle X Millisekunden Paddle-Updates senden
+    if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
+      this.lastPaddleUpdate = timestamp;
 
-    // Her frame'de server'a paddle pozisyonunu gönder
-    this.handlePaddleMovement(deltaTime);
-
-    // Oyun durumunu güncelle
-    this.draw();
-
+      this.handlePaddleMovement();
+    }
     if (this.gameRunning) {
       requestAnimationFrame(this.gameLoop);
     }
   };
+
   public stop() {
     this.gameRunning = false;
     if (this.animationId) {

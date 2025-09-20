@@ -2,7 +2,8 @@ import { Player, GameRoom, activeConnections, gameRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
-
+import { PaddleMovePayload, CreateRoomPayload } from './types/types';
+import { apiGatewayUpstream } from './server';
 // === Room Management ===
 
 function generateUniqueRoomId(): string {
@@ -13,9 +14,8 @@ function generateUniqueRoomId(): string {
   return id;
 }
 
-export function handleCreateRoom(player: Player) {
+export function handleCreateRoom(player: Player, payload: CreateRoomPayload['create_room']) {
   console.log(`[Server] handleCreateRoom called by player ${player.id}`);
-
   if (player.roomId) {
     console.log(`[Server] Player ${player.id} is already in a room`);
     player.conn.emit('create_error', {
@@ -30,8 +30,11 @@ export function handleCreateRoom(player: Player) {
   try {
     const room: GameRoom = {
       id: roomId,
+      gameType: payload.isSinglePlayer ? 'single' : payload.isRemote ? 'remote' : 'multi',
       owner: player,
       guest: null,
+      ownerMovement: 'none',
+      guestMovement: 'none',
       gameState: {
         ballX: 400,
         ballY: 300,
@@ -42,6 +45,7 @@ export function handleCreateRoom(player: Player) {
       isPrivate: true,
     };
     gameRooms[roomId] = room;
+    socket.room = room;
     console.log(`[Server] Room ${roomId} created successfully`);
   } catch (error) {
     if (gameRooms[roomId]) {
@@ -59,6 +63,18 @@ export function handleCreateRoom(player: Player) {
     roomId: player.roomId,
     success: true,
   });
+  if (payload.isSinglePlayer) {
+    console.log(`[Server] Starting single-player game in room ${roomId}`);
+    try {
+      fetch(`${apiGatewayUpstream}/api/ai`, {
+        method: 'GET',
+        headers: { 'roomid': roomId },
+      })}
+     
+    catch (error) {
+      console.error(`[Server] Error invoking AI service for room ${roomId}:`, error);
+    }
+  }
 }
 
 export function joinRoom(player: Player, roomId: string) {
@@ -98,6 +114,7 @@ export function joinRoom(player: Player, roomId: string) {
 
   player.roomId = roomId;
   player.conn.join(roomId);
+  player.conn.room = room;
   io.to(roomId).emit('joined_room', {
     roomId: room.id,
     message: `Player ${player.nickname} has joined the room`,

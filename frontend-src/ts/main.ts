@@ -2,16 +2,17 @@ import '../css/style.css';
 
 import './auth';
 import './authToggle';
-import './game';
 import './mobilMenu';
 import './multiPlayerGame';
+import { ProfileOptions } from './profileOptions.js';
 import './router';
 import './socketManager';
 import { setupAuthToggle } from './authToggle';
 import { setupMobileMenu } from './mobilMenu';
-import { navigateTo } from './router';
+import { manageNavbar, navigateTo } from './router';
 
 function initializeApp() {
+  manageNavbar();
   setupAuthToggle();
   setupMobileMenu();
   // Checking auth status and redirect if needed

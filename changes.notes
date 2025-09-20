@@ -1,0 +1,23 @@
+FRONTEND:
+    -draw
+    -handleConnections
+    -handleKeyInputs
+    -send start stop
+    -gameOver
+    -requestGameRoom(payload single player or multiplayer)
+    -router.ts 1 Logic for PongGame and PongMultiplayer
+BACKEND:
+    -resetBall (after score)
+    - handlePaddleMovement (multiPlayerGame.ts)
+    - spawn AI Opponent (SocketConnection)
+
+
+TODO:
+    - drawGameOver ausgelöst von GameOverEvent
+
+
+KEYWORDS:
+MIGRATE EDIT REMOVED UPDATED
+
+
+Dateien: 

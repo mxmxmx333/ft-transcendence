@@ -10,6 +10,11 @@ const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+const aiServiceUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
+if (!aiServiceUpstream) {
+  throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
+}
+
 const upstreamGameService = process.env.GAME_SERVICE_UPSTREAM;
 if (!upstreamGameService) {
   throw new Error('GATEWAY_UPSTREAM environment variable is not set');
@@ -63,6 +68,14 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
+  // === ROUTE AI OPPONENT SERVICE ===
+  await server.register(proxy, {
+    upstream: aiServiceUpstream || 'http://localhost:3003',
+    prefix: '/api/ai',
+    rewritePrefix: '/api/ai',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+    
   // === ROUTE AUTH AND USER SERVICE ===
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'http://localhost:3002',
@@ -71,13 +84,52 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  
+  // NEW ADDED PLEASE DONT DELETE, I FORGOT EDDING THESE ROUTES AND IT COST ME A DAY ABOUT FRIEND REQUEST FEATURE :((
+  // ==============================================
+
+  // === More New added
   await server.register(proxy, {
-    upstream: upstreamAuthAndUserService || 'http://localhost:3002',
-    prefix: '/api/user',
-    rewritePrefix: '/api/user',
-    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  });
+  upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+  prefix: '/api/user',
+  rewritePrefix: '/api/user',
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
+await server.register(proxy, {
+  upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+  prefix: '/api/users',
+  rewritePrefix: '/api/users',
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
+// Friend request endpoint'leri
+await server.register(proxy, {
+  upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+  prefix: '/api/friends/requests',
+  rewritePrefix: '/api/friends/requests',
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
+
+  // ============
+
+
+await server.register(proxy, {
+  upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+  prefix: '/api/user/:id', // Dinamik route için
+  rewritePrefix: '/api/user/:id', // Aynı şekilde rewrite edin
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
+
+await server.register(proxy, {
+  upstream: upstreamAuthAndUserService || 'http://localhost:3002',
+  prefix: '/api/friends',
+  rewritePrefix: '/api/friends',
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+// =================================================
+
 
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'http://localhost:3002',

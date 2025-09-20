@@ -73,4 +73,6 @@ export function isAuthenticated(): boolean {
 
 export function logout(): void {
   localStorage.removeItem('authToken');
+  document.querySelector('.main-nav')?.classList.add('hidden');
+
 }

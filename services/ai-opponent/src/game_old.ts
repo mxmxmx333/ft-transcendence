@@ -1,3 +1,41 @@
+import { HybridAISystem } from './hybrid_ai_system';
+
+export enum Action {
+  Up = 0,
+  Stay = 1,
+  Down = 2,
+}
+
+export interface Constants {
+  readonly INITIAL_BALL_SPEED: number;
+  //savedBallSpeed: number;
+  readonly MAX_BALL_SPEED: number;
+  readonly BALL_ACCELERATION: number;
+  //ballSpeed: number;
+  readonly aiSpeed: number;
+  readonly aiErrorMargin: number;
+  readonly paddleHeight: number;
+  readonly paddleWidth: number;
+  paddleCenter: number;
+  readonly ballRadius: number;
+  readonly winningScore: number;
+  playableHeight: number;
+}
+
+export const DEFAULT_CONSTANTS: Constants = {
+  INITIAL_BALL_SPEED: 5,
+  MAX_BALL_SPEED: 18,
+  BALL_ACCELERATION: 0.2,
+  aiSpeed: 3,
+  aiErrorMargin: 20,
+  paddleHeight: 100,
+  paddleWidth: 15,
+  paddleCenter: 50,
+  ballRadius: 10,
+  winningScore: 10,
+  playableHeight: 600,
+};
+
 export class PongGame {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -17,23 +55,23 @@ export class PongGame {
   private ballVY = 3;
   private upPressed = false;
   private downPressed = false;
+  private lastAIMove = 0;
+  private AITargetY = 0;
 
   // Constants
-  private readonly INITIAL_BALL_SPEED = 5;
-  private savedBallSpeed = this.INITIAL_BALL_SPEED;
-  private readonly MAX_BALL_SPEED = 18;
-  private readonly BALL_ACCELERATION = 0.2;
-  private ballSpeed = this.INITIAL_BALL_SPEED;
-  private readonly aiSpeed = 1;
-  private readonly aiErrorMargin = 20;
-  private readonly paddleHeight = 100;
-  private readonly paddleWidth = 15;
-  private readonly ballRadius = 10;
-  private readonly winningScore = 10;
+  private constants: Constants;
+  private savedBallSpeed: number = 0;
+  private ballSpeed: number = 0;
+  private aiSystem!: HybridAISystem;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, constants: Constants = DEFAULT_CONSTANTS) {
     this.canvas = canvas;
+    this.constants = constants;
+    this.constants.paddleCenter = this.constants.paddleHeight / 2;
     this.ctx = canvas.getContext('2d')!;
+    this.savedBallSpeed = this.constants.INITIAL_BALL_SPEED;
+    this.ballSpeed = this.constants.INITIAL_BALL_SPEED;
+    this.aiSystem = new HybridAISystem(this.constants);
     this.init();
   }
 
@@ -69,6 +107,7 @@ export class PongGame {
     window.addEventListener('orientationchange', () => {
       setTimeout(() => this.resizeCanvas(), 300);
     });
+    this.constants.playableHeight = this.canvas.height - this.constants.paddleHeight;
   }
 
   private resizeCanvas() {
@@ -200,15 +239,38 @@ export class PongGame {
     this.gameOver = false;
     document.getElementById('score')!.textContent = '0';
     document.getElementById('score2')!.textContent = '0';
-    this.playerY = this.canvas.height / 2 - this.paddleHeight / 2;
-    this.aiY = this.canvas.height / 2 - this.paddleHeight / 2;
+    this.playerY = this.canvas.height / 2 - this.constants.paddleHeight / 2;
+    this.aiY = this.canvas.height / 2 - this.constants.paddleHeight / 2;
+    this.AITargetY = this.aiY;
+    this.lastAIMove = 0;
     this.resetBall();
+
+    const gameState = {
+      ballX: this.ballX,
+      ballY: this.ballY,
+      ballVX: this.ballVX,
+      ballVY: this.ballVY,
+      aiY: this.aiY,
+      playerY: this.playerY,
+      canvasWidth: this.canvas.width,
+      canvasHeight: this.canvas.height,
+      ballSpeed: this.ballSpeed,
+      gameTime: performance.now(),
+    };
+    const aiAction = this.aiSystem.getAction(gameState);
+    if (aiAction === Action.Up) {
+      this.AITargetY = Math.max(0, this.aiY - 50);
+    } else if (aiAction === Action.Down) {
+      this.AITargetY = Math.min(this.canvas.height - this.constants.paddleHeight, this.aiY + 50);
+    } else {
+      this.AITargetY = this.aiY;
+    }
   }
 
   private resetBall(scoredByFirstPlayer = true) {
     this.ballX = this.canvas.width / 2;
     this.ballY = this.canvas.height / 2;
-    this.ballSpeed = scoredByFirstPlayer ? this.INITIAL_BALL_SPEED : this.savedBallSpeed;
+    this.ballSpeed = scoredByFirstPlayer ? this.constants.INITIAL_BALL_SPEED : this.savedBallSpeed;
 
     const angle = (Math.random() * Math.PI) / 3 - Math.PI / 6;
     this.ballVX = this.ballSpeed * Math.cos(angle) * (scoredByFirstPlayer ? 1 : -1);
@@ -271,26 +333,32 @@ export class PongGame {
       // paddles
       const paddleRadius = 8;
       this.ctx.fillStyle = '#ff00ff';
-      this.drawRoundedRect(10, this.playerY, this.paddleWidth, this.paddleHeight, paddleRadius);
+      this.drawRoundedRect(
+        10,
+        this.playerY,
+        this.constants.paddleWidth,
+        this.constants.paddleHeight,
+        paddleRadius
+      );
 
       this.ctx.fillStyle = '#00ffff';
       this.drawRoundedRect(
         this.canvas.width - 25,
         this.aiY,
-        this.paddleWidth,
-        this.paddleHeight,
+        this.constants.paddleWidth,
+        this.constants.paddleHeight,
         paddleRadius
       );
 
       // ball
       this.ctx.fillStyle = '#ffff00';
       this.ctx.beginPath();
-      this.ctx.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
+      this.ctx.arc(this.ballX, this.ballY, this.constants.ballRadius, 0, Math.PI * 2);
       this.ctx.fill();
 
       this.updateGameState();
     } else if (this.gameOver) {
-      this.drawGameOver(this.playerScore === this.winningScore ? 'YOU' : 'AI');
+      this.drawGameOver(this.playerScore === this.constants.winningScore ? 'YOU' : 'AI');
     }
 
     this.animationId = requestAnimationFrame(() => this.draw());
@@ -305,18 +373,21 @@ export class PongGame {
 
     // Paddle coll.
     const ballHitsPlayerPaddle =
-      this.ballX - this.ballRadius <= 25 &&
+      this.ballX - this.constants.ballRadius <= 25 &&
       this.ballY >= this.playerY &&
-      this.ballY <= this.playerY + this.paddleHeight;
+      this.ballY <= this.playerY + this.constants.paddleHeight;
 
     const ballHitsAIPaddle =
-      this.ballX + this.ballRadius >= this.canvas.width - 25 &&
+      this.ballX + this.constants.ballRadius >= this.canvas.width - 25 &&
       this.ballY >= this.aiY &&
-      this.ballY <= this.aiY + this.paddleHeight;
+      this.ballY <= this.aiY + this.constants.paddleHeight;
 
     // ball speed
     if (ballHitsPlayerPaddle || ballHitsAIPaddle) {
-      this.ballSpeed = Math.min(this.ballSpeed + this.BALL_ACCELERATION, this.MAX_BALL_SPEED);
+      this.ballSpeed = Math.min(
+        this.ballSpeed + this.constants.BALL_ACCELERATION,
+        this.constants.MAX_BALL_SPEED
+      );
       const angle = (Math.random() * Math.PI) / 6 - Math.PI / 12; // -15° ile +15° arası
 
       const direction = ballHitsPlayerPaddle ? 1 : -1;
@@ -326,38 +397,90 @@ export class PongGame {
     }
 
     // Scores
-    if (this.ballX - this.ballRadius > this.canvas.width) {
+    if (this.ballX - this.constants.ballRadius > this.canvas.width) {
       this.playerScore++;
       document.getElementById('score')!.textContent = this.playerScore.toString();
-      if (this.playerScore >= this.winningScore) {
+      if (this.playerScore >= this.constants.winningScore) {
         this.gameOver = true;
+        this.aiSystem.onGameEnd(); // <-- Event an AI
         return;
       }
+      this.aiSystem.onPlayerScore(); // <-- Event an AI
       this.resetBall(true);
       return;
     }
 
-    if (this.ballX + this.ballRadius < 0) {
+    if (this.ballX + this.constants.ballRadius < 0) {
       this.playerScore2++;
       document.getElementById('score2')!.textContent = this.playerScore2.toString();
-      if (this.playerScore2 >= this.winningScore) {
+      if (this.playerScore2 >= this.constants.winningScore) {
         this.gameOver = true;
+        this.aiSystem.onGameEnd(); // <-- Event an AI
         return;
       }
+      this.aiSystem.onAIScore(); // <-- Event an AI
       this.resetBall(false);
       return;
     }
 
     // Wall collision
-    if (this.ballY - this.ballRadius <= 0 || this.ballY + this.ballRadius >= this.canvas.height) {
+    if (
+      this.ballY - this.constants.ballRadius <= 0 ||
+      this.ballY + this.constants.ballRadius >= this.canvas.height
+    ) {
       this.ballVY *= -1;
     }
 
-    // basic ai moves
-    if (this.ballY > this.aiY + this.paddleHeight / 2 + this.aiErrorMargin) {
-      this.aiY = Math.min(this.aiY + this.aiSpeed, this.canvas.height - this.paddleHeight);
-    } else if (this.ballY < this.aiY + this.paddleHeight / 2 - this.aiErrorMargin) {
-      this.aiY = Math.max(this.aiY - this.aiSpeed, 0);
+    // ai moves
+    const now = Date.now();
+    if (now - this.lastAIMove > 1000) {
+      const gameState = {
+        ballX: this.ballX,
+        ballY: this.ballY,
+        ballVX: this.ballVX,
+        ballVY: this.ballVY,
+        aiY: this.aiY,
+        playerY: this.playerY,
+        canvasWidth: this.canvas.width,
+        canvasHeight: this.canvas.height,
+        ballSpeed: this.ballSpeed,
+        gameTime: performance.now(), // oder eigene Zeitvariable
+      };
+
+      const aiAction = this.aiSystem.getAction(gameState);
+
+      // AI bewegt Paddle gemäß Aktion
+      if (aiAction === Action.Up) {
+        this.AITargetY = Math.max(0, this.aiY - 50); // nach oben
+      } else if (aiAction === Action.Down) {
+        this.AITargetY = Math.min(this.canvas.height - this.constants.paddleHeight, this.aiY + 50); // nach unten
+      } else {
+        this.AITargetY = this.aiY; // bleiben
+      }
+
+      /*const dt = (this.canvas.width - this.paddleWidth - this.ballX) / this.ballVX;
+      if (dt > 0){
+        let futureY = this.ballY + this.ballVY * dt;
+        const H = this.canvas.height;
+        const period = 2 * H;
+      
+        // Reflect for wall bounces
+        futureY = ((futureY % period) + period) % period;
+        if (futureY > H) 
+          futureY = period - futureY;   
+        const errorMargin = (Math.random() - 0.5) * 100;
+        this.AITargetY = futureY - (this.paddleHeight / 2) - errorMargin;
+      }*/
+      this.lastAIMove = now;
+    }
+    if (this.aiY < this.AITargetY) {
+      this.aiY = Math.min(
+        this.aiY + this.constants.aiSpeed,
+        this.AITargetY,
+        this.canvas.height - this.constants.paddleHeight
+      );
+    } else if (this.aiY > this.AITargetY) {
+      this.aiY = Math.max(this.aiY - this.constants.aiSpeed, this.AITargetY, 0);
     }
 
     // Player moves
@@ -365,7 +488,7 @@ export class PongGame {
       this.playerY = Math.max(0, this.playerY - 10);
     }
     if (this.downPressed) {
-      this.playerY = Math.min(this.canvas.height - this.paddleHeight, this.playerY + 10);
+      this.playerY = Math.min(this.canvas.height - this.constants.paddleHeight, this.playerY + 10);
     }
   }
 

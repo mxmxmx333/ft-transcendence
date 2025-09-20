@@ -6,7 +6,7 @@ services:
       args: 
         MODSEC_VERSION: ${MODSEC_VERSION:-3.0.8} 
         NGINX_VERSION: ${NGINX_VERSION:-1.22.1} 
-        LMDB_VERSION: ${LMDB_VERSION:-0.9.29} 
+        LMDB_VERSION: ${LMDB_VERSION:-0.9.29}
     ports:
       - "8080:80"           # WAF wird auf Host‑Port 8080 verfügbar
       - "8443:8443"         # HTTPS Port für WAF
