@@ -1,5 +1,6 @@
 mod app;
 mod auth;
+mod game;
 mod types;
 mod ui;
 mod websocket;

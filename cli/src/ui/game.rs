@@ -1,6 +1,11 @@
+use std::time::Instant;
+
+use crate::game::movement::Movement;
 use crate::types::{Player, Position};
+use crate::websocket::SocketIoClient;
+use crate::websocket::events::request::PaddleMoveDirection;
 use crate::websocket::events::websocketevents::{
-    GameOverEvent, GameStartEvent, GameStartEventPlayer, GameStateEvent, PaddleUpdateEvent,
+    GameOverEvent, GameStartEvent, GameStartEventPlayer, GameStateEvent,
 };
 use crossterm::event::{Event, KeyCode};
 use ratatui::Frame;
@@ -48,6 +53,7 @@ pub struct Game {
     player_a: Player,
     player_b: Player,
     current_player: CurrentPlayer,
+    current_movement: Movement,
     ball: Position,
     owner_score_widget: Rect,
     game_widget: Rect,
@@ -62,7 +68,8 @@ impl Game {
         Self {
             player_a: Player::new(start_event.owner, start_event.paddle1_y),
             player_b: Player::new(start_event.guest, start_event.paddle2_y),
-            current_player: start_event.is_player1.into(),
+            current_player: start_event.is_owner.into(),
+            current_movement: Movement::new(),
             ball: Position {
                 pos_y: start_event.ball_y,
                 pos_x: start_event.ball_x,
@@ -76,11 +83,8 @@ impl Game {
     }
 
     pub fn update(&mut self, state_event: &GameStateEvent) {
-        match self.current_player {
-            CurrentPlayer::PlayerA => self.player_b.pos_y = state_event.paddle2_y,
-            CurrentPlayer::PlayerB => self.player_a.pos_y = state_event.paddle1_y,
-        }
-
+        self.player_a.pos_y = state_event.paddle1_y;
+        self.player_b.pos_y = state_event.paddle2_y;
         self.player_a.score = state_event.owner_score;
         self.player_b.score = state_event.guest_score;
         self.ball.pos_y = state_event.ball_y;
@@ -88,18 +92,13 @@ impl Game {
         self.needs_update = true;
     }
 
-    pub fn paddle_update(&mut self, state_event: &PaddleUpdateEvent) {
-        let (own_id, other_player) = match self.current_player {
-            CurrentPlayer::PlayerA => (self.player_a.player.id, &mut self.player_b),
-            CurrentPlayer::PlayerB => (self.player_b.player.id, &mut self.player_a),
-        };
-
-        if own_id == state_event.player_id {
-            return;
+    pub async fn tick(&mut self, socket: &mut SocketIoClient) {
+        if self.current_movement.movement_stopped() {
+            socket
+                .paddle_move((PaddleMoveDirection::None, PaddleMoveDirection::None))
+                .await
+                .unwrap();
         }
-
-        other_player.pos_y = state_event.y_pos;
-        self.needs_update = true;
     }
 
     fn render_game(&self, frame: &mut Frame) {
@@ -177,25 +176,23 @@ impl Game {
     }
 
     fn update_position(&mut self, key: KeyCode) -> Option<PageResults> {
-        let pos = match self.current_player {
-            CurrentPlayer::PlayerA => &mut self.player_a.pos_y,
-            CurrentPlayer::PlayerB => &mut self.player_b.pos_y,
-        };
-
-        let newpos = match key {
-            KeyCode::Up => 0.0_f64.max(*pos - 20.0),
-            KeyCode::Down => 500.0_f64.min(*pos + 20.0),
+        let direction = match key {
+            KeyCode::Up => PaddleMoveDirection::Up,
+            KeyCode::Down => PaddleMoveDirection::Down,
             _ => unreachable!(),
         };
 
-        match newpos.ne(pos) {
-            true => {
-                *pos = newpos;
-                self.needs_update = true;
-                Some(PageResults::UpdatePosition(newpos))
-            }
-            false => None,
+        self.current_movement.update(&direction);
+        if !self.current_movement.first_keystroke() {
+            return None;
         }
+
+        let movements = match self.current_player {
+            CurrentPlayer::PlayerA => (direction.clone(), PaddleMoveDirection::None),
+            CurrentPlayer::PlayerB => (PaddleMoveDirection::None, direction.clone()),
+        };
+
+        Some(PageResults::UpdatePaddleMovement(movements))
     }
 
     pub fn key_event(&mut self, event: &Event) -> Option<PageResults> {

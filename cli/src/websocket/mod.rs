@@ -7,7 +7,9 @@ use std::error::Error;
 use errors::WebSocketErrors;
 use events::{
     errors::EventError,
-    request::{EventRequest, EventTypes},
+    request::{
+        CreateRoomPayload, CreateRoomRequest, EventRequest, EventTypes, PaddleMoveDirection,
+    },
     response::EventResponse,
     websocketevents::{CreateRoomEvent, WebSocketEvents},
 };
@@ -162,7 +164,10 @@ impl SocketIoClient {
 
     pub async fn create_room(&mut self) -> Result<String, EventError> {
         let response = self
-            .send_event(&EventRequest::new("create_room", &EventTypes::CreateRoom))
+            .send_event(&EventRequest::new(
+                "create_room",
+                &EventTypes::CreateRoom(CreateRoomRequest::multiplayer()),
+            ))
             .await?;
 
         match response.get_type() {
@@ -202,10 +207,16 @@ impl SocketIoClient {
         }
     }
 
-    pub async fn paddle_move(&mut self, position: f64) -> Result<(), EventError> {
+    pub async fn paddle_move(
+        &mut self,
+        directions: (PaddleMoveDirection, PaddleMoveDirection),
+    ) -> Result<(), EventError> {
         self.send_event_noresponse(&EventRequest::new(
             "paddle_move",
-            &EventTypes::PaddleMove { y_pos: position },
+            &EventTypes::PaddleMove {
+                move_p1: directions.0,
+                move_p2: directions.1,
+            },
         ))
         .await
     }
@@ -248,13 +259,9 @@ impl SocketIoClient {
                     )),
                     "game_start" => Ok(WebSocketEvents::GameStart(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|_| EventError::SerializingError)?,
+                            .map_err(|err| EventError::SerializingError)?,
                     )),
                     "game_state" => Ok(WebSocketEvents::GameState(
-                        serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|_| EventError::SerializingError)?,
-                    )),
-                    "paddle_update" => Ok(WebSocketEvents::PaddleUpdate(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(|_| EventError::SerializingError)?,
                     )),

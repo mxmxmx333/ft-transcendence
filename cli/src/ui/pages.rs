@@ -1,6 +1,8 @@
 use crossterm::event::Event;
 use ratatui::Frame;
 
+use crate::websocket::events::request::PaddleMoveDirection;
+
 use super::{
     game::Game,
     game_lobby::GameLobbyPage,
@@ -61,7 +63,7 @@ pub enum PageResults {
     BackToMenu,
     GameModeChosen(GameModes),
     JoinRoom(String),
-    UpdatePosition(f64),
+    UpdatePaddleMovement((PaddleMoveDirection, PaddleMoveDirection)),
     GameOver,
     Exit,
 }

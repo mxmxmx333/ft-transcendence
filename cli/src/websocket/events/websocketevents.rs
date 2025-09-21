@@ -34,15 +34,14 @@ pub struct GameStartEvent {
     pub guest_score: usize,
     pub owner: GameStartEventPlayer,
     pub guest: GameStartEventPlayer,
+    #[serde(rename(deserialize = "isOwner"))]
+    pub is_owner: bool,
     success: bool,
-    #[serde(rename(deserialize = "isPlayer1"))]
-    pub is_player1: bool,
-    opponent: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GameStartEventPlayer {
-    pub id: usize,
+    pub id: String,
     pub nickname: String,
 }
 
@@ -68,14 +67,6 @@ pub struct GameAbortedEvent {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct PaddleUpdateEvent {
-    #[serde(rename(deserialize = "playerId"))]
-    pub player_id: usize,
-    #[serde(rename(deserialize = "yPos"))]
-    pub y_pos: f64,
-}
-
-#[derive(Deserialize, Debug)]
 pub struct FinalScore {
     pub owner: usize,
     pub guest: usize,
@@ -95,7 +86,6 @@ pub enum WebSocketEvents {
     JoinedRoom(JoinedRoomEvent),
     GameStart(GameStartEvent),
     GameState(GameStateEvent),
-    PaddleUpdate(PaddleUpdateEvent),
     GameAborted(GameAbortedEvent),
     GameOver(GameOverEvent),
     Ping,

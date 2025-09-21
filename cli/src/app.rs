@@ -89,9 +89,6 @@ impl App {
                         (Ok(WebSocketEvents::GameState(gamestateevent)), Pages::Game(game)) => {
                             game.update(&gamestateevent);
                         },
-                        (Ok(WebSocketEvents::PaddleUpdate(paddleupdateevent)), Pages::Game(game)) => {
-                            game.paddle_update(&paddleupdateevent);
-                        },
                         (Ok(WebSocketEvents::GameOver(gameoverevent)), Pages::Game(game)) => {
                             let result = game.game_over(&gameoverevent);
                             self.current_page = Pages::GameOver(GameOverPage::new(result));
@@ -154,9 +151,9 @@ impl App {
                                     }
                                 });
                               },
-                              Some(PageResults::UpdatePosition(pos_y)) => {
+                              Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
                                   if let Some(socket) = self.socket.as_mut() {
-                                      socket.paddle_move(pos_y).await.unwrap();
+                                      socket.paddle_move(paddle_directions).await.unwrap();
                                   }
                               },
                               Some(PageResults::Exit) => break Ok(()),
@@ -193,6 +190,9 @@ impl App {
                 }
 
                 _ = interval.tick() => {
+                    if let (Pages::Game(game), Some(socket)) = (&mut self.current_page, self.socket.as_mut()) {
+                      game.tick(socket).await;
+                    }
                     self.render(terminal, false)?;
                 }
             }
