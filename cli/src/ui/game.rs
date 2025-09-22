@@ -106,6 +106,22 @@ impl Game {
             .block(Block::default().title("Pong CLI").borders(Borders::ALL))
             .x_bounds([0.0, 800.0])
             .y_bounds([0.0, 600.0])
+            .marker(Marker::Braille)
+            .paint(|ctx| {
+                ctx.draw(&Ball {
+                    x: self.ball.pos_x - 10.0,
+                    y: 600.0 - self.ball.pos_y,
+                    radius: 10.0,
+                    color: Color::Rgb(255, 255, 0),
+                });
+            });
+
+        frame.render_widget(canvas, self.game_widget);
+
+        let canvas = Canvas::default()
+            .block(Block::default().title("Pong CLI").borders(Borders::ALL))
+            .x_bounds([0.0, 800.0])
+            .y_bounds([0.0, 600.0])
             .marker(Marker::HalfBlock)
             .paint(|ctx| {
                 ctx.draw(&FilledRectangle {
@@ -122,22 +138,6 @@ impl Game {
                     width: 10.0,
                     height: 100.0,
                     color: Color::Rgb(0, 255, 255),
-                });
-            });
-
-        frame.render_widget(canvas, self.game_widget);
-
-        let canvas = Canvas::default()
-            .block(Block::default().title("Pong CLI").borders(Borders::ALL))
-            .x_bounds([0.0, 800.0])
-            .y_bounds([0.0, 600.0])
-            .marker(Marker::Braille)
-            .paint(|ctx| {
-                ctx.draw(&Ball {
-                    x: self.ball.pos_x - 5.0,
-                    y: 600.0 - self.ball.pos_y,
-                    radius: 10.0,
-                    color: Color::Rgb(255, 255, 0),
                 });
             });
 
