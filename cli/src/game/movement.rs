@@ -40,7 +40,7 @@ impl Movement {
     pub fn movement_stopped(&mut self) -> bool {
         if self.direction != PaddleMoveDirection::None {
             let duration = self.since.unwrap().elapsed().as_millis();
-            if duration >= 500 || (!self.first_keystroke && duration >= 30) {
+            if duration > 30 {
                 self.update(&PaddleMoveDirection::None);
                 return true;
             }
