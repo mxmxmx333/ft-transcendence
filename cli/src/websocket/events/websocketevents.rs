@@ -82,7 +82,6 @@ pub struct GameOverEvent {
 
 #[derive(Debug)]
 pub enum WebSocketEvents {
-    CreateRoom(CreateRoomEvent),
     JoinedRoom(JoinedRoomEvent),
     GameStart(GameStartEvent),
     GameState(GameStateEvent),

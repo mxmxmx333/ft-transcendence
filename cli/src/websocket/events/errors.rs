@@ -5,7 +5,7 @@ use std::{
 
 #[derive(Debug)]
 pub enum EventError {
-    SerializingError,
+    SerializingError(serde_json::Error),
     ConnectionError,
     InvalidResponse,
     CreateRoomError,
@@ -15,7 +15,7 @@ pub enum EventError {
 impl Display for EventError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::SerializingError => write!(f, "Unable to deserialize Response"),
+            Self::SerializingError(err) => write!(f, "Unable to deserialize Response: {}", err),
             Self::ConnectionError => write!(f, "Connection Error"),
             Self::InvalidResponse => write!(f, "Invalid Response"),
             Self::CreateRoomError => write!(f, "Unable to create room"),

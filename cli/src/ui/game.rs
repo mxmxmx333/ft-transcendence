@@ -1,4 +1,3 @@
-use std::time::Instant;
 
 use crate::game::movement::Movement;
 use crate::types::{Player, Position};

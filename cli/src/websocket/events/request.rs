@@ -8,31 +8,6 @@ pub struct CreateRoomRequest {
     is_remote: bool,
 }
 
-#[derive(Serialize, Clone, Debug)]
-pub struct CreateRoomPayload {
-    create_room: CreateRoomRequest,
-}
-
-impl CreateRoomPayload {
-    pub fn singleplayer() -> Self {
-        Self {
-            create_room: CreateRoomRequest {
-                is_single_player: true,
-                is_remote: false,
-            },
-        }
-    }
-
-    pub fn multiplayer() -> Self {
-        Self {
-            create_room: CreateRoomRequest {
-                is_single_player: false,
-                is_remote: true,
-            },
-        }
-    }
-}
-
 impl CreateRoomRequest {
     pub fn singleplayer() -> Self {
         Self {

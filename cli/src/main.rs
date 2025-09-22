@@ -9,7 +9,7 @@ use app::{App, FatalErrors};
 use crossterm::{
     event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     execute,
-    terminal::{self, supports_keyboard_enhancement},
+    terminal::{supports_keyboard_enhancement},
 };
 
 #[tokio::main]
