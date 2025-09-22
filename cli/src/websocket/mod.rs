@@ -162,11 +162,14 @@ impl SocketIoClient {
         Ok(())
     }
 
-    pub async fn create_room(&mut self) -> Result<String, EventError> {
+    pub async fn create_room(
+        &mut self,
+        room_type: CreateRoomRequest,
+    ) -> Result<String, EventError> {
         let response = self
             .send_event(&EventRequest::new(
                 "create_room",
-                &EventTypes::CreateRoom(CreateRoomRequest::multiplayer()),
+                &EventTypes::CreateRoom(room_type),
             ))
             .await?;
 

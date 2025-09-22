@@ -21,7 +21,9 @@ use crate::{
     },
     websocket::{
         SocketIoClient,
-        events::{errors::EventError, websocketevents::WebSocketEvents},
+        events::{
+            errors::EventError, request::CreateRoomRequest, websocketevents::WebSocketEvents,
+        },
     },
 };
 
@@ -120,6 +122,16 @@ impl App {
                               },
                               Some(PageResults::GameModeChosen(mode)) => {
                                 match (mode, self.auth_token.as_ref()) {
+                                    (GameModes::SinglePlayer, Some(token)) => {
+                                        let token = token.clone();
+                                        let tx = tx.clone();
+                                        tokio::spawn(async move {
+                                            match create_singleplayer_game(&token).await {
+                                                Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
+                                                Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
+                                            }
+                                        });
+                                    }
                                     (GameModes::CreateRoom, Some(token)) => {
                                         let token = token.clone();
                                         let tx = tx.clone();
@@ -179,7 +191,7 @@ impl App {
                             self.socket = Some(client);
                             self.current_page = Pages::GameLobby(GameLobbyPage::new(room_id));
                         },
-                        (ChannelEvents::RoomJoined(client), Pages::JoinRoom(_)) => {
+                        (ChannelEvents::RoomJoined(client), _) => {
                             self.socket = Some(client);
                         },
                         (ChannelEvents::RoomJoinError(error), Pages::JoinRoom(page)) => {
@@ -238,7 +250,23 @@ async fn create_join_room(
             socket.join_room(room_id).await?;
             None
         }
-        None => Some(socket.create_room().await?),
+        None => Some(socket.create_room(CreateRoomRequest::multiplayer()).await?),
     };
     Ok((socket, room_id))
+}
+
+async fn create_singleplayer_game(
+    token: &str,
+) -> Result<(SocketIoClient, Option<String>), EventError> {
+    let mut socket = SocketIoClient::new(
+        "ws://localhost:3000/socket.io/?EIO=4&transport=websocket",
+        token,
+    )
+    .await
+    .map_err(|_| EventError::ConnectionError)?;
+
+    let room_id = socket
+        .create_room(CreateRoomRequest::singleplayer())
+        .await?;
+    Ok((socket, Some(room_id)))
 }

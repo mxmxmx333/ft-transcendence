@@ -10,7 +10,7 @@ use super::pages::PageResults;
 
 #[derive(Debug, Clone)]
 pub enum GameModes {
-    // SinglePlayer not implemented yet
+    SinglePlayer,
     CreateRoom,
     JoinRoom,
 }
@@ -18,17 +18,24 @@ pub enum GameModes {
 impl GameModes {
     fn toggle(&self) -> Self {
         match self {
+            Self::SinglePlayer => Self::CreateRoom,
             Self::CreateRoom => Self::JoinRoom,
-            Self::JoinRoom => Self::CreateRoom,
+            Self::JoinRoom => Self::SinglePlayer,
         }
     }
 
     fn prev(&self) -> Self {
-        Self::CreateRoom
+        match self {
+            Self::JoinRoom => Self::CreateRoom,
+            _ => Self::SinglePlayer,
+        }
     }
 
     fn next(&self) -> Self {
-        Self::JoinRoom
+        match self {
+            Self::SinglePlayer => Self::CreateRoom,
+            _ => Self::JoinRoom,
+        }
     }
 }
 
@@ -42,7 +49,7 @@ pub struct GameModePage {
 impl GameModePage {
     pub fn new() -> Self {
         Self {
-            selection: GameModes::CreateRoom,
+            selection: GameModes::SinglePlayer,
             needs_update: true,
             error_message: None,
         }
@@ -56,13 +63,25 @@ impl GameModePage {
         ])
         .areas(frame.area());
 
-        let [_, createroom, joinroom, error] = Layout::vertical([
+        let [_, single, createroom, joinroom, error] = Layout::vertical([
             Constraint::Percentage(30),
+            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
         ])
         .areas(horizontal);
+
+        let style: Style = match self.selection {
+            GameModes::SinglePlayer => Color::Rgb(255, 0, 255),
+            _ => Color::Gray,
+        }
+        .into();
+
+        let input = Paragraph::new("Single Player")
+            .style(style)
+            .block(Block::bordered());
+        frame.render_widget(input, single);
 
         let style: Style = match self.selection {
             GameModes::CreateRoom => Color::Rgb(255, 0, 255),
@@ -105,6 +124,9 @@ impl GameModePage {
                 KeyCode::Up => self.focus_widget(self.selection.prev()),
                 KeyCode::Down => self.focus_widget(self.selection.next()),
                 KeyCode::Enter => match self.selection {
+                    GameModes::SinglePlayer => {
+                        return Some(PageResults::GameModeChosen(GameModes::SinglePlayer));
+                    }
                     GameModes::CreateRoom => {
                         return Some(PageResults::GameModeChosen(GameModes::CreateRoom));
                     }
