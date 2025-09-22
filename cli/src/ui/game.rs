@@ -3,6 +3,7 @@ use std::time::Instant;
 use crate::game::movement::Movement;
 use crate::types::{Player, Position};
 use crate::websocket::SocketIoClient;
+use crate::websocket::events::errors::EventError;
 use crate::websocket::events::request::PaddleMoveDirection;
 use crate::websocket::events::websocketevents::{
     GameOverEvent, GameStartEvent, GameStartEventPlayer, GameStateEvent,
@@ -92,13 +93,14 @@ impl Game {
         self.needs_update = true;
     }
 
-    pub async fn tick(&mut self, socket: &mut SocketIoClient) {
+    pub async fn tick(&mut self, socket: &mut SocketIoClient) -> Result<(), EventError> {
         if self.current_movement.movement_stopped() {
             socket
                 .paddle_move((PaddleMoveDirection::None, PaddleMoveDirection::None))
-                .await
-                .unwrap();
+                .await?;
         }
+
+        Ok(())
     }
 
     fn render_game(&self, frame: &mut Frame) {

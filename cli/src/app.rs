@@ -165,7 +165,9 @@ impl App {
                               },
                               Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
                                   if let Some(socket) = self.socket.as_mut() {
-                                      socket.paddle_move(paddle_directions).await.unwrap();
+                                    if let Err(_) = socket.paddle_move(paddle_directions).await {
+                                        self.abort_game().await;
+                                    }
                                   }
                               },
                               Some(PageResults::Exit) => break Ok(()),
@@ -203,7 +205,9 @@ impl App {
 
                 _ = interval.tick() => {
                     if let (Pages::Game(game), Some(socket)) = (&mut self.current_page, self.socket.as_mut()) {
-                      game.tick(socket).await;
+                        if let Err(_) = game.tick(socket).await {
+                            self.abort_game().await;
+                        }
                     }
                     self.render(terminal, false)?;
                 }
