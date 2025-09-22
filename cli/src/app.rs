@@ -32,6 +32,7 @@ use super::ui::pages::Pages;
 #[derive(Debug)]
 pub enum FatalErrors {
     RenderingError,
+    KeyboardEnhancementFlagsError(std::io::Error),
 }
 
 impl Error for FatalErrors {}
@@ -40,6 +41,13 @@ impl Display for FatalErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RenderingError => write!(f, "Unable to render frame on screen"),
+            Self::KeyboardEnhancementFlagsError(err) => {
+                write!(
+                    f,
+                    "Unable to query or toggle keyboard enhancement flags: {}",
+                    err
+                )
+            }
         }
     }
 }
@@ -49,6 +57,7 @@ pub struct App {
     auth_token: Option<String>,
     current_page: Pages,
     socket: Option<SocketIoClient>,
+    kitty_protocol_support: bool,
 }
 
 #[derive(Debug)]
@@ -61,11 +70,12 @@ enum ChannelEvents {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(kitty_protocol_support: bool) -> Self {
         Self {
             auth_token: None,
             current_page: Pages::Login(LoginPage::new()),
             socket: None,
+            kitty_protocol_support,
         }
     }
 
@@ -204,7 +214,7 @@ impl App {
                 }
 
                 _ = interval.tick() => {
-                    if let (Pages::Game(game), Some(socket)) = (&mut self.current_page, self.socket.as_mut()) {
+                    if let (false, Pages::Game(game), Some(socket)) = (self.kitty_protocol_support, &mut self.current_page, self.socket.as_mut()) {
                         if let Err(_) = game.tick(socket).await {
                             self.abort_game().await;
                         }

@@ -8,7 +8,7 @@ use crate::websocket::events::request::PaddleMoveDirection;
 use crate::websocket::events::websocketevents::{
     GameOverEvent, GameStartEvent, GameStartEventPlayer, GameStateEvent,
 };
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Style, Stylize};
@@ -177,10 +177,11 @@ impl Game {
         self.needs_update = false;
     }
 
-    fn update_position(&mut self, key: KeyCode) -> Option<PageResults> {
-        let direction = match key {
-            KeyCode::Up => PaddleMoveDirection::Up,
-            KeyCode::Down => PaddleMoveDirection::Down,
+    fn update_movement(&mut self, key: KeyCode, kind: KeyEventKind) -> Option<PageResults> {
+        let direction = match (key, kind) {
+            (_, KeyEventKind::Release) => PaddleMoveDirection::None,
+            (KeyCode::Up, _) => PaddleMoveDirection::Up,
+            (KeyCode::Down, _) => PaddleMoveDirection::Down,
             _ => unreachable!(),
         };
 
@@ -201,7 +202,7 @@ impl Game {
         if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Esc => return Some(PageResults::BackToMenu),
-                KeyCode::Up | KeyCode::Down => return self.update_position(key.code),
+                KeyCode::Up | KeyCode::Down => return self.update_movement(key.code, key.kind),
                 _ => (),
             }
         }

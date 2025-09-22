@@ -19,17 +19,11 @@ impl Movement {
     }
 
     pub fn update(&mut self, direction: &PaddleMoveDirection) {
-        match direction {
-            PaddleMoveDirection::None => {
-                self.direction = PaddleMoveDirection::None;
-                self.first_keystroke = false;
-                self.since = None;
-            }
-            _ => {
-                self.first_keystroke = self.direction.ne(direction);
-                self.since = Some(Instant::now());
-                self.direction = direction.clone();
-            }
+        self.first_keystroke = self.direction.ne(direction);
+        self.direction = direction.clone();
+        self.since = match self.direction {
+            PaddleMoveDirection::None => None,
+            _ => Some(Instant::now()),
         }
     }
 
