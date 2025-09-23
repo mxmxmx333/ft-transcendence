@@ -54,6 +54,7 @@ impl Display for FatalErrors {
 
 #[derive(Debug)]
 pub struct App {
+    host: Option<String>,
     auth_token: Option<String>,
     current_page: Pages,
     socket: Option<SocketIoClient>,
@@ -62,7 +63,7 @@ pub struct App {
 
 #[derive(Debug)]
 enum ChannelEvents {
-    LoginSuccess(String),
+    LoginSuccess((String, String)),
     LoginError(LoginErrors),
     RoomCreated((SocketIoClient, String)),
     RoomJoined(SocketIoClient),
@@ -72,6 +73,7 @@ enum ChannelEvents {
 impl App {
     pub fn new(kitty_protocol_support: bool) -> Self {
         Self {
+            host: None,
             auth_token: None,
             current_page: Pages::Login(LoginPage::new()),
             socket: None,
@@ -119,42 +121,45 @@ impl App {
                     match event {
                       crossterm::event::Event::Key(_) => {
                           match self.current_page.key_event(&event) {
-                              Some(PageResults::Login((email, password))) => {
+                              Some(PageResults::Login((host, email, password))) => {
+                                let host = host.clone();
                                 let email = email.clone();
                                 let password = password.clone();
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
-                                    match auth::login(&email, &password).await {
-                                        Ok(response) => tx.send(ChannelEvents::LoginSuccess(response.token)).await.unwrap(),
+                                    match auth::login(&host, &email, &password).await {
+                                        Ok(response) => tx.send(ChannelEvents::LoginSuccess((host, response.token))).await.unwrap(),
                                         Err(loginerror) => tx.send(ChannelEvents::LoginError(loginerror)).await.unwrap(),
                                     }
                                 });
                               },
                               Some(PageResults::GameModeChosen(mode)) => {
-                                match (mode, self.auth_token.as_ref()) {
-                                    (GameModes::SinglePlayer, Some(token)) => {
+                                match (mode, self.host.as_ref(), self.auth_token.as_ref()) {
+                                    (GameModes::SinglePlayer, Some(host), Some(token)) => {
+                                        let host = host.clone();
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_singleplayer_game(&token).await {
+                                            match create_singleplayer_game(&get_endpoint(&host), &token).await {
                                                 Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                             }
                                         });
                                     }
-                                    (GameModes::CreateRoom, Some(token)) => {
+                                    (GameModes::CreateRoom, Some(host), Some(token)) => {
+                                        let host = host.clone();
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_join_room(&token, None).await {
+                                            match create_join_room(&get_endpoint(&host), &token, None).await {
                                                 Ok((client, Some(room_id))) => tx.send(ChannelEvents::RoomCreated((client, room_id))).await.unwrap(),
                                                 Ok((_, None)) => panic!("create_join_room returned no room_id after creating a room"),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                             }
                                         });
                                     },
-                                    (GameModes::JoinRoom, _) => self.current_page = Pages::JoinRoom(JoinRoomPage::new()),
-                                    (_, _) => (),
+                                    (GameModes::JoinRoom, _, _) => self.current_page = Pages::JoinRoom(JoinRoomPage::new()),
+                                    (_, _, _) => (),
                                 }
                               },
                               Some(PageResults::BackToMenu) | Some(PageResults::GameOver) => {
@@ -162,11 +167,12 @@ impl App {
                               },
                               Some(PageResults::JoinRoom(room_id)) => {
                                 let room_id = room_id.clone();
+                                let host = self.host.clone();
                                 let auth_token = self.auth_token.clone();
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
-                                    if let Some(token) = auth_token.as_ref() {
-                                        match create_join_room(token, Some(room_id)).await {
+                                    if let (Some(host), Some(token)) = (host.as_ref(), auth_token.as_ref()) {
+                                        match create_join_room(&get_endpoint(&host), token, Some(room_id)).await {
                                             Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                             Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                         }
@@ -192,8 +198,9 @@ impl App {
 
                 Some(msg) = rx.recv() => {
                     match (msg, &mut self.current_page) {
-                        (ChannelEvents::LoginSuccess(token), Pages::Login(_)) => {
+                        (ChannelEvents::LoginSuccess((host, token)), Pages::Login(_)) => {
                             self.auth_token = Some(token);
+                            self.host = Some(host);
                             self.current_page = Pages::GameModeSelector(GameModePage::new());
                         }
                         (ChannelEvents::LoginError(error), Pages::Login(page)) => {
@@ -248,16 +255,22 @@ impl App {
     }
 }
 
+fn get_endpoint(host: &str) -> String {
+    if cfg!(debug_assertions) {
+        format!("ws://{}:3000/socket.io/?EIO=4&transport=websocket", host)
+    } else {
+        format!("wss://{}:8443/socket.io/?EIO=4&transport=websocket", host)
+    }
+}
+
 async fn create_join_room(
+    endpoint: &str,
     token: &str,
     room_id: Option<String>,
 ) -> Result<(SocketIoClient, Option<String>), EventError> {
-    let mut socket = SocketIoClient::new(
-        "ws://localhost:3000/socket.io/?EIO=4&transport=websocket",
-        token,
-    )
-    .await
-    .map_err(|_| EventError::ConnectionError)?;
+    let mut socket = SocketIoClient::new(endpoint, token)
+        .await
+        .map_err(|_| EventError::ConnectionError)?;
 
     let room_id = match room_id {
         Some(room_id) => {
@@ -270,14 +283,12 @@ async fn create_join_room(
 }
 
 async fn create_singleplayer_game(
+    endpoint: &str,
     token: &str,
 ) -> Result<(SocketIoClient, Option<String>), EventError> {
-    let mut socket = SocketIoClient::new(
-        "ws://localhost:3000/socket.io/?EIO=4&transport=websocket",
-        token,
-    )
-    .await
-    .map_err(|_| EventError::ConnectionError)?;
+    let mut socket = SocketIoClient::new(endpoint, token)
+        .await
+        .map_err(|_| EventError::ConnectionError)?;
 
     let room_id = socket
         .create_room(CreateRoomRequest::singleplayer())

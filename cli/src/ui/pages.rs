@@ -59,7 +59,7 @@ impl Pages {
 
 #[derive(Debug)]
 pub enum PageResults {
-    Login((String, String)),
+    Login((String, String, String)),
     BackToMenu,
     GameModeChosen(GameModes),
     JoinRoom(String),

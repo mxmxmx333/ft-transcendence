@@ -13,12 +13,14 @@ use super::pages::PageResults;
 
 #[derive(Debug, PartialEq, Clone)]
 enum Field {
+    Host,
     Email,
     Password,
 }
 
 #[derive(Debug, Clone)]
 pub struct LoginPage {
+    host: Input,
     email: Input,
     password: Input,
     selected_field: Field,
@@ -28,13 +30,20 @@ pub struct LoginPage {
 
 #[derive(Debug)]
 pub enum LoginResult {
-    Login(String),
+    Login((String, String)),
     Abort,
 }
 
 impl LoginPage {
     pub fn new() -> Self {
+        let default_host = if cfg!(debug_assertions) {
+            "localhost"
+        } else {
+            "ft-transcendence.at"
+        };
+
         Self {
+            host: Input::default().with_value(default_host.to_string()),
             email: Input::default(),
             password: Input::default(),
             selected_field: Field::Email,
@@ -79,13 +88,23 @@ impl LoginPage {
         ])
         .areas(frame.area());
 
-        let [_, email, password, error] = Layout::vertical([
+        let [_, host, email, password, error] = Layout::vertical([
             Constraint::Percentage(30),
+            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
         ])
         .areas(horizontal);
+
+        self.render_input_field(
+            frame,
+            host,
+            &self.host,
+            "Hostname",
+            self.selected_field.eq(&Field::Host),
+            false,
+        );
 
         self.render_input_field(
             frame,
@@ -116,6 +135,7 @@ impl LoginPage {
 
     pub fn key_event(&mut self, event: &Event) -> Option<PageResults> {
         let current_widget = match self.selected_field {
+            Field::Host => &mut self.host,
             Field::Email => &mut self.email,
             Field::Password => &mut self.password,
         };
@@ -135,10 +155,11 @@ impl LoginPage {
                 }
                 KeyCode::Tab => self.focus_other_widget(),
                 KeyCode::Enter => {
-                    if self.selected_field.eq(&Field::Email) {
+                    if self.selected_field.ne(&Field::Password) {
                         self.focus_other_widget();
                     } else {
                         return Some(PageResults::Login((
+                            self.host.value().to_owned(),
                             self.email.value().to_owned(),
                             self.password.value().to_owned(),
                         )));
@@ -160,8 +181,9 @@ impl LoginPage {
     fn focus_other_widget(&mut self) {
         self.needs_update = true;
         self.selected_field = match self.selected_field {
+            Field::Host => Field::Email,
             Field::Email => Field::Password,
-            Field::Password => Field::Email,
+            Field::Password => Field::Host,
         }
     }
 

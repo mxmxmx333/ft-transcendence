@@ -44,13 +44,18 @@ impl Display for LoginErrors {
 
 impl Error for LoginErrors {}
 
-pub async fn login(email: &str, password: &str) -> Result<LoginResponse, LoginErrors> {
+pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginResponse, LoginErrors> {
     let body = LoginRequest { email, password };
 
     let client = reqwest::Client::new();
+    let endpoint = if cfg!(debug_assertions) {
+        format!("http://{}:3000/api/login", host)
+    } else {
+        format!("https://{}:8443/api/login", host)
+    };
 
     let response = client
-        .post("http://localhost:3000/api/login")
+        .post(endpoint)
         .json(&body)
         .send()
         .await
