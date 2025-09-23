@@ -120,7 +120,7 @@ impl SocketIoClient {
     async fn send_event(&mut self, event: &EventRequest) -> Result<EventResponse, EventError> {
         let data = format!(
             "42{}",
-            serde_json::to_string(event).map_err(|err| EventError::SerializingError(err))?
+            serde_json::to_string(event).map_err(EventError::SerializingError)?
         );
 
         self.socket
@@ -146,7 +146,7 @@ impl SocketIoClient {
                 }
 
                 let parsed: EventResponse =
-                    serde_json::from_str(&json).map_err(|err| EventError::SerializingError(err))?;
+                    serde_json::from_str(&json).map_err(EventError::SerializingError)?;
 
                 Ok(parsed)
             }
@@ -157,7 +157,7 @@ impl SocketIoClient {
     async fn send_event_noresponse(&mut self, event: &EventRequest) -> Result<(), EventError> {
         let data = format!(
             "42{}",
-            serde_json::to_string(event).map_err(|err| EventError::SerializingError(err))?
+            serde_json::to_string(event).map_err(EventError::SerializingError)?
         );
 
         self.socket
@@ -182,7 +182,7 @@ impl SocketIoClient {
         match response.get_type() {
             "room_created" => {
                 let parsed: CreateRoomEvent = serde_json::from_value(response.get_value().clone())
-                    .map_err(|err| EventError::SerializingError(err))?;
+                    .map_err(EventError::SerializingError)?;
 
                 if !parsed.success {
                     return Err(EventError::InvalidResponse);
@@ -259,28 +259,28 @@ impl SocketIoClient {
                     Self::split_code_json(&text).ok_or(EventError::InvalidResponse)?;
 
                 let parsed: EventResponse =
-                    serde_json::from_str(&json).map_err(|err| EventError::SerializingError(err))?;
+                    serde_json::from_str(&json).map_err(EventError::SerializingError)?;
 
                 match parsed.get_type() {
                     "joined_room" => Ok(WebSocketEvents::JoinedRoom(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|err| EventError::SerializingError(err))?,
+                            .map_err(EventError::SerializingError)?,
                     )),
                     "game_start" => Ok(WebSocketEvents::GameStart(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|err| EventError::SerializingError(err))?,
+                            .map_err(EventError::SerializingError)?,
                     )),
                     "game_state" => Ok(WebSocketEvents::GameState(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|err| EventError::SerializingError(err))?,
+                            .map_err(EventError::SerializingError)?,
                     )),
                     "game_aborted" => Ok(WebSocketEvents::GameAborted(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|err| EventError::SerializingError(err))?,
+                            .map_err(EventError::SerializingError)?,
                     )),
                     "game_over" => Ok(WebSocketEvents::GameOver(
                         serde_json::from_value(parsed.get_value().clone())
-                            .map_err(|err| EventError::SerializingError(err))?,
+                            .map_err(EventError::SerializingError)?,
                     )),
                     _ => {
                         println!("Unknown event: {}", parsed.get_type());

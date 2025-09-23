@@ -172,7 +172,7 @@ impl App {
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
                                     if let (Some(host), Some(token)) = (host.as_ref(), auth_token.as_ref()) {
-                                        match create_join_room(&get_endpoint(&host), token, Some(room_id)).await {
+                                        match create_join_room(&get_endpoint(host), token, Some(room_id)).await {
                                             Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                             Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                         }
@@ -181,7 +181,7 @@ impl App {
                               },
                               Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
                                   if let Some(socket) = self.socket.as_mut() {
-                                    if let Err(_) = socket.paddle_move(paddle_directions).await {
+                                    if socket.paddle_move(paddle_directions).await.is_err() {
                                         self.abort_game().await;
                                     }
                                   }
@@ -222,7 +222,7 @@ impl App {
 
                 _ = interval.tick() => {
                     if let (false, Pages::Game(game), Some(socket)) = (self.kitty_protocol_support, &mut self.current_page, self.socket.as_mut()) {
-                        if let Err(_) = game.tick(socket).await {
+                        if game.tick(socket).await.is_err() {
                             self.abort_game().await;
                         }
                     }
