@@ -13,7 +13,11 @@ export class SocketManager {
   private reconnectDelay = 1000;
   private pendingResolve: ((roomId: string) => void) | null = null;
 
-  private constructor() {}
+  // private constructor() {}
+
+  constructor(private readonly roomId?: string) {
+    this.socket = io('ws://localhost:3001');
+  }
 
   public onGameStart: ((payload: GameStartPayload) => void) | null = null;
 
@@ -24,6 +28,8 @@ export class SocketManager {
     }
     return SocketManager.instance;
   }
+
+  
 
   public connect(): void {
     // SERVER URL'i düzelt!
@@ -201,7 +207,7 @@ export class SocketManager {
   public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
     if (this.socket?.connected) {
       this.socket.emit('paddle_move', payload);
-      console.log('[Client] paddle_move emitted:', payload); // Çok spam yapıyor
+      // console.log('[Client] paddle_move emitted:', payload); // Çok spam yapıyor
     }
   }
 

@@ -24,7 +24,7 @@ class StrongBaselineAI {
 export class HybridAISystem {
   private rlAI: ImprovedReinforcementLearningAI;
   private baselineAI: StrongBaselineAI;
-  private rlWeight = 0.2; // Startet mit 50% RL, 50% Baseline
+  private rlWeight = 0.5; // Startet mit 50% RL, 50% Baseline
   private readonly maxRLWeight = 0.85; // Maximum 85% RL
   private readonly minRLWeight = 0.1; // Minimum 10% RL
   private performanceHistory: number[] = [];

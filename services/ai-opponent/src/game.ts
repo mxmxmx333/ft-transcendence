@@ -55,6 +55,8 @@ export class PongGame {
     // this.init();
   }
 
+  public onGameEnd?: () => void; // Callback für Cleanup
+
   // constructor(canvas: HTMLCanvasElement, socketManager: SocketManager) {
   //   console.log('Initializing Pong Game');
   //   this.socketManager = socketManager;
@@ -189,7 +191,6 @@ export class PongGame {
   private gameLoop = () => {
     if (!this.gameRunning) return;
     const timestamp = Date.now();
-    console.log('Game loop tick at', timestamp);
     // Nur alle X Millisekunden Paddle-Updates senden
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;
@@ -211,16 +212,11 @@ export class PongGame {
   }
 
   public handleGameOver(message: any) {
+    console.log('Game over, stopping game loop');
     this.gameRunning = false;
-    // const winner =
-    //   message.winner === 'owner'
-    //     ? this.isPlayer1
-    //       ? 'YOU'
-    //       : this.opponentNickname
-    //     : this.isPlayer1
-    //       ? this.opponentNickname
-    //       : 'YOU';
-    // this.drawGameOver(winner);
+    
+    // Callback aufrufen für Server cleanup
+    this.onGameEnd?.();
   }
 
   public handleOpponentDisconnected() {
@@ -304,8 +300,6 @@ export class PongGame {
     let moveP1: 'up' | 'down' | 'none' = 'none';
     let moveP2: 'up' | 'down' | 'none' = 'none';
 
-    console.log('AI Target:', this.AITargetY, 'Current:', this.aiY); // DEBUG
-
     // sind immer player2
     if (this.lastPaddleUpdate - this.lastAIMove > 1000) {
       const gameState = {
@@ -320,7 +314,6 @@ export class PongGame {
         ballSpeed: this.ballSpeed,
         gameTime: performance.now(),
       };
-      console.log('GameState for AI:', { ballX: gameState.ballX, ballY: gameState.ballY, ballVX: gameState.ballVX, ballVY: gameState.ballVY }); // DEBUG
       this.AITargetY = this.aiSystem.getTargetY(gameState);
       this.lastAIMove = this.lastPaddleUpdate;
     }
@@ -332,7 +325,6 @@ export class PongGame {
       } else if (this.aiY > this.AITargetY + paddleTolerance) {
         moveP2 = 'up'; // AI bewegt sich nach oben (kleinere Y-Werte)
       }
-      console.log('AI should move!', { moveP2 }); // DEBUG
     }
     let Payload: ClientToServerEvents['paddle_move'] = { moveP1, moveP2 };
     // Sadece hareket varsa server'a gönder
