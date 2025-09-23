@@ -1,0 +1,1 @@
+path "transit/verify/jwt-issuer" { capabilities = ["update"] }

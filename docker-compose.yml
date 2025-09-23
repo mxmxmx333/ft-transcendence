@@ -77,8 +77,7 @@ services:
     entrypoint: ["sh", "/scripts/vault-seed-config.sh"]
     restart: "no"
 
-    # --- Dev: Single node with local UI/CLI
-  
+  # --- Dev: Single node with local UI/CLI
   vault-dev-seed:
     image: alpine:3.20
     profiles: [ "dev" ]          # nur mit --profile dev
@@ -93,21 +92,48 @@ services:
     entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
     restart: "no"
 
+  vault-bootstrap-dev:
+    build:
+      context: .
+      dockerfile: services/vault/bootstrap/Dockerfile  # multi-stage: vault CLI + jq
+    profiles: [ "dev" ]
+    depends_on: [ vault-dev ]
+    entrypoint: [ "sh", "/scripts/vault-bootstrap-dev.sh" ]
+    environment:
+      VAULT_ADDR: "https://vault-dev:8200"
+      VAULT_SKIP_VERIFY: "1"
+      ENABLE_MTLS_AT_END: "true"
+      HOST_UID: "${HOST_UID:-1000}"               # Fallback 1000
+      HOST_GID: "${HOST_GID:-1000}"               # Fallback 1000
+    volumes:
+      - ./services/vault/scripts:/scripts:ro                             # <— Skript nur gemountet
+      - ./services/vault/policies:/policies:ro                           # <— Policies nur gemountet
+      - vaultdev_runtime_certs:/certs/vault-dev:rw                       # RW für client.crt/key
+      - vaultdev_config:/vault/config:ro                                 # RO für vault-dev.hcl
+      - vault1_logs:/vault/logs                                          # RW für keys.json / Marker
+      - ./services/ai-opponent/certs/:/certs/ai-opponent/:rw             # RW für ai-opponent
+      - ./services/api-gateway/certs/:/certs/api-gateway/:rw             # RW für api-gateway
+      - ./services/auth-user-service/certs/:/certs/auth-user-service/:rw # RW für auth-user-service
+      - ./services/game-service/certs/:/certs/game-service/:rw           # RW für game-service
+    pid: "service:vault-dev"                                             # shared PID namespace mit vault-dev
+    networks: [ api-network ]
+    restart: "no"
+
   vault-dev:
     image: hashicorp/vault:1.17
     profiles: [ "dev" ]
-    command: server -config=/vault/config/vault1.hcl   # single-node config ok
+    command: server -config=/vault/config/vault-dev.hcl   # single-node config ok
     cap_add: [ "IPC_LOCK" ]
     ulimits: { memlock: -1 }
     volumes:
       - vault-dev-config:/vault/config:ro
-      - vault-dev-runtime-certs:/vault/certs:ro   # initiale Zertifikate von vault-dev-seed
+      - vault-dev-runtime-certs:/vault/certs:ro
       - vault1_data:/vault/raft
       - vault1_logs:/vault/logs
-    ports:  
+    ports:
       - "127.0.0.1:8200:8200"
     networks: [ api-network ]
-  
+
   # --- Prod/Staging: 3-node cluster (no host ports)
   vault-1-seed:
     image: alpine:3.20
@@ -117,6 +143,37 @@ services:
       - ./services/vault/scripts/:/scripts:ro
     entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
     restart: "no"
+
+  # vault-rotate:
+  #   build: services/vault/rotate
+  #   profiles: [ "dev" ]
+  #   depends_on: [ vault-dev ]
+  #   pid: "service:vault-dev"
+  #   environment:
+  #     VAULT_ADDR: "https://vault-dev:8200"
+  #     VAULT_TOKEN: "${VAULT_ROTATE_TOKEN_DEV}"     # Policy: pki-rotate-vault-dev
+  #     # mTLS-Pfade (werden im Script als Defaults gesetzt, können hier überschrieben werden)
+  #     VAULT_CACERT: "/vault/rotator-certs/ca.crt"
+  #     VAULT_CLIENT_CERT: "/vault/rotator-certs/agent.crt"
+  #     VAULT_CLIENT_KEY: "/vault/rotator-certs/agent.key"
+
+  #     ROLE: "vault-node-internal"
+  #     CN: "vault-dev"
+  #     ALT_NAMES: "vault-dev,localhost"
+  #     IP_SANS: "127.0.0.1"
+  #     CERT_DIR: "/vault/certs"
+  #     NODE_CERT_TTL: "2160h"
+  #     ROTATE_BEFORE_SECONDS: "604800"
+
+  #     CLIENT_ROLE: "clients-internal"
+  #     CLIENT_CN: "agent-vault-dev-rotator"
+  #     CLIENT_CERT_DIR: "/vault/rotator-certs"
+  #     CLIENT_TTL: "720h"
+  #   volumes:
+  #     - vault-dev-runtime-certs:/vault/certs:rw
+  #     - vault-dev-rotator-certs:/vault/rotator-certs:rw
+  #   restart: unless-stopped
+
 
   vault-1:
     image: hashicorp/vault:1.17

@@ -77,3 +77,9 @@ deps-audit:
 
 deps-audit-force:
 	@npm audit fix --force || true
+
+setup-env:
+	@cp .env.example .env
+	@printf "HOST_UID=%s\n" "$$(id -u)" >> .env
+	@printf "HOST_GID=%s\n" "$$(id -g)" >> .env
+	@echo "Created .env from .env.example and wrote HOST_UID/GID"
