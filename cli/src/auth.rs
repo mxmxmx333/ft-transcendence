@@ -27,7 +27,7 @@ pub enum LoginErrors {
     InvalidResponse,
     InvalidCredentials,
     ServerError,
-    Unknown,
+    Unknown(String),
 }
 
 impl Display for LoginErrors {
@@ -37,7 +37,7 @@ impl Display for LoginErrors {
             Self::InvalidResponse => write!(f, "Invalid response received from server"),
             Self::InvalidCredentials => write!(f, "Incorrect email or password"),
             Self::ServerError => write!(f, "Internal Server Error"),
-            Self::Unknown => write!(f, "Unknown Error"),
+            Self::Unknown(err) => write!(f, "Unknown Error: {}", err),
         }
     }
 }
@@ -47,7 +47,11 @@ impl Error for LoginErrors {}
 pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginResponse, LoginErrors> {
     let body = LoginRequest { email, password };
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
+
     let endpoint = if cfg!(debug_assertions) {
         format!("http://{}:3000/api/login", host)
     } else {
@@ -73,7 +77,7 @@ pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginRespo
         .map_err(|_| LoginErrors::InvalidResponse)?;
 
     if !response_body.success {
-        return Err(LoginErrors::Unknown);
+        return Err(LoginErrors::Unknown("Success set to false".to_string()));
     }
 
     Ok(response_body)

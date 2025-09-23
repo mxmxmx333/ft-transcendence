@@ -8,7 +8,7 @@ pub enum WebSocketErrors {
     InvalidCredentials,
     ServerError,
     UrlParsingError,
-    Unknown,
+    Unknown(String),
 }
 
 impl Display for WebSocketErrors {
@@ -20,7 +20,7 @@ impl Display for WebSocketErrors {
             Self::InvalidCredentials => write!(f, "Incorrect email or password"),
             Self::ServerError => write!(f, "Internal Server Error"),
             Self::UrlParsingError => write!(f, "Unable to parse url"),
-            Self::Unknown => write!(f, "Unknown Error"),
+            Self::Unknown(err) => write!(f, "Unknown Error: {}", err),
         }
     }
 }

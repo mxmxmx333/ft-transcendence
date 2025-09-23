@@ -14,9 +14,11 @@ use events::{
 use futures_util::{SinkExt, StreamExt};
 use handshake::{EngineIOHandshakeResponse, SocketIOHandshakeRequest, SocketIOHandshakeResponse};
 use http::Uri;
+use native_tls::TlsConnector;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
-    MaybeTlsStream, WebSocketStream, connect_async,
+    Connector::NativeTls,
+    MaybeTlsStream, WebSocketStream, connect_async_tls_with_config,
     tungstenite::{Message, Utf8Bytes},
 };
 
@@ -31,9 +33,15 @@ impl SocketIoClient {
     pub async fn new(url: &str, token: &str) -> Result<Self, WebSocketErrors> {
         let url: Uri = url.parse().map_err(|_| WebSocketErrors::UrlParsingError)?;
 
-        let (mut socket, _) = connect_async(url)
-            .await
-            .map_err(|_| WebSocketErrors::ConnectionError)?;
+        let connector = TlsConnector::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .map_err(|err| WebSocketErrors::Unknown(err.to_string()))?;
+
+        let (mut socket, _) =
+            connect_async_tls_with_config(url, None, false, Some(NativeTls(connector)))
+                .await
+                .map_err(|_| WebSocketErrors::ConnectionError)?;
 
         Self::engineio_handshake(&mut socket)
             .await

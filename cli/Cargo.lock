@@ -121,6 +121,7 @@ dependencies = [
  "crossterm 0.28.1",
  "futures-util",
  "http",
+ "native-tls",
  "ratatui",
  "reqwest",
  "serde",
@@ -1662,7 +1663,9 @@ checksum = "489a59b6730eda1b0171fcfda8b121f4bee2b35cba8645ca35c5f7ba3eb736c1"
 dependencies = [
  "futures-util",
  "log",
+ "native-tls",
  "tokio",
+ "tokio-native-tls",
  "tungstenite",
 ]
 
@@ -1771,6 +1774,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
+ "native-tls",
  "rand",
  "sha1",
  "thiserror",
