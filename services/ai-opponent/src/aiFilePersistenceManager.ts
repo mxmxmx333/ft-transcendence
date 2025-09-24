@@ -31,6 +31,7 @@ interface AIModelFile {
 }
 
 export class AIFilePersistenceManager {
+private readonly ENABLE_BACKUPS = false;
   private readonly MODEL_DIR = 'services/ai-opponent/ai_models';
   private readonly GLOBAL_MODEL_FILE = 'global_ai_model.json';
   private readonly BACKUP_DIR = 'services/ai-opponent/ai_models/backups';
@@ -66,7 +67,9 @@ export class AIFilePersistenceManager {
       await this.initialize();
 
       // Create backup of existing model first
-      await this.createBackup();
+      if (this.ENABLE_BACKUPS) {
+        await this.createBackup();
+      }
 
       const modelData: AIModelFile = {
         version: Date.now(), // Use timestamp as version
