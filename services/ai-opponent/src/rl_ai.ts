@@ -1,5 +1,27 @@
 import { Constants } from './types';
 import type { GameStateNN, Experience } from './types';
+import { aiFilePersistenceManager } from './aiFilePersistenceManager';
+
+interface SerializedWeights {
+  weights1: number[][];
+  weights2: number[][];
+  weights3: number[][];
+  bias1: number[];
+  bias2: number[];
+  bias3: number[];
+  epsilon: number;
+  gameCount: number;
+  winCount: number;
+  aggressionLevel: number;
+  totalReward: number;
+}
+
+interface PerformanceStats {
+  winRate: number;
+  averageReward: number;
+  recentGames: number[];
+  lastGameTimestamp: number;
+}
 
 class ImprovedNeuralNetwork {
   private weights1!: number[][];
@@ -360,6 +382,65 @@ class ImprovedNeuralNetwork {
   //       this.bias2[i % this.hiddenSize2] += adjustment * 0.01;
   //     }
   //   }
+
+  /**
+   * Serialize network weights and biases for persistence
+   */
+  serializeWeights(): {
+    weights1: number[][];
+    weights2: number[][];
+    weights3: number[][];
+    bias1: number[];
+    bias2: number[];
+    bias3: number[];
+  } {
+    return {
+      weights1: this.weights1.map(row => [...row]),
+      weights2: this.weights2.map(row => [...row]),
+      weights3: this.weights3.map(row => [...row]),
+      bias1: [...this.bias1],
+      bias2: [...this.bias2],
+      bias3: [...this.bias3],
+    };
+  }
+
+  /**
+   * Load weights and biases from serialized data
+   */
+  loadWeights(data: {
+    weights1: number[][];
+    weights2: number[][];
+    weights3: number[][];
+    bias1: number[];
+    bias2: number[];
+    bias3: number[];
+  }): void {
+    // Validate dimensions before loading
+    if (data.weights1.length !== this.inputSize ||
+        data.weights1[0]?.length !== this.hiddenSize1 ||
+        data.weights2.length !== this.hiddenSize1 ||
+        data.weights2[0]?.length !== this.hiddenSize2 ||
+        data.weights3.length !== this.hiddenSize2 ||
+        data.weights3[0]?.length !== this.outputSize) {
+      console.warn('[NeuralNetwork] Weight dimensions mismatch, reinitializing...');
+      this.initializeWeights();
+      return;
+    }
+
+    try {
+      this.weights1 = data.weights1.map(row => [...row]);
+      this.weights2 = data.weights2.map(row => [...row]);
+      this.weights3 = data.weights3.map(row => [...row]);
+      this.bias1 = [...data.bias1];
+      this.bias2 = [...data.bias2];
+      this.bias3 = [...data.bias3];
+      
+      console.log('[NeuralNetwork] Weights loaded successfully');
+    } catch (error) {
+      console.error('[NeuralNetwork] Failed to load weights:', error);
+      this.initializeWeights();
+    }
+  }
 }
 
 export class ImprovedReinforcementLearningAI {
@@ -378,9 +459,59 @@ export class ImprovedReinforcementLearningAI {
   // Strategische Variablen
   private consecutiveLosses = 0;
   private aggressionLevel = 0.5; // ist ein Input für die NN. 0 = sehr defensiv, 1 = sehr offensiv. Wird basierend auf Performance angepasst, was schnelleres Lernen fördert und eine Art Risikomanagement ermöglicht. Also nach Erfolgen ist er aggressiver/offensiver, nach Misserfolgen defensiver.
+  
+  // Persistenz-Eigenschaften
+  private recentGames: number[] = []; // 1 für Sieg, 0 für Niederlage
+  private lastSaveTime = 0;
+  private readonly SAVE_INTERVAL = 3000; // 3 Sekunden
+  private isLoading = false;
+  private initialized = false;
 
   constructor(private readonly constants: Constants) {
     this.network = new ImprovedNeuralNetwork();
+    this.initializeFromPersistence();
+  }
+
+  /**
+   * Initialize AI from persisted data if available
+   */
+  private async initializeFromPersistence(): Promise<void> {
+    if (this.isLoading || this.initialized) return;
+    
+    this.isLoading = true;
+    try {
+      console.log('[RL-AI] Loading persisted model from files...');
+      const { weightsData, performanceStats } = await aiFilePersistenceManager.loadAIModel();
+      
+      if (weightsData && performanceStats) {
+        // Load network weights
+        this.network.loadWeights({
+          weights1: weightsData.weights1,
+          weights2: weightsData.weights2,
+          weights3: weightsData.weights3,
+          bias1: weightsData.bias1,
+          bias2: weightsData.bias2,
+          bias3: weightsData.bias3,
+        });
+        
+        // Load AI state
+        this.epsilon = weightsData.epsilon;
+        this.gameCount = weightsData.gameCount;
+        this.winCount = weightsData.winCount;
+        this.aggressionLevel = weightsData.aggressionLevel;
+        this.totalReward = weightsData.totalReward;
+        this.recentGames = performanceStats.recentGames || [];
+        
+        console.log(`[RL-AI] Model loaded successfully - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`);
+      } else {
+        console.log('[RL-AI] No persisted model found, starting fresh');
+      }
+    } catch (error) {
+      console.error('[RL-AI] Failed to load persisted model:', error);
+    } finally {
+      this.isLoading = false;
+      this.initialized = true;
+    }
   }
 
   private normalizeGameState(state: GameStateNN): number[] {
@@ -697,33 +828,101 @@ export class ImprovedReinforcementLearningAI {
     this.winCount++;
     this.consecutiveLosses = 0;
     this.aggressionLevel = Math.min(1.0, this.aggressionLevel + 0.1);
+    
+    // Track recent performance
+    this.recentGames.push(1); // Win
+    this.trimRecentGames();
   }
 
   onPlayerScore() {
     if (this.experienceBuffer.length > 0) {
       const lastExp = this.experienceBuffer[this.experienceBuffer.length - 1];
-      lastExp.reward -= 1.0; // Moderate Strafe
+      lastExp.reward -= 1.5; // Strafe für Punkte-Verlust
       lastExp.done = true;
-      lastExp.priority = 2.0; // Hohe Priorität für Lernerfahrungen
+      lastExp.priority = 2.0; // Hohe Priorität auch für Fehler lernen
     }
     this.consecutiveLosses++;
     this.aggressionLevel = Math.max(0.0, this.aggressionLevel - 0.05);
+    
+    // Track recent performance
+    this.recentGames.push(0); // Loss
+    this.trimRecentGames();
   }
 
   onGameEnd() {
     this.gameCount++;
-
-    // Lernanpassungen basierend auf Performance
-    if (this.gameCount % 3 === 0) {
-      const avgReward = this.totalReward / Math.max(1, this.gameCount);
-      if (avgReward < 0) {
-        this.epsilon = Math.min(0.5, this.epsilon * 1.1); // Mehr Exploration bei schlechter Performance
-      }
+    
+    // Intensive Training am Spielende
+    if (this.experienceBuffer.length > 10) {
+      this.network.updateWeights(this.experienceBuffer, 0.002 + this.consecutiveLosses * 0.0005);
     }
 
+    // Reset für nächstes Spiel
     this.lastState = null;
     this.lastY = 0;
     this.totalReward = 0;
+
+    // Adaptive Epsilon-Adjustment
+    const winRate = this.winCount / Math.max(this.gameCount, 1);
+    if (winRate > 0.6) {
+      // Sehr erfolgreich - reduziere Exploration
+      this.epsilon = Math.max(this.minEpsilon, this.epsilon * 0.98);
+    } else if (winRate < 0.3) {
+      // Schlechte Performance - erhöhe Exploration
+      this.epsilon = Math.min(0.6, this.epsilon * 1.02);
+    }
+
+    console.log(
+      `[RL-AI] Game ${this.gameCount} ended. W/L: ${this.winCount}/${this.gameCount - this.winCount} (${(winRate * 100).toFixed(1)}%) | Epsilon: ${this.epsilon.toFixed(3)} | Aggression: ${this.aggressionLevel.toFixed(2)}`
+    );
+    
+    // Save model periodically
+    this.saveModelIfNeeded();
+  }
+
+  /**
+   * Keep only recent game results to prevent memory bloat
+   */
+  private trimRecentGames(): void {
+    const MAX_RECENT_GAMES = 100;
+    if (this.recentGames.length > MAX_RECENT_GAMES) {
+      this.recentGames = this.recentGames.slice(-MAX_RECENT_GAMES);
+    }
+  }
+  
+  /**
+   * Save model to file if enough time has passed
+   */
+  private async saveModelIfNeeded(): Promise<void> {
+    const now = Date.now();
+    if (!this.initialized || this.isLoading || (now - this.lastSaveTime < this.SAVE_INTERVAL)) {
+      return;
+    }
+    
+    try {
+      this.lastSaveTime = now;
+      
+      const weightsData: SerializedWeights = {
+        ...this.network.serializeWeights(),
+        epsilon: this.epsilon,
+        gameCount: this.gameCount,
+        winCount: this.winCount,
+        aggressionLevel: this.aggressionLevel,
+        totalReward: this.totalReward,
+      };
+      
+      const performanceStats: PerformanceStats = {
+        winRate: this.winCount / Math.max(this.gameCount, 1),
+        averageReward: this.totalReward / Math.max(this.gameCount, 1),
+        recentGames: [...this.recentGames],
+        lastGameTimestamp: now,
+      };
+      
+      await aiFilePersistenceManager.saveAIModel(weightsData, performanceStats);
+      console.log(`[RL-AI] Model saved to file - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`);
+    } catch (error) {
+      console.error('[RL-AI] Failed to save model to file:', error);
+    }
   }
 
   getStats() {
@@ -737,5 +936,48 @@ export class ImprovedReinforcementLearningAI {
       consecutiveLosses: this.consecutiveLosses,
       avgReward: this.gameCount > 0 ? (this.totalReward / this.gameCount).toFixed(2) : '0.00',
     };
+  }
+  
+  /**
+   * Force save the current model state
+   */
+  public async forceSave(): Promise<void> {
+    this.lastSaveTime = 0; // Reset timer to force save
+    await this.saveModelIfNeeded();
+  }
+  
+  /**
+   * Get current AI statistics including file-based data
+   */
+  public getDetailedStats(): {
+    gameCount: number;
+    winCount: number;
+    winRate: number;
+    epsilon: number;
+    aggressionLevel: number;
+    recentWinRate: number;
+    experienceCount: number;
+  } {
+    const winRate = this.winCount / Math.max(this.gameCount, 1);
+    const recentWins = this.recentGames.slice(-20).reduce((sum, game) => sum + game, 0);
+    const recentWinRate = recentWins / Math.max(this.recentGames.slice(-20).length, 1);
+    
+    return {
+      gameCount: this.gameCount,
+      winCount: this.winCount,
+      winRate,
+      epsilon: this.epsilon,
+      aggressionLevel: this.aggressionLevel,
+      recentWinRate,
+      experienceCount: this.experienceBuffer.length,
+    };
+  }
+  
+  /**
+   * Cleanup and final save before destruction
+   */
+  public async cleanup(): Promise<void> {
+    console.log('[RL-AI] Performing final cleanup and save to file...');
+    await this.forceSave();
   }
 }
