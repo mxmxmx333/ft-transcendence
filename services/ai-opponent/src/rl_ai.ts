@@ -36,10 +36,10 @@ class ImprovedNeuralNetwork {
   private readonly outputSize = 1;
 
   // Momentum für besseres Lernen
-  // private momentum1: number[][] = [];
+  private momentum1: number[][] = [];
   private momentum2: number[][] = [];
   private momentum3: number[][] = [];
-  // private momentumBias1: number[] = [];
+  private momentumBias1: number[] = [];
   private momentumBias2: number[] = [];
   private momentumBias3: number[] = [];
   private readonly momentumRate = 0.9;
@@ -50,10 +50,10 @@ class ImprovedNeuralNetwork {
   }
 
   private initializeWeights() {
-    // Xavier/Glorot Initialisierung für bessere Konvergenz
+    // Xavier/Glorot Initialisierung für bessere Konvergenz (Vermeidung von zu großen Anfangsgewichten, ist damit ±√(2/inputs) ~0.427) -> Gradienten explodieren/verschwinden nicht 
     const xavierScale1 = Math.sqrt(2.0 / this.inputSize);
     const xavierScale2 = Math.sqrt(2.0 / this.hiddenSize1);
-    const xavierScale3 = Math.sqrt(2.0 / this.hiddenSize2);
+    const xavierScale3 = Math.sqrt(6.0 / this.hiddenSize2);
 
     this.weights1 = this.createMatrix(
       this.inputSize,
@@ -71,16 +71,19 @@ class ImprovedNeuralNetwork {
       () => (Math.random() - 0.5) * 2 * xavierScale3
     );
 
-    this.bias1 = new Array(this.hiddenSize1).fill(0);
-    this.bias2 = new Array(this.hiddenSize2).fill(0);
-    this.bias3 = new Array(this.outputSize).fill(0);
+    // Bias1 mit kleinen zufälligen Werten initialisieren weil sonst die Neuronen zu ähnlich reagieren (bei 0), bzw. das bias sonst die Aktivierungsfunktion zu stark (in den negativen Bereich) verschiebt (bei -1 bis 1) --> die Aktivierung muss vom Input abhängen, nicht vom Bias!
+    this.bias1 = new Array(this.hiddenSize1).fill(0).map(() => (Math.random() - 0.5) * 0.2);
+    this.bias2 = new Array(this.hiddenSize2).fill(0).map(() => (Math.random() - 0.5) * 0.2);
+    this.bias3 = new Array(this.outputSize).fill(0).map(() => (Math.random() - 0.5) * 4.0);
   }
 
   private initializeMomentum() {
-    // this.momentum1 = this.createMatrix(this.inputSize, this.hiddenSize1, () => 0);
+    this.momentum1 = this.createMatrix(this.inputSize, this.hiddenSize1, () => 0);
     this.momentum2 = this.createMatrix(this.hiddenSize1, this.hiddenSize2, () => 0);
     this.momentum3 = this.createMatrix(this.hiddenSize2, this.outputSize, () => 0);
-    // this.momentumBias1 = new Array(this.hiddenSize1).fill(0);
+
+    // Momentum mit 0 initialisieren weil sonst die Updates nicht korrekt sind (gibt sonst zu viele & arge zufällige Sprünge am Anfang)
+    this.momentumBias1 = new Array(this.hiddenSize1).fill(0);
     this.momentumBias2 = new Array(this.hiddenSize2).fill(0);
     this.momentumBias3 = new Array(this.outputSize).fill(0);
   }
@@ -95,22 +98,6 @@ class ImprovedNeuralNetwork {
     return x > 0 ? x : 0.01 * x; // Leaky ReLU statt ReLU
   }
 
-  private softmax(values: number[]): number[] {
-    const maxVal = Math.max(...values);
-
-    const MAX_EXP_INPUT = 700; // exp(>~709) -> Infinity bei JS-Number
-    const expVals = new Array<number>(values.length);
-    let sum = 0;
-    for (let i = 0; i < values.length; i++) {
-      const shifted = values[i] - maxVal; // größter Exponent wird 0, weil exp(0)=1, kleinere negative Exponenten werden kleiner
-      const clamped = Math.min(shifted, MAX_EXP_INPUT); // Clamp to avoid overflow
-      const e = Math.exp(clamped);
-      expVals[i] = e;
-      sum += e;
-    }
-    return expVals.map((v) => v / sum); // das sind jetzt die errechneten Q-Values / Wahrscheinlichkeiten
-  }
-
   forward(input: number[]): number[] {
     // Layer 1 (input -> hidden1)
     const hidden1: number[] = new Array(this.hiddenSize1);
@@ -119,6 +106,7 @@ class ImprovedNeuralNetwork {
       for (let i = 0; i < this.inputSize; i++) {
         sum += input[i] * this.weights1[i][j];
       }
+      // hier leakyRelu weil wir negative Werte nicht einfach auf 0 setzen wollen, das wären dann "Dead Neurons" (sonst könnten ganze Neuronen nicht mehr lernen wenn sie einmal im negativen Bereich sind)
       hidden1[j] = this.leakyRelu(sum);
     }
 
@@ -129,6 +117,7 @@ class ImprovedNeuralNetwork {
       for (let i = 0; i < this.hiddenSize1; i++) {
         sum += hidden1[i] * this.weights2[i][j];
       }
+      // hier leakyRelu weil wir negative Werte nicht einfach auf 0 setzen wollen, das wären dann "Dead Neurons" und somit schnell & robust aktivieren
       hidden2[j] = this.leakyRelu(sum);
     }
 
@@ -138,60 +127,13 @@ class ImprovedNeuralNetwork {
       for (let i = 0; i < this.hiddenSize2; i++) {
         sum += hidden2[i] * this.weights3[i][j];
       }
-      // Sigmoid für Output zwischen 0 und 1 (normalisierte Y-Position)
+      // Sigmoid für Output weil es einen Bereich zwischen 0 & 1 garantiert (normalisierte Y-Position, Sigmoid-Kurve ist S-förmig, damit sind sehr große zahlen sehr nah am Rand und sehr kleine auch, aber das paddel kann auch tatschlich eigentlich nie den Rand erreichen?), damit Paddle immer im sichtbaren Bereich bleibt
       output[j] = 1 / (1 + Math.exp(-sum));
     }
     return output;
-
-    // // Output Layer (hidden2 -> Y-Position)
-    // const logits: number[] = new Array(this.outputSize);
-    // for (let j = 0; j < this.outputSize; j++) {
-    //   let sum = this.bias3[j];
-    //   for (let i = 0; i < this.hiddenSize2; i++) {
-    //     sum += hidden2[i] * this.weights3[i][j];
-    //   }
-    //   logits[j] = sum;
-    // }
-
-    // // Softmax auf die Logits (raw predictions/scores) anwenden, um Wahrscheinlichkeiten zu erhalten
-    // return this.softmax(logits);
   }
 
-  // forwardSoft(input: number[]): number[] {
-  //   // Softmax auf die Logits (raw predictions/scores) anwenden, um Wahrscheinlichkeiten zu erhalten
-  //   return this.softmax(this.forward(input));
-  // }
-
-  // Verbesserte Gewichtsaktualisierung mit Momentum
-  // updateWeights(experiences: Experience[], learningRate: number = 0.005) {
-  //   // Prioritized Experience Replay - schwierigere Situationen bevorzugen
-  //   experiences.sort((a, b) => b.priority - a.priority);
-  //   const batchSize = Math.min(8, experiences.length);
-  //   const batch = experiences.slice(0, batchSize);
-
-  //   for (const exp of batch) {
-  //     const qValues = this.forward(exp.state);
-
-  //     const gamma = 0.99; // Höherer Discount Factor
-  //     let targetValue = exp.reward;
-
-  //     if (!exp.done) {
-  //       const nextQValues = this.forward(exp.nextState);
-  //       targetValue += gamma * Math.max(...nextQValues);
-  //     }
-
-  //     const oldValue = qValues[exp.action];
-  //     qValues[exp.action] = targetValue;
-
-  //     // Update priority basierend auf TD-Error
-  //     const tdError = targetValue - oldValue;
-  //     exp.priority = Math.abs(tdError) + 0.01;
-
-  //     this.backpropagate(exp.state, exp.action, tdError, learningRate);
-  //   }
-  // }
-
-  updateWeights(experiences: Experience[], learningRate: number = 0.005) {
+  updateWeights(experiences: Experience[], learningRate: number = 0.02) {
     experiences.sort((a, b) => b.priority - a.priority);
     const batchSize = Math.min(8, experiences.length);
     const batch = experiences.slice(0, batchSize);
@@ -267,121 +209,31 @@ class ImprovedNeuralNetwork {
         this.weights2[i][j] += this.momentum2[i][j];
       }
     }
+
+    // Hidden layer 1 deltas und Updates
+    const delta1: number[] = new Array(this.hiddenSize1);
+    for (let i = 0; i < this.hiddenSize1; i++) {
+      let backError = 0;
+      for (let j = 0; j < this.hiddenSize2; j++) {
+        backError += this.weights2[i][j] * delta2[j];
+      }
+      const deriv = hidden1[i] > 0 ? 1 : 0.01; // leakyReLU'
+      delta1[i] = deriv * backError;
+    }
+
+    // Update hidden layer 1 (bias1 und weights1)
+    for (let i = 0; i < this.hiddenSize1; i++) {
+      this.momentumBias1[i] = this.momentumRate * this.momentumBias1[i] + (1 - this.momentumRate) * (lr * delta1[i]);
+      this.bias1[i] += this.momentumBias1[i];
+
+      for (let j = 0; j < this.inputSize; j++) {
+        if (!this.momentum1[j]) this.momentum1[j] = new Array(this.hiddenSize1).fill(0);
+        const gradW1 = lr * delta1[i] * state[j];
+        this.momentum1[j][i] = this.momentumRate * this.momentum1[j][i] + (1 - this.momentumRate) * gradW1;
+        this.weights1[j][i] += this.momentum1[j][i];
+      }
+    }
   }
-
-  // private backpropagate(state: number[], action: number, error: number, lr: number) {
-  //   // Kurzzusammenfassung:
-  //   // 1. Vorwärts rechnen (ohne Training), um die Zwischenwerte der beiden versteckten Schichten zu haben.
-  //   // 2. Output-Schicht korrigieren:
-  //   //     - Nur der Ausgang der gewählten Aktion wird angepasst.
-  //   //     - Bias (b3) und die zugehörigen Gewichte (W3[:, action]) werden in Richtung „Fehler reduzieren“ verschoben.
-  //   //     - Momentum sorgt für sanfte, stabile Updates.
-  //   // 3. Einfluss zurück in Schicht 2 berechnen:
-  //   //     - Mit der Ableitung der Aktivierung (leakyReLU’) und den Output-Gewichten wird ein „Rücksignal“ (delta2) bestimmt.
-  //   //     - Bias von Schicht 2 (b2) und deren Gewichte (W2) werden entsprechend angepasst (auch mit Momentum).
-  //   // Recompute Forward-Pass, um Hidden-Aktivierungen zu bekommen
-  //   const hidden1: number[] = new Array(this.hiddenSize1);
-  //   for (let j = 0; j < this.hiddenSize1; j++) {
-  //     let sum = this.bias1[j];
-  //     for (let i = 0; i < this.inputSize; i++) sum += state[i] * this.weights1[i][j];
-  //     hidden1[j] = this.leakyRelu(sum);
-  //   }
-  //   const hidden2: number[] = new Array(this.hiddenSize2);
-  //   for (let j = 0; j < this.hiddenSize2; j++) {
-  //     let sum = this.bias2[j];
-  //     for (let i = 0; i < this.hiddenSize1; i++) sum += hidden1[i] * this.weights2[i][j];
-  //     hidden2[j] = this.leakyRelu(sum);
-  //   }
-
-  //   // Output-Delta (linearer Output für Aktion 'action')
-  //   const delta3 = error; // dL/dz3 = (target - Q), da Output linear
-
-  //   // Momentum-Rate
-  //   const momRate = this.momentumRate;
-
-  //   // Update b3[action]
-  //   this.momentumBias3[action] =
-  //     momRate * this.momentumBias3[action] + (1 - momRate) * (lr * delta3);
-  //   this.bias3[action] += this.momentumBias3[action];
-
-  //   // Update W3[:, action]
-  //   for (let i = 0; i < this.hiddenSize2; i++) {
-  //     if (!this.momentum3[i]) this.momentum3[i] = new Array(this.outputSize).fill(0);
-  //     const gradW3 = lr * delta3 * hidden2[i];
-  //     this.momentum3[i][action] = momRate * this.momentum3[i][action] + (1 - momRate) * gradW3;
-  //     this.weights3[i][action] += this.momentum3[i][action];
-  //   }
-
-  //   // Delta2 = f'(z2) * (W3[:,action] * delta3)
-  //   const delta2: number[] = new Array(this.hiddenSize2);
-  //   for (let j = 0; j < this.hiddenSize2; j++) {
-  //     const deriv = hidden2[j] > 0 ? 1 : 0.01; // leakyReLU' (also die Ableitung von leakyReLu!)
-  //     delta2[j] = deriv * (this.weights3[j][action] * delta3);
-  //   }
-
-  //   // Update b2 und W2 mit Momentum
-  //   for (let j = 0; j < this.hiddenSize2; j++) {
-  //     this.momentumBias2[j] = momRate * this.momentumBias2[j] + (1 - momRate) * (lr * delta2[j]);
-  //     this.bias2[j] += this.momentumBias2[j];
-
-  //     for (let i = 0; i < this.hiddenSize1; i++) {
-  //       if (!this.momentum2[i]) this.momentum2[i] = new Array(this.hiddenSize2).fill(0);
-  //       const gradW2 = lr * delta2[j] * hidden1[i];
-  //       this.momentum2[i][j] = momRate * this.momentum2[i][j] + (1 - momRate) * gradW2;
-  //       this.weights2[i][j] += this.momentum2[i][j];
-  //     }
-  //   }
-
-  //   // // Optional: leichte Updates in Layer 1 (kleiner Faktor, stabil)
-  //   // const delta1: number[] = new Array(this.hiddenSize1).fill(0);
-  //   // for (let i = 0; i < this.hiddenSize1; i++) {
-  //   //   // delta1 = f'(z1) * sum_j W2[i][j] * delta2[j]
-  //   //   let back = 0;
-  //   //   for (let j = 0; j < this.hiddenSize2; j++) back += this.weights2[i][j] * delta2[j];
-  //   //   const deriv1 = hidden1[i] > 0 ? 1 : 0.01;
-  //   //   delta1[i] = deriv1 * back;
-  //   // }
-  //   // for (let j = 0; j < this.hiddenSize1; j++) {
-  //   //   // kleinerer Lernschritt für Layer 1
-  //   //   const stepB1 = lr * 0.1 * delta1[j];
-  //   //   this.momentumBias1[j] = m * this.momentumBias1[j] + (1 - m) * stepB1;
-  //   //   this.bias1[j] += this.momentumBias1[j];
-
-  //   //   for (let i = 0; i < this.inputSize; i++) {
-  //   //     if (!this.momentum1[i]) this.momentum1[i] = new Array(this.hiddenSize1).fill(0);
-  //   //     const gradW1 = lr * 0.1 * delta1[j] * state[i];
-  //   //     this.momentum1[i][j] = m * this.momentum1[i][j] + (1 - m) * gradW1;
-  //   //     this.weights1[i][j] += this.momentum1[i][j];
-  //   //   }
-  //   // }
-  // }
-
-  //   private backpropagate(state: number[], action: number, error: number, lr: number) {
-  //     // Vereinfachte Backpropagation mit Momentum
-  //     const adjustment = error * lr;
-
-  //     // Output layer updates mit Momentum
-  //     const oldMomentumBias3 = this.momentumBias3[action];
-  //     this.momentumBias3[action] = this.momentumRate * oldMomentumBias3 + (1 - this.momentumRate) * adjustment;
-  //     this.bias3[action] += this.momentumBias3[action];
-
-  //     // Weight updates für die letzten Layer
-  //     for (let i = 0; i < Math.min(8, this.hiddenSize2); i++) {
-  //       const oldMomentum = this.momentum3[i] ? this.momentum3[i][action] : 0;
-  //       const newMomentum = this.momentumRate * oldMomentum + (1 - this.momentumRate) * adjustment * 0.1;
-
-  //       if (!this.momentum3[i]) {
-  //         this.momentum3[i] = new Array(this.outputSize).fill(0);
-  //       }
-  //       this.momentum3[i][action] = newMomentum;
-  //       this.weights3[i][action] += newMomentum;
-  //     }
-
-  //     // Hidden layer updates (weniger aggressiv)
-  //     for (let i = 0; i < Math.min(4, this.hiddenSize1); i++) {
-  //       this.bias2[i % this.hiddenSize2] += adjustment * 0.01;
-  //     }
-  //   }
 
   /**
    * Serialize network weights and biases for persistence
@@ -521,40 +373,48 @@ export class ImprovedReinforcementLearningAI {
     // Erweiterte Feature-Extraktion
     const ballNormX = ballX / canvasWidth;
     const ballNormY = ballY / canvasHeight;
-    const ballNormVX = Math.max(-1, Math.min(1, ballVX / this.constants.MAX_BALL_SPEED)); // ist zur Sicherheit, falls ballVX doch mall zu groß wird (ballVX = ballSpeed * cos(angle))
-    const ballNormVY = Math.max(-1, Math.min(1, ballVY / this.constants.MAX_BALL_SPEED));
+    const ballNormVX = ballVX / 20; // Math.max(-1, Math.min(1, ballVX / this.constants.MAX_BALL_SPEED)); // ist zur Sicherheit, falls ballVX doch mall zu groß wird (ballVX = ballSpeed * cos(angle))
+    const ballNormVY = ballVY / 20; // Math.max(-1, Math.min(1, ballVY / this.constants.MAX_BALL_SPEED));
     const aiNormY = aiY / (canvasHeight - this.constants.paddleHeight);
     const playerNormY = playerY / (canvasHeight - this.constants.paddleHeight);
 
-    // Strategische Features
-    const timeToReachAI =
-      ballVX > 0
-        ? (canvasWidth - this.constants.paddleWidth - this.constants.ballRadius - ballX) /
-          Math.max(ballVX, 1e-3)
-        : 999; // Zeit bis Ball AI-Seite erreicht
-    // Zeit = Strecke / Geschwindigkeit: Strecke bis zur AI-Kollisionslinie in Pixeln & Horizontale Geschwindigkeit vx in Pixel/Frame
-    // const timeToReachAI = ballVX > 0 ? (canvasWidth - this.constants.MAX_BALL_SPEED - ballX) / Math.max(ballVX, 1) : 999; //Zeit = Strecke / Geschwindigkeit
-    const predictedBallY = this.predictBallPosition(state, Math.min(timeToReachAI, 60));
-    const distanceToOptimal =
-      Math.abs(aiY + this.constants.paddleHeight / 2 - predictedBallY) / canvasHeight;
-    const relativeSpeed = ballSpeed / this.constants.MAX_BALL_SPEED;
+    const ballToAI = (ballY - (aiY + this.constants.paddleHeight / 2)) / canvasHeight; // -1 bis +1
+    const ballToPlayer = (ballY - (playerY + this.constants.paddleHeight / 2)) / canvasHeight; // -1 bis +1
+    
+    // Verschiedene Zeitskalen für Vorhersage
+    const shortTermY = this.predictBallPosition(state, 15) / canvasHeight; // 0-1
+    const mediumTermY = this.predictBallPosition(state, 30) / canvasHeight; // 0-1
+    const longTermY = this.predictBallPosition(state, 60) / canvasHeight; // 0-1
 
-    // Defensive/Offensive Indikatoren
-    const isDefensive = ballVX < 0 ? 1 : 0; // 1 wenn Ball auf AI zukommt, sonst 0
-    const urgency = Math.max(0, 1 - timeToReachAI / 60); // Dringlichkeit basierend auf Zeit
+    // // Strategische Features
+    // const timeToReachAI =
+    //   ballVX > 0
+    //     ? (canvasWidth - this.constants.paddleWidth - this.constants.ballRadius - ballX) /
+    //       Math.max(ballVX, 1e-3)
+    //     : 999; // Zeit bis Ball AI-Seite erreicht
+    // // Zeit = Strecke / Geschwindigkeit: Strecke bis zur AI-Kollisionslinie in Pixeln & Horizontale Geschwindigkeit vx in Pixel/Frame
+    // // const timeToReachAI = ballVX > 0 ? (canvasWidth - this.constants.MAX_BALL_SPEED - ballX) / Math.max(ballVX, 1) : 999; //Zeit = Strecke / Geschwindigkeit
+    // const predictedBallY = this.predictBallPosition(state, Math.min(timeToReachAI, 60));
+    // const distanceToOptimal =
+    //   Math.abs(aiY + this.constants.paddleHeight / 2 - predictedBallY) / canvasHeight;
+    // const relativeSpeed = ballSpeed / this.constants.MAX_BALL_SPEED;
+
+    // // Defensive/Offensive Indikatoren
+    // const isDefensive = ballVX < 0 ? 1 : 0; // 1 wenn Ball auf AI zukommt, sonst 0
+    // const urgency = Math.max(0, 1 - timeToReachAI / 60); // Dringlichkeit basierend auf Zeit
 
     return [
-      ballNormX,
-      ballNormY,
-      ballNormVX,
-      ballNormVY,
-      aiNormY,
-      playerNormY,
-      distanceToOptimal,
-      relativeSpeed,
-      isDefensive,
-      urgency,
-      this.aggressionLevel,
+      ballNormX,           // 0-1
+      ballNormY,           // 0-1  
+      ballNormVX,          // -1 bis +1 (nicht geclampt)
+      ballNormVY,          // -1 bis +1 (nicht geclampt)
+      aiNormY,             // 0-1
+      playerNormY,         // 0-1
+      ballToAI,            // -1 bis +1
+      ballToPlayer,        // -1 bis +1
+      shortTermY,          // 0-1
+      mediumTermY,         // 0-1
+      longTermY            // 0-1
     ];
   }
 
@@ -592,15 +452,13 @@ export class ImprovedReinforcementLearningAI {
 
     // Grundbelohnung für Ballnähe (wichtigster Faktor)
     const ballDistance = Math.abs(state.ballY - (state.aiY + this.constants.paddleCenter));
-    const nextBallDistance = Math.abs(
-      nextState.ballY - (nextState.aiY + this.constants.paddleCenter)
-    );
+    const nextBallDistance = Math.abs(nextState.ballY - (nextState.aiY + this.constants.paddleCenter));
     const distanceImprovement = ballDistance - nextBallDistance;
 
-    if (distanceImprovement > 0) {
-      reward += 0.3 * (distanceImprovement / 50); // Stärkere Belohnung für Verbesserung
-    } else {
-      reward -= 0.15 * (Math.abs(distanceImprovement) / 50);
+    if (distanceImprovement > 2) {
+      reward += 0.3 * (distanceImprovement / 30); // Stärkere Belohnung für Verbesserung
+    } else if (distanceImprovement < -2) {
+      reward -= 0.15 * (Math.abs(distanceImprovement) / 30);
     }
 
     // Prädiktive Positionierung
@@ -608,17 +466,38 @@ export class ImprovedReinforcementLearningAI {
     const optimalPosition = predictedY - this.constants.paddleCenter;
     const currentOptimality = Math.abs(state.aiY - optimalPosition);
     const nextOptimality = Math.abs(nextState.aiY - optimalPosition);
+    const movementDistance = Math.abs(nextState.aiY - state.aiY);
 
-    if (nextOptimality < currentOptimality) {
-      reward += 0.25; // Belohnung für strategische Positionierung
+    // Nur belohnen wenn sich AI bewegt UND dabei näher zum Optimum kommt
+    if (movementDistance > 1 && nextOptimality < currentOptimality - 3) {
+      reward += 0.4 * (currentOptimality - nextOptimality) / 50; // Bewegungsabhängige Belohnung
     }
 
-    // Defensive Bonus
-    if (
-      state.ballVX < 0 &&
-      Math.abs(nextState.ballY - (nextState.aiY + this.constants.paddleCenter)) < 30
-    ) {
-      reward += 0.2; // Defensive Bereitschaft
+    // Rechtzeitige Reaktion auf Ball-Richtungsänderung
+    const timeToImpact = state.ballVX > 0 ? (state.canvasWidth - state.ballX) / Math.max(state.ballVX, 1) : 999;
+    if (timeToImpact < 60 && movementDistance > 2) {
+      // Belohne schnelle Reaktion bei herannahender Kollision
+      const urgencyBonus = Math.max(0, (60 - timeToImpact) / 60);
+      reward += 0.3 * urgencyBonus * (movementDistance / 20);
+    }
+
+    // Strafe für Bewegung zur falschen Zeit
+    if (state.ballVX < 0 && Math.abs(state.ballX - (state.canvasWidth * 0.8)) > 100) {
+      // Ball ist weit weg und bewegt sich weg von AI
+      if (movementDistance > 10) {
+        reward -= 0.1; // Leichte Strafe für unnötige Bewegung
+      }
+    }
+
+    // Defensive Bonus - nur für gute Positionierung bei Annäherung
+    if (state.ballVX < 0) {
+      const ballDistanceToAI = Math.abs(nextState.ballY - (nextState.aiY + this.constants.paddleCenter));
+      const timeToImpact = (state.ballX) / Math.max(Math.abs(state.ballVX), 1);
+      
+      if (timeToImpact < 30 && ballDistanceToAI < 40) {
+        // Hohe Belohnung für perfekte Timing-Positionierung
+        reward += 0.6 * (1 - ballDistanceToAI / 40) * (1 - timeToImpact / 30);
+      }
     }
 
     // Offensive Bonus - Ball Richtung Spieler lenken
@@ -634,15 +513,10 @@ export class ImprovedReinforcementLearningAI {
       reward -= 0.4;
     }
 
-    // Bewegungseffizienz
-    if (lastTargetY === state.aiY && ballDistance < 20) {
-      // STAY when close
-      reward += 0.05;
-    }
-
-    // Tempo-Anpassung
-    if (state.ballSpeed > 15 && Math.abs(distanceImprovement) < 5) {
-      reward += 0.1; // Bonus für Stabilität bei hoher Geschwindigkeit
+    // Tempo-Anpassung - Belohne präzise Bewegungen bei hoher Geschwindigkeit
+    if (state.ballSpeed > 12 && movementDistance > 1) {
+      const precisionBonus = Math.max(0, 1 - Math.abs(distanceImprovement) / 10);
+      reward += 0.15 * precisionBonus; // Bonus für kontrollierte Bewegung bei hohem Tempo
     }
 
     return reward;
@@ -661,9 +535,12 @@ export class ImprovedReinforcementLearningAI {
 
       this.totalReward += reward;
 
+      const optimalY = this.predictBallPosition(gameState, 30);
+      const optimalTarget = Math.max(0, Math.min(1, optimalY / gameState.canvasHeight));
+
       const experience: Experience = {
         state: this.lastState,
-        targetY: this.lastY / gameState.canvasHeight, // Normalisiert für Training
+        targetY: optimalTarget, // Normalisiert für Training
         reward: reward,
         nextState: normalizedState,
         done: false,
@@ -679,15 +556,21 @@ export class ImprovedReinforcementLearningAI {
 
     // Epsilon-Greedy mit kontinuierlicher Exploration
     if (Math.random() < this.epsilon) {
-      // Exploration: Zufällige Variation um NN-Vorhersage
-      const variation = (Math.random() - 0.5) * 200 * this.aggressionLevel;
-      targetY += variation;
+      // Exploration: Zufällige Sigmoid-Inputs statt Output-Variation
+      const randomTarget = Math.random(); // 0-1 für volles Spektrum
+      return randomTarget * gameState.canvasHeight;
     } else {
-      // Optional: Fallback auf Ball-Vorhersage bei sehr schlechter Performance
-      if (this.consecutiveLosses > 5) {
-        const predictedBallY = this.predictBallPosition(gameState, 30);
-        const fallbackY = predictedBallY - this.constants.paddleHeight / 2;
-        targetY = 0.7 * targetY + 0.3 * fallbackY; // Mischung
+      // Reset bei schlechter Performance
+      if (this.consecutiveLosses > 8) {
+        console.log('[RL-AI] Poor performance detected, increasing exploration...');
+        this.epsilon = Math.min(0.8, this.epsilon * 1.5); // Mehr Exploration
+        
+        // Aggressiveres Training statt Bias-Anpassung
+        if (this.experienceBuffer.length > 3) {
+          this.network.updateWeights(this.experienceBuffer, 0.1); // Hohe Learning Rate
+        }
+        
+        this.consecutiveLosses = 0; // Reset counter
       }
     }
 
@@ -703,90 +586,6 @@ export class ImprovedReinforcementLearningAI {
 
     return targetY;
   }
-
-  // getAction(gameState: GameState): number {
-  //   if (this.gameStartTime === 0) {
-  //     this.gameStartTime = Date.now();
-  //   }
-
-  //   const currentTime = Date.now() - this.gameStartTime;
-  //   gameState.gameTime = currentTime;
-
-  //   const normalizedState = this.normalizeGameState(gameState);
-
-  //   // Experience aus vorheriger Aktion speichern
-  //   if (this.lastState !== null) {
-  //     // ist NULL zu Beginn
-  //     const reward = this.calculateAdvancedReward(
-  //       this.denormalizeState(this.lastState, gameState),
-  //       this.lastY,
-  //       gameState
-  //     );
-
-  //     this.totalReward += reward;
-
-  //     const experience: Experience = {
-  //       state: this.lastState,
-  //       targetY: this.lastY,
-  //       reward: reward,
-  //       nextState: normalizedState,
-  //       done: false,
-  //       priority: Math.abs(reward) + 0.1, // Initial priority
-  //     };
-
-  //     this.addExperience(experience);
-  //   }
-
-  //   // Aktion wählen mit verbesserter Strategie
-  //   let action: Action;
-
-  //   // Adaptive Epsilon basierend auf Performance
-  //   let currentEpsilon = this.epsilon; // epsilon ist 0,4 zu Beginn, mal schauen ob erhöhen?
-  //   if (this.consecutiveLosses > 3) {
-  //     // ist 0 zu Beginn
-  //     currentEpsilon = Math.min(0.6, this.epsilon * 1.5); // Mehr Exploration bei schlechter Performance
-  //   }
-
-  //   if (Math.random() < currentEpsilon) {
-  //     // Intelligentere Exploration - nicht komplett zufällig
-  //     const qValues = this.network.forward(normalizedState);
-  //     const ballDistance = Math.abs(
-  //       gameState.ballY - (gameState.aiY + this.constants.paddleCenter)
-  //     );
-
-  //     if (ballDistance < gameState.canvasWidth * 0.01) {
-  //       // anpassen vielleicht?
-  //       // Bei Ballnähe: bevorzuge doch die optimale Aktion
-  //       action = qValues.indexOf(Math.max(...qValues)) as Action;
-  //     } else {
-  //       // gewichtete zufällige Auswahl (nutze normalisierte qValues)
-  //       // qValues summiert sollte 1 ergeben ca. (Softmax)
-  //       const rand = Math.random();
-  //       let acc = 0;
-  //       action = Action.Down; // Fallback
-  //       for (let i = 0; i < qValues.length; i++) {
-  //         acc += qValues[i];
-  //         if (rand <= acc) {
-  //           action = i as Action;
-  //           break;
-  //         }
-  //       }
-  //     }
-  //   } else {
-  //     // Exploit: beste bekannte Aktion
-  //     const qValues = this.network.forward(normalizedState);
-  //     action = qValues.indexOf(Math.max(...qValues)) as Action;
-  //   }
-
-  //   // State für nächste Iteration speichern
-  //   this.lastState = [...normalizedState];
-  //   this.lastAction = action;
-
-  //   // Epsilon Decay
-  //   this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.epsilonDecay);
-
-  //   return action;
-  // }
 
   private denormalizeState(normalizedState: number[], currentState: GameStateNN): GameStateNN {
     return {
@@ -814,7 +613,7 @@ export class ImprovedReinforcementLearningAI {
 
     // Häufigeres Training mit besserer Qualität
     if (this.experienceBuffer.length >= 15 && Math.random() < 0.3) {
-      this.network.updateWeights(this.experienceBuffer, 0.003 + this.consecutiveLosses * 0.001);
+      this.network.updateWeights(this.experienceBuffer, 0.015 + this.consecutiveLosses * 0.005);
     }
   }
 
@@ -853,8 +652,8 @@ export class ImprovedReinforcementLearningAI {
     this.gameCount++;
     
     // Intensive Training am Spielende
-    if (this.experienceBuffer.length > 10) {
-      this.network.updateWeights(this.experienceBuffer, 0.002 + this.consecutiveLosses * 0.0005);
+    if (this.experienceBuffer.length > 5) {
+      this.network.updateWeights(this.experienceBuffer, 0.08 + this.consecutiveLosses * 0.02);
     }
 
     // Reset für nächstes Spiel
