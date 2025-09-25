@@ -5,12 +5,33 @@ import authPlugin from './auth';
 import AuthService from './auth.service';
 import AuthController from './auth.controller';
 import db from './db';
+import fs from 'fs';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+
+const certDir = process.env.CERT_DIR || '../certs';
+const keyPath = path.join(__dirname, certDir, 'server.key');
+const certPath = path.join(__dirname, certDir, 'server.crt');
+const caPath = path.join(__dirname, certDir, 'ca.crt');
+
+
 async function buildServer() {
+  let httpsOptions;
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
+    httpsOptions = {
+      https: {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+        ca: fs.readFileSync(caPath),
+      },
+    };
+    console.log('Auth-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  } else {
+    console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
+  }
   const server = fastify({
     logger: {
       level: 'debug',
@@ -26,6 +47,7 @@ async function buildServer() {
           }
         : {}),
     },
+    ...httpsOptions,
   });
 
   // Register plugins
@@ -209,7 +231,7 @@ server.post<{ Params: { id: string }, Body: { action: 'accept' | 'decline' } }>(
   });
 
   await server.listen({ port: 3002, host: '0.0.0.0' });
-  console.log('Server "auth-user-service" is listening: http://localhost:3002 ');
+  console.log('Server "auth-user-service" is listening: https://localhost:3002 ');
 }
 
 start().catch((err) => {
