@@ -69,6 +69,10 @@ async function buildServer() {
     prefix: '/socket.io',
     rewritePrefix: '/socket.io',
     websocket: true,
+    wsClientOptions: {  
+      rejectUnauthorized: false, 
+    },
+    wsUpstream: 'wss://localhost:3001',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

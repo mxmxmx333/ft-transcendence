@@ -108,6 +108,10 @@ start-vault-dev: vault-deps-dev
 
 clean-vault-dev:
 	Docker volume rm transcendence_vault-dev-runtime-certs transcendence_vault-dev-config transcendence_vault-dev-logs transcendence_vault-dev-data || true
+	rm -rf ./services/api-gateway/certs/server.* ./services/api-gateway/certs/ca.* ./services/api-gateway/certs/vault ./services/api-gateway/certs/approle
+	rm -rf ./services/auth-user-service/certs/server.* ./services/auth-user-service/certs/ca.* ./services/auth-user-service/certs/vault ./services/auth-user-service/certs/approle
+	rm -rf ./services/game-service/certs/server.* ./services/game-service/certs/ca.*
+	rm -rf ./services/ai-opponent/certs/server.* ./services/ai-opponent/certs/ca.*
 
 stop-vault-dev:
 	$(COMPOSE) --profile "dev" down

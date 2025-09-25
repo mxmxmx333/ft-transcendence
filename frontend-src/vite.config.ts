@@ -29,8 +29,8 @@ export default defineConfig({
       ca: path.resolve(__dirname, './certs/ca.crt'),
     },
     proxy: {
-      '/socket.io': { target: 'https://localhost:3000', ws: true },
-      '/api': { target: 'https://localhost:3000', changeOrigin: true },
+      '/socket.io': { target: 'https://localhost:3000', ws: true, secure: false, changeOrigin: true },
+      '/api': { target: 'https://localhost:3000', changeOrigin: true, secure: false},
     },
   },
 });

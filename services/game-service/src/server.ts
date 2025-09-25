@@ -69,7 +69,7 @@ server.register(jwt, {
 // Korrekte User Id aus Payload extrahieren
 
 // === WebSocket Authentication Middleware ===
-  io.use((socket, next) => {
+io.use((socket, next) => {
   // ✅ Dummy User für alle (nur Development!)
   socket.user = {
     id: `user-${Date.now()}`,
@@ -77,10 +77,10 @@ server.register(jwt, {
     isService: false,
     isAI: false
   };
-  
   console.log(`[Auth] User ${socket.user.nickname} connected (NO AUTH)`);
   next();
 });
+
   // const token = socket.handshake.auth.token;
   // if (!token) {
   //   console.log('[Auth] No token provided');
