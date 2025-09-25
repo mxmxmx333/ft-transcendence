@@ -30,11 +30,12 @@ ENABLE_MTLS_AT_END="${ENABLE_MTLS_AT_END:-false}"
 KEYS_JSON="$VAULT_LOGS_DIR/keys.json"
 
 # ------- Phase 0: warten bis HTTP bereit -------
-echo ">> wait for Vault at $VAULT_ADDR ..."
-i=0
-until curl -fsS "$VAULT_ADDR/v1/sys/health?standbyok=true&sealedcode=204" >/dev/null 2>&1 || [ $i -gt 90 ]; do
-  i=$((i+1)); sleep 1
+echo ">> wait for DNS vault-dev ..."
+for i in $(seq 1 60); do
+  getent hosts vault-dev >/dev/null 2>&1 && ok=1 && break
+  sleep 1
 done
+[ "${ok:-0}" = "1" ] || { echo "!! DNS for vault-dev not found"; exit 2; }
 
 # ------- Phase 1: init (einmalig) -------
 if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
@@ -70,10 +71,6 @@ fi
 echo ">> ensure transit + jwt-issuer"
 vault secrets list -format=json | jq -e 'has("transit/")' >/dev/null || vault secrets enable transit # prüfen ob transit schon aktiv ist
 vault read transit/keys/jwt-issuer >/dev/null 2>&1 || vault write -f transit/keys/jwt-issuer type=ecdsa-p256 # prüfen ob key vorhanden, wenn nicht anlegen
-
-# ------- Policies -------
-vault policy write auth-service /policies/auth-service.hcl
-vault policy write api-gateway   /policies/api-gateway.hcl
 
 # ------- Phase 6: PKI(Public Key Infrastructure) (interne Root-CA für dev) -------
 echo ">> ensure pki root CA"
@@ -179,14 +176,14 @@ issue_cert "auth-user-service"  "vault-clients-internal"  ""                    
 
 vault auth enable approle 2>/dev/null || true
 
-vault policy write api-gateway   policies/api-gateway.hcl
-vault policy write auth-service  policies/auth-service.hcl
+vault policy write api-gateway   policies/common/api-gateway.hcl
+vault policy write auth-user-service  policies/common/auth-user-service.hcl
 
 vault write auth/approle/role/api-gateway \
   token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
 
 vault write auth/approle/role/auth-user-service \
-  token_policies="auth-service" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
+  token_policies="auth-user-service" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
 
 mkdir -p /certs/api-gateway/approle /certs/auth-user-service/approle
 umask 077
@@ -219,3 +216,4 @@ fi
 
 date -Iseconds > "$MARKER_FILE"
 echo ">> bootstrap done."
+

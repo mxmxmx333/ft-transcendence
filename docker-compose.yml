@@ -1,3 +1,4 @@
+name: transcendence
 services:
   web-application-firewall:
     build:
@@ -91,7 +92,7 @@ services:
       DEST: "/destination"
     entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
     restart: "no"
-
+    
   vault-bootstrap-dev:
     build:
       context: .
@@ -108,30 +109,32 @@ services:
     volumes:
       - ./services/vault/scripts:/scripts:ro                             # <— Skript nur gemountet
       - ./services/vault/policies:/policies:ro                           # <— Policies nur gemountet
-      - vaultdev_runtime_certs:/certs/vault-dev:rw                       # RW für client.crt/key
-      - vaultdev_config:/vault/config:ro                                 # RO für vault-dev.hcl
-      - vault1_logs:/vault/logs                                          # RW für keys.json / Marker
+      - vault-dev-runtime-certs:/certs/vault-dev:rw                       # RW für client.crt/key
+      - vault-dev-config:/vault/config:rw                                 # RO für vault-dev.hcl
+      - vault-dev-logs:/vault/logs                                          # RW für keys.json / Marker
       - ./services/ai-opponent/certs/:/certs/ai-opponent/:rw             # RW für ai-opponent
       - ./services/api-gateway/certs/:/certs/api-gateway/:rw             # RW für api-gateway
       - ./services/auth-user-service/certs/:/certs/auth-user-service/:rw # RW für auth-user-service
       - ./services/game-service/certs/:/certs/game-service/:rw           # RW für game-service
-    pid: "service:vault-dev"                                             # shared PID namespace mit vault-dev
+      - ./frontend-src/certs/:/certs/vite/:rw                           # RW für frontend
     networks: [ api-network ]
     restart: "no"
 
   vault-dev:
     image: hashicorp/vault:1.17
     profiles: [ "dev" ]
-    command: server -config=/vault/config/vault-dev.hcl   # single-node config ok
+    user: "0:0"  
+    entrypoint: vault server -config=/vault/config/vault-dev.hcl
     cap_add: [ "IPC_LOCK" ]
     ulimits: { memlock: -1 }
     volumes:
-      - vault-dev-config:/vault/config:ro
+      - vault-dev-config:/vault/config:rw
       - vault-dev-runtime-certs:/vault/certs:ro
-      - vault1_data:/vault/raft
-      - vault1_logs:/vault/logs
+      - vault-dev-data:/vault/raft
+      - vault-dev-logs:/vault/logs
     ports:
       - "127.0.0.1:8200:8200"
+      - "127.0.0.1:8202:8202"
     networks: [ api-network ]
 
   # --- Prod/Staging: 3-node cluster (no host ports)
@@ -184,8 +187,8 @@ services:
     volumes:
       - vault1-config:/vault/config:ro
       - vault1-runtime-certs:/vault/certs:ro   # initiale Zertifikate von vault-1-seed
-      - vault1_data:/vault/raft
-      - vault1_logs:/vault/logs
+      - vault1-data:/vault/raft
+      - vault1-logs:/vault/logs
     expose: [ "8200" ]
     networks: [ api-network ]
 
@@ -198,8 +201,8 @@ services:
     volumes:
       - vault2-config:/vault/config:ro
       - vault2-runtime-certs:/vault/certs:ro 
-      - vault2_data:/vault/raft
-      - vault2_logs:/vault/logs
+      - vault2-data:/vault/raft
+      - vault2-logs:/vault/logs
     expose: [ "8200" ]
     networks: [ api-network ]
 
@@ -212,8 +215,8 @@ services:
     volumes:
       - vault3-config:/vault/config:ro
       - vault3-runtime-certs:/vault/certs:ro
-      - vault3_data:/vault/raft
-      - vault3_logs:/vault/logs
+      - vault3-data:/vault/raft
+      - vault3-logs:/vault/logs
     expose: [ "8200" ]
     networks: [ api-network ]
 
@@ -228,16 +231,16 @@ volumes:
   vault-dev-runtime-certs: {}
 
   vault1-config: {}
-  vault1_data: {}
-  vault1_logs: {}
+  vault1-data: {}
+  vault1-logs: {}
   vault1-runtime-certs: {}
 
   vault2-config: {}
-  vault2_data: {}
-  vault2_logs: {}
+  vault2-data: {}
+  vault2-logs: {}
   vault2-runtime-certs: {}
 
   vault3-config: {}
-  vault3_data: {}
-  vault3_logs: {}
+  vault3-data: {}
+  vault3-logs: {}
   vault3-runtime-certs: {}

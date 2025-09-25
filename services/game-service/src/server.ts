@@ -4,15 +4,37 @@ import { registerIoHandlers } from './io.handler';
 import dotenv from 'dotenv';
 import jwt from '@fastify/jwt';
 import { AuthPayload } from './types/types';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const JWT_TOKEN_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const certDir = process.env.CERT_DIR || '../certs';
+
 export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM;
 if (!apiGatewayUpstream) {
   throw new Error('API_GATEWAY_UPSTREAM environment variable is not set');
+}
+
+let httpsOptions;
+
+const keyPath = path.join(__dirname, certDir, 'server.key');
+const certPath = path.join(__dirname, certDir, 'server.crt');
+const caPath = path.join(__dirname, certDir, 'ca.crt');
+if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
+  httpsOptions = {
+    https: {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+      ca: fs.readFileSync(caPath),
+    },
+  };
+  console.log('Api-Gateway: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+} else {
+  console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
 
 const server = fastify({
@@ -27,13 +49,17 @@ const server = fastify({
         }
       : {}),
   },
+  ...httpsOptions,
 });
 
 export const io = new SocketIOServer(server.server, {
   cors: {
     origin: FRONTEND_URL,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true, 
 });
 
 server.register(jwt, {
@@ -83,7 +109,7 @@ server.setErrorHandler((error, request, reply) => {
 
 async function start() {
   await server.listen({ port: 3001, host: '0.0.0.0' });
-  console.log('Server backend is listening: http://localhost:3001 adresinde çalışıyor');
+  console.log('Server backend is listening: https://localhost:3001 adresinde çalışıyor');
 }
 
 start().catch((err) => {

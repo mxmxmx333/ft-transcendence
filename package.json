@@ -16,7 +16,7 @@
     "dev:game-service": "NODE_ENV=development tsx watch services/game-service/src/server.ts",
     "dev:api-gateway": "NODE_ENV=development tsx watch services/api-gateway/src/server.ts",
     "dev:frontend": "cd frontend-src && vite",
-    "dev:vault": "make -s vault-bootstrap-cert-dev && docker compose up -d --profile \"dev\" vault-dev && docker compose up --exit-code-from vault-bootstrap vault-bootstrap && docker compose kill -s HUP vault-dev",
+    "dev:vault": "",
     "dev:ai-opponent": "NODE_ENV=development tsx watch services/ai-opponent/src/server.ts",
     "docker:build:game-service": "docker compose build game-service",
     "docker:build:auth-user-service": "docker compose build auth-user-service",

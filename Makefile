@@ -1,6 +1,6 @@
 .PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
-        ca vault-bootstrap-cert print-vault clean-vault-certs \
-        vault:dev vault:prod
+		ca vault-bootstrap-cert print-vault clean-vault-certs \
+		setup-env start-vault-dev vault-deps-dev
 
 ################################################################################
 # VARIABLES
@@ -10,14 +10,14 @@
 COMPOSE := $(shell sh -c 'docker compose version >/dev/null 2>&1 && echo "docker compose" || (command -v docker-compose >/dev/null 2>&1 && echo "docker-compose" || echo "")')
 
 LAN_IP ?= $(shell sh -c '\
-  if command -v ip >/dev/null 2>&1; then \
-    ip -4 route get 1 2>/dev/null | awk "/src/ {print \$$7; exit}"; \
-  elif command -v route >/dev/null 2>&1; then \
-    IF=$$(route get default 2>/dev/null | awk "/interface:/ {print \$$2; exit}" || route -n get default 2>/dev/null | awk "/interface:/ {print \$$2; exit}"); \
-    (command -v ipconfig >/dev/null 2>&1 && ipconfig getifaddr $$IF) || ifconfig $$IF 2>/dev/null | awk "/inet[[:space:]]/ {print \$$2; exit}"; \
-  else \
-    hostname -I 2>/dev/null | awk "{print \$$1}"; \
-  fi')
+if command -v ip >/dev/null 2>&1; then \
+	ip -4 route get 1 2>/dev/null | awk "/src/ {print \$$7; exit}"; \
+elif command -v route >/dev/null 2>&1; then \
+	IF=$$(route get default 2>/dev/null | awk "/interface:/ {print \$$2; exit}" || route -n get default 2>/dev/null | awk "/interface:/ {print \$$2; exit}"); \
+	(command -v ipconfig >/dev/null 2>&1 && ipconfig getifaddr $$IF) || ifconfig $$IF 2>/dev/null | awk "/inet[[:space:]]/ {print \$$2; exit}"; \
+else \
+	hostname -I 2>/dev/null | awk "{print \$$1}"; \
+fi')
 
 DOMAIN       ?= ft-transcendence.at
 HOSTS_FILE   ?= /etc/hosts
@@ -54,7 +54,7 @@ assert-ip:
 hosts-add: assert-ip
 	@echo "➕ Adding: $(HOSTS_LINE)"
 	@grep -qF "$(HOSTS_LINE)" "$(HOSTS_FILE)" || \
-	  printf "%s\n" "$(HOSTS_LINE)" | sudo tee -a "$(HOSTS_FILE)" >/dev/null
+	printf "%s\n" "$(HOSTS_LINE)" | sudo tee -a "$(HOSTS_FILE)" >/dev/null
 
 hosts-remove: assert-ip
 	@echo "➖ Removing: $(HOSTS_LINE)"
@@ -79,7 +79,35 @@ deps-audit-force:
 	@npm audit fix --force || true
 
 setup-env:
-	@cp .env.example .env
-	@printf "HOST_UID=%s\n" "$$(id -u)" >> .env
-	@printf "HOST_GID=%s\n" "$$(id -g)" >> .env
-	@echo "Created .env from .env.example and wrote HOST_UID/GID"
+	@if [ ! -f .env ]; then \
+		if [ -f .env.example ]; then \
+			echo "📋 Creating .env from .env.example"; \
+			cp .env.example .env; \
+		else \
+			echo "📄 Creating new .env file"; \
+			touch .env; \
+		fi; \
+	else \
+		echo "📝 Updating existing .env file"; \
+	fi
+	@sed -i.bak '/^HOST_UID=/d; /^HOST_GID=/d' .env
+	@printf "HOST_UID=%s\nHOST_GID=%s\n" "$$(id -u)" "$$(id -g)" >> .env
+	@rm -f .env.bak
+	@echo "✅ .env configured with HOST_UID=$$(id -u) and HOST_GID=$$(id -g)"
+
+vault-deps-dev: setup-env
+	$(COMPOSE) --profile "dev" up --exit-code-from vault-seed-config vault-seed-config
+	$(COMPOSE) --profile "dev" up --exit-code-from vault-dev-seed vault-dev-seed
+
+start-vault-dev: vault-deps-dev
+	$(COMPOSE) --profile dev run --rm --no-deps \
+	  --entrypoint sh vault-dev -lc 'mkdir -p /vault/raft /vault/logs /vault/config && chown -R 100:100 /vault/raft /vault/logs /vault/config'
+	$(COMPOSE) --profile "dev" up -d vault-dev
+	$(COMPOSE) --profile "dev" up --exit-code-from vault-bootstrap-dev vault-bootstrap-dev
+	$(COMPOSE) --profile "dev" kill -s HUP vault-dev
+
+clean-vault-dev:
+	Docker volume rm transcendence_vault-dev-runtime-certs transcendence_vault-dev-config transcendence_vault-dev-logs transcendence_vault-dev-data || true
+
+stop-vault-dev:
+	$(COMPOSE) --profile "dev" down
