@@ -12,7 +12,6 @@ interface SerializedWeights {
   epsilon: number;
   gameCount: number;
   winCount: number;
-  aggressionLevel: number;
   totalReward: number;
 }
 
@@ -310,7 +309,6 @@ export class ImprovedReinforcementLearningAI {
 
   // Strategische Variablen
   private consecutiveLosses = 0;
-  private aggressionLevel = 0.5; // ist ein Input für die NN. 0 = sehr defensiv, 1 = sehr offensiv. Wird basierend auf Performance angepasst, was schnelleres Lernen fördert und eine Art Risikomanagement ermöglicht. Also nach Erfolgen ist er aggressiver/offensiver, nach Misserfolgen defensiver.
   
   // Persistenz-Eigenschaften
   private recentGames: number[] = []; // 1 für Sieg, 0 für Niederlage
@@ -350,7 +348,6 @@ export class ImprovedReinforcementLearningAI {
         this.epsilon = weightsData.epsilon;
         this.gameCount = weightsData.gameCount;
         this.winCount = weightsData.winCount;
-        this.aggressionLevel = weightsData.aggressionLevel;
         this.totalReward = weightsData.totalReward;
         this.recentGames = performanceStats.recentGames || [];
         
@@ -504,7 +501,7 @@ export class ImprovedReinforcementLearningAI {
     if (state.ballVX > 0 && state.ballX > state.canvasWidth * 0.7) {
       const targetArea = state.playerY + this.constants.paddleCenter; // Ziel ist die Mitte des Spieler-Schlägers
       if (Math.abs(state.ballY - targetArea) > Math.abs(nextState.ballY - targetArea)) {
-        reward += 0.1 * this.aggressionLevel;
+        reward += 0.05
       }
     }
 
@@ -626,7 +623,6 @@ export class ImprovedReinforcementLearningAI {
     }
     this.winCount++;
     this.consecutiveLosses = 0;
-    this.aggressionLevel = Math.min(1.0, this.aggressionLevel + 0.1);
     
     // Track recent performance
     this.recentGames.push(1); // Win
@@ -641,16 +637,18 @@ export class ImprovedReinforcementLearningAI {
       lastExp.priority = 2.0; // Hohe Priorität auch für Fehler lernen
     }
     this.consecutiveLosses++;
-    this.aggressionLevel = Math.max(0.0, this.aggressionLevel - 0.05);
     
     // Track recent performance
     this.recentGames.push(0); // Loss
     this.trimRecentGames();
   }
 
-  onGameEnd() {
+  onGameEnd(won: boolean) {
     this.gameCount++;
-    
+    if (won) {
+      this.winCount++;
+    }
+
     // Intensive Training am Spielende
     if (this.experienceBuffer.length > 5) {
       this.network.updateWeights(this.experienceBuffer, 0.08 + this.consecutiveLosses * 0.02);
@@ -672,7 +670,7 @@ export class ImprovedReinforcementLearningAI {
     }
 
     console.log(
-      `[RL-AI] Game ${this.gameCount} ended. W/L: ${this.winCount}/${this.gameCount - this.winCount} (${(winRate * 100).toFixed(1)}%) | Epsilon: ${this.epsilon.toFixed(3)} | Aggression: ${this.aggressionLevel.toFixed(2)}`
+      `[RL-AI] Game ${this.gameCount} ended. W/L: ${this.winCount}/${this.gameCount - this.winCount} (${(winRate * 100).toFixed(1)}%) | Epsilon: ${this.epsilon.toFixed(3)}`
     );
     
     // Save model periodically
@@ -706,7 +704,6 @@ export class ImprovedReinforcementLearningAI {
         epsilon: this.epsilon,
         gameCount: this.gameCount,
         winCount: this.winCount,
-        aggressionLevel: this.aggressionLevel,
         totalReward: this.totalReward,
       };
       
@@ -718,7 +715,6 @@ export class ImprovedReinforcementLearningAI {
       };
       
       await aiFilePersistenceManager.saveAIModel(weightsData, performanceStats);
-      console.log(`[RL-AI] Model saved to file - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`);
     } catch (error) {
       console.error('[RL-AI] Failed to save model to file:', error);
     }
@@ -731,7 +727,6 @@ export class ImprovedReinforcementLearningAI {
       winRate: this.gameCount > 0 ? ((this.winCount / this.gameCount) * 100).toFixed(1) : '0.0',
       epsilon: this.epsilon.toFixed(3),
       experienceCount: this.experienceBuffer.length,
-      aggressionLevel: (this.aggressionLevel * 100).toFixed(0),
       consecutiveLosses: this.consecutiveLosses,
       avgReward: this.gameCount > 0 ? (this.totalReward / this.gameCount).toFixed(2) : '0.00',
     };
@@ -753,7 +748,6 @@ export class ImprovedReinforcementLearningAI {
     winCount: number;
     winRate: number;
     epsilon: number;
-    aggressionLevel: number;
     recentWinRate: number;
     experienceCount: number;
   } {
@@ -766,7 +760,6 @@ export class ImprovedReinforcementLearningAI {
       winCount: this.winCount,
       winRate,
       epsilon: this.epsilon,
-      aggressionLevel: this.aggressionLevel,
       recentWinRate,
       experienceCount: this.experienceBuffer.length,
     };

@@ -46,84 +46,13 @@ export class HybridAISystem {
     const baselineTargetY = this.baselineAI.getAction(gameState);
 
     if (Math.random() < this.rlWeight) {
-      console.log(`[HybridAI] Using RL AI (Weight: ${this.rlWeight.toFixed(2)})`);
-      console.log(`[HybridAI] RL TargetY: ${rlTargetY.toFixed(2)}, Baseline TargetY: ${baselineTargetY.toFixed(2)}`);
+      console.log(`[AI] RL TargetY: ${rlTargetY}, Baseline TargetY: ${baselineTargetY}`);
       return rlTargetY;
     } else {
-      console.log(`[HybridAI] Using Baseline AI (Weight: ${this.rlWeight.toFixed(2)})`);
-      console.log(`[HybridAI] RL TargetY: ${rlTargetY.toFixed(2)}, Baseline TargetY: ${baselineTargetY.toFixed(2)}`);
+      console.log(`[Baseline] RL TargetY: ${rlTargetY}, Baseline TargetY: ${baselineTargetY}`);
       return baselineTargetY;
     }
-    // // Use probabilistic selection based on current RL weight
-    // if (Math.random() < this.rlWeight) {
-    //   // Use RL AI with confidence-based fallback
-    //   return this.shouldTrustRLDecision(gameState) ? rlTargetY : baselineTargetY;
-    // } else {
-    //   // Use baseline AI as primary with potential RL override
-    //   return this.shouldOverrideBaseline(gameState, rlTargetY, baselineTargetY) 
-    //     ? rlTargetY 
-    //     : baselineTargetY;
-    // }
   }
-
-  // /**
-  //  * Determines whether to trust the RL AI decision based on situation and performance
-  //  */
-  // private shouldTrustRLDecision(gameState: GameStateNN): boolean {
-  //   const ballDistance = Math.abs(gameState.ballY - (gameState.aiY + this.constants.paddleCenter));
-  //   const timeToImpact = this.calculateTimeToImpact(gameState);
-  //   const recentWinRate = this.getRecentWinRate();
-
-  //   // Trust RL AI in non-critical situations
-  //   if (timeToImpact > CRITICAL_TIME_THRESHOLD || ballDistance > CRITICAL_DISTANCE_THRESHOLD) {
-  //     return true;
-  //   }
-
-  //   // Trust RL AI when performance is good
-  //   if (recentWinRate > GOOD_WIN_RATE) {
-  //     return true;
-  //   }
-
-  //   // Trust RL AI in defensive situations where it might excel
-  //   if (this.isDefensiveSituation(gameState, ballDistance)) {
-  //     return true;
-  //   }
-
-  //   return false;
-  // }
-
-  // /**
-  //  * Determines whether to override baseline AI with RL AI decision
-  //  */
-  // private shouldOverrideBaseline(gameState: GameStateNN, rlTargetY: number, baselineTargetY: number): boolean {
-  //   // Only override if RL weight is significant and performance is decent
-  //   if (this.rlWeight < DEFAULT_RL_WEIGHT || this.getRecentWinRate() < POOR_WIN_RATE) {
-  //     return false;
-  //   }
-
-  //   const ballDistance = Math.abs(gameState.ballY - (gameState.aiY + this.constants.paddleCenter));
-    
-  //   // Override in strategic situations where RL might have learned better patterns
-  //   if (ballDistance < STRATEGIC_DISTANCE_THRESHOLD && rlTargetY !== baselineTargetY) {
-  //     return Math.random() < RL_OVERRIDE_CHANCE;
-  //   }
-
-  //   return false;
-  // }
-
-  // private calculateTimeToImpact(gameState: GameStateNN): number {
-  //   if (gameState.ballVX <= 0) return 999; // Ball moving away
-    
-  //   const distanceToAI = gameState.canvasWidth - this.constants.paddleWidth - 
-  //                       this.constants.ballRadius - gameState.ballX;
-  //   return distanceToAI / Math.max(gameState.ballVX, 1e-3);
-  // }
-
-  // private isDefensiveSituation(gameState: GameStateNN, ballDistance: number): boolean {
-  //   return gameState.ballVX < 0 && ballDistance < DEFENSIVE_DISTANCE_THRESHOLD;
-  // }
-
-
 
   /**
    * Calculates recent win rate based on performance window
@@ -195,16 +124,8 @@ export class HybridAISystem {
     this.trimPerformanceHistory();
   }
 
-  /**
-   * Called when a game ends
-   */
   public async onGameEnd(won: boolean): Promise<void> {
     console.log(`[HybridAI] Game ended - AI ${won ? 'WON' : 'LOST'}`);
-    if (won) {
-      console.log(`[HybridAI] 🎉 AI Victory! Updating performance positively.`);
-    } else {
-      console.log(`[HybridAI] 😞 AI Defeat. Learning from mistakes.`);
-    }
     
     // Aktualisiere Performance-Tracking
     this.performanceHistory.push(won ? 1 : 0);
@@ -229,14 +150,7 @@ export class HybridAISystem {
       this.recentWins = 0;
     }
     
-
-    if (won) {
-      this.rlAI.onAIScore?.(); // AI hat gewonnen
-    } else {
-      this.rlAI.onPlayerScore?.(); // AI hat verloren
-    }
-    
-    this.rlAI.onGameEnd(); 
+    this.rlAI.onGameEnd(won); 
   }
 
   /**
@@ -248,35 +162,12 @@ export class HybridAISystem {
     }
   }
 
-  // Getter methods for monitoring and debugging
-  public getCurrentRLWeight(): number {
-    return this.rlWeight;
-  }
-
-  public getGameCount(): number {
-    return this.gameCount;
-  }
-
-  public getPerformanceStats(): {
-    rlWeight: number;
-    recentWinRate: number;
-    gameCount: number;
-    totalGamesTracked: number;
-  } {
-    return {
-      rlWeight: this.rlWeight,
-      recentWinRate: this.getRecentWinRate(),
-      gameCount: this.gameCount,
-      totalGamesTracked: this.performanceHistory.length
-    };
-  }
-
   /**
    * Cleanup and save AI state before destruction
    */
   public async cleanup(): Promise<void> {
     console.log('[HybridAI] Performing cleanup and saving RL AI state...');
-    if (this.rlAI && typeof this.rlAI.cleanup === 'function') {
+    if (this.rlAI) {
       await this.rlAI.cleanup();
     }
   }
