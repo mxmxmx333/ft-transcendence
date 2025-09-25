@@ -1,3 +1,6 @@
+import { SocketManager } from './socketManager';
+import { PongGame } from './game';
+
 export enum Action {
   Up = 0,
   Stay = 1,
@@ -70,4 +73,24 @@ export interface Experience {
   nextState: number[];
   done: boolean;
   priority: number;
+}
+
+export interface GameStatePG {
+  ballX: number;
+  ballY: number;
+  ballVX: number;
+  ballVY: number;
+  aiY: number;
+  playerY: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  ballSpeed: number;
+  gameTime: number;
+}
+
+
+export interface AIInstance {
+  socketManager: SocketManager;
+  game: PongGame;
+  createdAt: number;
 }

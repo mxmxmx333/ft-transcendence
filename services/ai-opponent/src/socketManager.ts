@@ -5,7 +5,7 @@ import type { ClientToServerEvents } from './socket-interfaces';
 import { apiGatewayUpstream } from './server';
 
 export class SocketManager {
-  private static instance: SocketManager;
+  // private static instance: SocketManager;
   private socket?: Socket;
   private gameInstance: PongGame | null = null;
   private reconnectAttempts = 0;
@@ -13,155 +13,152 @@ export class SocketManager {
   private reconnectDelay = 1000;
   private pendingResolve: ((roomId: string) => void) | null = null;
 
-  private constructor() {}
+  constructor(private readonly roomId?: string) {
+    // Socket wird in connect() erstellt
+  }
 
   public onGameStart: ((payload: GameStartPayload) => void) | null = null;
 
-  public static getInstance(): SocketManager {
-    if (!SocketManager.instance) {
-      console.log('Creating new SocketManager instance');
-      SocketManager.instance = new SocketManager();
+  public connect(): void {
+    if (this.socket?.connected) {
+      console.log('[SocketManager] Already connected');
+      return;
     }
-    return SocketManager.instance;
+    this.createSocket();
+    this.setupEventListeners();
+    this.socket!.connect();
   }
 
-  public connect(): void {
-    // SERVER URL'i düzelt!
+  private createSocket(): void {
     this.socket = io(apiGatewayUpstream || 'http://localhost:3000', {
       path: '/socket.io',
       transports: ['websocket'],
+      autoConnect: false,
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
     });
-    this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket?.id);
+  }
+
+  private setupEventListeners(): void {
+    if (!this.socket) return;
+    this.setupConnectionEvents();
+    this.setupGameEvents();
+    this.setupRoomEvents();
+  }
+
+  private setupConnectionEvents(): void {
+    this.socket!.on('connect', () => {
+      console.log('[SocketManager] Connected:', this.socket?.id);
       this.reconnectAttempts = 0;
+      
+      // Auto-join room wenn roomId vorhanden
+      if (this.roomId) {
+        this.socket!.emit('join_room', { roomId: this.roomId });
+        console.log('[SocketManager] Auto-joining room:', this.roomId);
+      }
     });
 
-    this.socket.on('connect_error', (error: Error) => {
-      console.error('Connection error:', error);
+    this.socket!.on('connect_error', (error: Error) => {
+      console.error('[SocketManager] Connection error:', error);
     });
 
-    this.socket.on('disconnect', () => {
-      console.warn('Socket disconnected');
+    this.socket!.on('disconnect', () => {
+      console.warn('[SocketManager] Disconnected');
       this.handleReconnection();
     });
-    // Game event listeners
-    this.socket.on('game_start', (payload: ServerToClientEvents['game_start']) => {
-      console.log('Game start received:', payload);
-      console.log('Game Instance true;: ', this.gameInstance !== null);
+  }
+
+  private setupGameEvents(): void {
+    this.socket!.on('game_start', (payload: ServerToClientEvents['game_start']) => {
+      console.log('[SocketManager] Game start received:', payload);
       this.gameInstance?.handleGameStart(payload);
-      if (this.onGameStart) {
-        this.onGameStart(payload);
-      }
+      this.onGameStart?.(payload);
     });
-    this.socket.on('game_over', (message: ServerToClientEvents['game_over']) => {
-      console.log('Game over:', message);
 
-      let winner = '';
-      if (this.gameInstance) {
-        winner = this.gameInstance.determineWinner(message);
-      }
-
+    this.socket!.on('game_over', (message: ServerToClientEvents['game_over']) => {
+      console.log('[SocketManager] Game over:', message);
+      const winner = this.gameInstance?.determineWinner(message) || '';
       this.gameInstance?.handleGameOver({ ...message, winner });
     });
 
-    this.socket.on('game_aborted', (message: { message: string }) => {
-      console.log('Game aborted:', message);
+    this.socket!.on('game_aborted', (message: { message: string }) => {
+      console.log('[SocketManager] Game aborted:', message);
       this.gameInstance?.handleRoomTerminated();
     });
 
-    this.socket.on('game_state', (state: ServerToClientEvents['game_state']) => {
-      // Console log'u kaldır - çok spam yapıyor
-      // console.log('Game state update:', state);
+    this.socket!.on('game_state', (state: ServerToClientEvents['game_state']) => {
       this.gameInstance?.updateFromServer(state);
     });
-
-    // Room event listeners
-    this.socket.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
-      console.log('Joined room:', data);
-      if (this.pendingResolve) {
-        this.pendingResolve(data.roomId);
-        this.pendingResolve = null;
-      }
-    });
-
-    this.socket.on('join_error', (error: ServerToClientEvents['join_error']) => {
-      console.error('Join error:', error.message);
-      alert(`Join error: ${error.message}`);
-      if (this.pendingResolve) {
-        this.pendingResolve('');
-        this.pendingResolve = null;
-      }
-    });
-
-    this.socket.on('create_error', (error: ServerToClientEvents['create_error']) => {
-      console.error('Create error:', error.message);
-      alert(`Create error: ${error.message}`);
-      if (this.pendingResolve) {
-        this.pendingResolve('');
-        this.pendingResolve = null;
-      }
-    });
-
-    this.socket.on('room_created', (data: ServerToClientEvents['room_created']) => {
-      console.log('Room created:', data);
-      // Room oluşturuldu mesajını göster
-      document.getElementById('lobby-status')!.textContent =
-        `Room created: ${data.roomId}. Waiting for opponent...`;
-      if (this.pendingResolve) {
-        this.pendingResolve(data.roomId);
-        this.pendingResolve = null;
-      }
-    });
-    // # REMOVED
-    // // Paddle güncellemeleri için listener
-    // this.socket.on('paddle_update', (data: { playerId: string; yPos: number }) => {
-    //   if (this.gameInstance) {
-    //     this.gameInstance.updateOpponentPaddle(data.yPos);
-    //   }
-    // });
   }
 
-  private handleReconnection() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.warn(`Reconnecting... Attempt ${this.reconnectAttempts}`);
-      setTimeout(() => {
-        this.socket?.connect();
-      }, this.reconnectDelay);
-    } else {
-      console.error('Max reconnection attempts reached. Please refresh the page.');
-      this.gameInstance?.handleConnectionLost();
+  private setupRoomEvents(): void {
+    this.socket!.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
+      console.log('[SocketManager] Joined room:', data);
+      this.resolvePendingPromise(data.roomId);
+    });
+
+    this.socket!.on('join_error', (error: ServerToClientEvents['join_error']) => {
+      console.error('[SocketManager] Join error:', error.message);
+      this.resolvePendingPromise('');
+    });
+
+    this.socket!.on('create_error', (error: ServerToClientEvents['create_error']) => {
+      console.error('[SocketManager] Create error:', error.message);
+      this.resolvePendingPromise('');
+    });
+
+    this.socket!.on('room_created', (data: ServerToClientEvents['room_created']) => {
+      console.log('[SocketManager] Room created:', data);
+      this.resolvePendingPromise(data.roomId);
+    });
+  }
+
+  private resolvePendingPromise(roomId: string): void {
+    if (this.pendingResolve) {
+      this.pendingResolve(roomId);
+      this.pendingResolve = null;
     }
   }
 
-  public createRoom(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      if (!this.socket?.connected) {
-        return reject(new Error('Socket not connected'));
-      }
+  private handleReconnection(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[SocketManager] Max reconnection attempts reached');
+      this.gameInstance?.handleConnectionLost();
+      return;
+    }
 
-      this.pendingResolve = resolve;
-
-      const timeout = setTimeout(() => {
-        this.pendingResolve = null;
-        reject(new Error('Room creation timeout'));
-      }, 10_000);
-
-      this.socket.once('room_created', () => {
-        clearTimeout(timeout);
-      });
-      this.socket.once('create_error', () => {
-        clearTimeout(timeout);
-      });
-      let isSinglePlayer = this.gameInstance?.isSinglePlayer ?? false;
-      let isRemote = this.gameInstance?.isRemote ?? false;
-      this.socket.emit('create_room', { isSinglePlayer, isRemote });
-      console.log('[Client] create_room emitted');
-    });
+    this.reconnectAttempts++;
+    console.warn(`[SocketManager] Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+    
+    setTimeout(() => {
+      this.socket?.connect();
+    }, this.reconnectDelay);
   }
+
+  public createRoom(): Promise<string> {
+    return this.executeRoomAction(
+      'create_room',
+      {
+        isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
+        isRemote: this.gameInstance?.isRemote ?? false
+      },
+      'Room creation timeout'
+    );
+  }
+
   public joinRoom(roomId: string): Promise<string> {
+    return this.executeRoomAction(
+      'join_room',
+      { roomId },
+      'Join room timeout'
+    );
+  }
+
+  private executeRoomAction(
+    action: 'create_room' | 'join_room',
+    payload: any,
+    timeoutMessage: string
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
         return reject(new Error('Socket not connected'));
@@ -171,52 +168,54 @@ export class SocketManager {
 
       const timeout = setTimeout(() => {
         this.pendingResolve = null;
-        reject(new Error('Join room timeout'));
+        reject(new Error(timeoutMessage));
       }, 10_000);
 
-      this.socket.once('joined_room', () => {
-        clearTimeout(timeout);
-      });
+      // Setup one-time cleanup listeners
+      const cleanup = () => clearTimeout(timeout);
+      this.socket.once('room_created', cleanup);
+      this.socket.once('joined_room', cleanup);
+      this.socket.once('create_error', cleanup);
+      this.socket.once('join_error', cleanup);
 
-      this.socket.once('join_error', () => {
-        clearTimeout(timeout);
-      });
-
-      // AI erstellt PongGame beim Joinen, nicht beim Erstellen!
-      const game = new PongGame(this);
-      this.setGameInstance(game);
-
-      this.socket.emit('join_room', { roomId });
-      console.log('[Client] join_room emitted for room:', roomId);
+      this.socket.emit(action, payload);
+      console.log(`[SocketManager] ${action} emitted:`, payload);
     });
   }
 
   public leaveRoom(): void {
-    if (this.socket?.connected) {
-      this.socket.emit('leave_room');
-      console.log('[Client] leave_room emitted');
+    if (!this.socket?.connected) {
+      console.warn('[SocketManager] Cannot leave room - not connected');
+      return;
     }
+    
+    this.socket.emit('leave_room');
+    console.log('[SocketManager] Leave room emitted');
   }
 
   public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
-    if (this.socket?.connected) {
-      this.socket.emit('paddle_move', payload);
-      console.log('[Client] paddle_move emitted:', payload); // Çok spam yapıyor
-    }
+    if (!this.socket?.connected) return;
+    
+    this.socket.emit('paddle_move', payload);
+    // console.log('[SocketManager] Paddle move:', payload);
   }
 
   public setGameInstance(gameInstance: PongGame): void {
-    console.log('Setting game instance:', gameInstance);
+    console.log('[SocketManager] Setting game instance');
     this.gameInstance = gameInstance;
-    console.log('Game instance set:', this.gameInstance);
   }
 
   public disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = undefined;
-      console.log('Socket disconnected');
+    if (!this.socket) {
+      console.log('[SocketManager] Already disconnected');
+      return;
     }
+
+    this.socket.disconnect();
+    this.socket = undefined;
+    this.gameInstance = null;
+    this.pendingResolve = null;
+    console.log('[SocketManager] Disconnected and cleaned up');
   }
 
   public isConnected(): boolean {
