@@ -27,3 +27,11 @@ vault1_logs/
 vault2_logs/
 vault3_logs/
 ./database/
+
+# === CERTIFICATES and Credentials ===
+server.crt
+server.key
+ca.crt
+approle/
+client.crt
+client.key
