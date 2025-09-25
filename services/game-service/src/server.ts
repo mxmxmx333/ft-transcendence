@@ -11,7 +11,7 @@ dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const JWT_TOKEN_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3000';
 const certDir = process.env.CERT_DIR || '../certs';
 
 export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM;
