@@ -88,9 +88,36 @@ export interface GameStatePG {
   gameTime: number;
 }
 
-
 export interface AIInstance {
   socketManager: SocketManager;
   game: PongGame;
   createdAt: number;
 }
+
+// Interface for AI model data
+export interface SerializedWeights {
+  weights1: number[][];
+  weights2: number[][];
+  weights3: number[][];
+  bias1: number[];
+  bias2: number[];
+  bias3: number[];
+  epsilon: number;
+  gameCount: number;
+  winCount: number;
+  totalReward: number;
+}
+
+export interface PerformanceStats {
+  winRate: number;
+  averageReward: number;
+  recentGames: number[];
+  lastGameTimestamp: number;
+}
+
+export interface AIModelFile {
+  timestamp: string;
+  weightsData: SerializedWeights;
+  performanceStats: PerformanceStats;
+}
+

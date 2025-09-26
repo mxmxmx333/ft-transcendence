@@ -258,14 +258,17 @@ export class PongGame {
 
   public handleGameOver(message: any) {
     this.gameRunning = false;
+    console.log('Game over message:', message);
     const winner =
-      message.winner === 'owner'
+      message.winner === 'guest'
         ? this.isPlayer1
           ? 'YOU'
           : this.opponentNickname
         : this.isPlayer1
           ? this.opponentNickname
           : 'YOU';
+    console.log('Game over. Winner:', winner);
+    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
     this.drawGameOver(winner);
   }
 
@@ -470,13 +473,6 @@ public startGame() {
     this.updateStatus('Game resumed');
   }
 
-  public determineWinner(gameOverMessage: any): string {
-  if (gameOverMessage.winner === 'owner') {
-    return this.isPlayer1 ? 'YOU' : (gameOverMessage.finalScore?.owner?.toString() || 'Opponent');
-  } else {
-    return this.isPlayer1 ? (gameOverMessage.finalScore?.guest?.toString() || 'Opponent') : 'YOU';
-  }
-}
   private gameLoop = (timestamp: number) => {
     if (!this.gameRunning) return;
     // Nur alle X Millisekunden Paddle-Updates senden
