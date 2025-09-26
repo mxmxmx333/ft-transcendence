@@ -224,11 +224,9 @@ export class PongGame {
   private resetGame(): void {
     console.log(`[PongGame-${this.gameId}] Resetting game state`);
     
-    // Reset scores
     this.playerScore = 0;
     this.opponentScore = 0;
     
-    // Reset positions
     this.playerY = INITIAL_PLAYER_Y;
     this.opponentY = INITIAL_PLAYER_Y;
     this.aiY = INITIAL_PLAYER_Y;
@@ -239,7 +237,6 @@ export class PongGame {
     this.ballVX = 0;
     this.ballVY = 0;
     
-    // Reset timing
     this.lastAIMove = -AI_UPDATE_INTERVAL;
     this.lastPaddleUpdate = 0;
   }
@@ -266,15 +263,6 @@ export class PongGame {
     this.updateStatus('Game resumed');
   }
 
-  public determineWinner(gameOverMessage: any): string {
-    // AI is always player2/guest, so opponent is always owner
-    if (gameOverMessage.winner === 'owner') {
-      return `Opponent (Score: ${gameOverMessage.finalScore?.owner || 'N/A'})`;
-    } else {
-      return `AI (Score: ${gameOverMessage.finalScore?.guest || 'N/A'})`;
-    }
-  }
-
   public stop(): void {
     console.log(`[PongGame-${this.gameId}] Stopping game`);
     
@@ -283,7 +271,6 @@ export class PongGame {
     this.stopGameLoop();
   }
 
-  // Getter methods for debugging/monitoring
   public getGameId(): string {
     return this.gameId;
   }
@@ -313,9 +300,6 @@ export class PongGame {
     };
   }
 
-  /**
-   * Get access to the AI system for cleanup operations
-   */
   public getAISystem(): HybridAISystem {
     return this.aiSystem;
   }

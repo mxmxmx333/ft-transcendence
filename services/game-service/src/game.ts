@@ -186,8 +186,8 @@ export function abortGame(room: GameRoom) {
 
 export function endGame(room: GameRoom) {
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
+  console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
-  // Kazananın nickname'ini doğru şekilde al
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
   io.to(room.id).emit('game_over', {
@@ -204,8 +204,6 @@ export function endGame(room: GameRoom) {
     room.gameLoop = undefined;
   }
 
-  // Oyuncuları odadan çıkar ama bağlantıyı kesme
-  // handleLeaveRoom yerine daha nazik bir yaklaşım:
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
 
   // 5 saniye sonra oyuncuları lobby'e yönlendir
