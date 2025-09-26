@@ -30,12 +30,17 @@ export class SocketManager {
   }
 
   private createSocket(): void {
-    this.socket = io(apiGatewayUpstream || 'http://localhost:3000', {
+    this.socket = io(apiGatewayUpstream || 'https://localhost:3000', {
       path: '/socket.io',
       transports: ['websocket'],
       autoConnect: false,
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
+      rejectUnauthorized: false,
+      secure: true,
+      withCredentials: true,
+      upgrade: true,
+      rememberUpgrade: true,
     });
   }
 

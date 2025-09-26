@@ -3,6 +3,8 @@ import * as dotenv from 'dotenv';
 import { SocketManager } from './socketManager';
 import { PongGame } from './game';
 import { AIInstance } from './types';
+import path from 'path';
+import fs from 'fs';
 
 // Constants
 const DEFAULT_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
@@ -133,13 +135,32 @@ class AIServerClass {
 dotenv.config();
 
 // Validate required environment variables
-export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM || 'http://localhost:3000';
+export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM || 'https://localhost:3000';
 console.log(`[Server] Using API Gateway: ${apiGatewayUpstream}`);
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const aiServer = new AIServerClass();
 
+const certDir = process.env.CERT_DIR || '../certs';
+const certPath = path.join(__dirname, certDir, 'server.crt');
+const keyPath = path.join(__dirname, certDir, 'server.key');
+const caPath = path.join(__dirname, certDir, 'ca.crt');
+
 async function buildServer(): Promise<FastifyInstance> {
+  let httpsOptions;
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath) && fs.existsSync(caPath)) {
+    httpsOptions = {
+      https: {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+        ca: fs.readFileSync(caPath),
+      },
+    };
+    console.log('[Server] ✅ SSL certificates found, starting with HTTPS');
+  }
+  else {
+    console.warn('[Server] ⚠️ SSL certificates not found, starting without HTTPS');
+  }
   const server = Fastify({
     logger: {
       level: 'debug',
@@ -153,6 +174,7 @@ async function buildServer(): Promise<FastifyInstance> {
         },
       }),
     },
+    ...httpsOptions,
   });
 
   return server;
@@ -226,7 +248,7 @@ async function start() {
 
   try {
     await server.listen({ port: SERVER_PORT, host: SERVER_HOST });
-    server.log.info(`AI Opponent Service running at http://localhost:${SERVER_PORT}`);
+    server.log.info(`AI Opponent Service running at https://localhost:${SERVER_PORT}`);
   } catch (error) {
     server.log.error('Failed to start server:', error);
     process.exit(1);

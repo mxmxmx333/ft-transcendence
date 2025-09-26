@@ -1,0 +1,61 @@
+vault verification:
+
+function b64urlToB64(u) {
+  let s = u.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return s;
+}
+
+async function verifyWithVault({ jwt, kid = '1', vaultAddr, token }) {
+  const [hdr, pay, sigUrl] = jwt.split('.');
+  const signed = `${hdr}.${pay}`;
+  const sigB64 = b64urlToB64(sigUrl);
+
+  const res = await fetch(`${vaultAddr}/v1/transit/verify/jwt-issuer`, {
+    method: 'POST',
+    headers: { 'X-Vault-Token': token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input: Buffer.from(signed, 'ascii').toString('base64'),
+      signature: `vault:v${kid}:${sigB64}`,
+      marshaling_algorithm: 'jws'
+    })
+  });
+  const data = await res.json();
+  if (!data.data || data.data.valid !== true) throw new Error('invalid signature');
+  return true;
+}
+
+Beim Signieren im Auth-Service:
+
+Transit-Key: type=ecdsa-p256
+
+marshaling_algorithm="jws" verwenden → Signatur ist JWS-kompatibel (R||S).
+
+Vault liefert signature mit Prefix vault:v1:....
+Für das JWT nimmst du nur den Base64url-Teil (ohne Prefix) als token.signature.
+
+Beim Verifizieren im API-Gateway (Online via Vault):
+
+Du musst aus dem JWT
+
+signed_content = base64url(header) + "." + base64url(payload) bilden,
+
+die token.signature von base64url → base64 konvertieren (Alphabet + Padding),
+
+und Vaults Prefix wieder dranpacken: vault:v<version>:<base64sig>.
+(Die <version> kannst du als kid im JWT-Header speichern, z. B. „1“.)
+
+Request an transit/verify/jwt-issuer:
+headers:
+{
+  "input": "<base64(signed_content)>",
+  "signature": "vault:v1:<base64(sig)>",
+  "marshaling_algorithm": "jws"
+}
+
+
+
+
+TODO: Ich habe pki roles, certs, policies und app roles im bootstrap-dev konfiguriert.
+        Damit sollte ich soweit sein, dass ich die einzelnen services an https mit vault anbinden kann.
+WICHTIG: bevor das bootstrap läuft muss make setup-env aufgerufen werden, damit HOST_UID und HOST_GID korrekt gesetzt sind.

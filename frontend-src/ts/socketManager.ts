@@ -33,9 +33,14 @@ export class SocketManager {
       this.socket = io({
         path: '/socket.io',
         auth: { token },
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
+        secure: true,
+        rejectUnauthorized: false,
+        withCredentials: true,
+        upgrade: true,
+        rememberUpgrade: true,
       });
 
       this.socket.on('connect', () => {
@@ -121,6 +126,10 @@ export class SocketManager {
           this.pendingResolve(data.roomId);
           this.pendingResolve = null;
         }
+      });
+
+      this.socket.on('error', (error: any) => {
+        console.error('Socket error:', error);
       });
       // # REMOVED
       // // Paddle güncellemeleri için listener
