@@ -4,7 +4,7 @@ import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
 
 const socketManager = SocketManager.getInstance();
-socketManager.connect();
+// socketManager.connect();
 
 type Route = {
   path: string;
@@ -688,7 +688,6 @@ function showProfilePage() {
     return;
   }
   
-  // Eğer zaten profile sayfasındaysak, tekrar yükleme
   if (document.querySelector('.profile-page')?.classList.contains('hidden') === false) {
     return;
   }
@@ -908,6 +907,7 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
   showMultiplayerLobby();
   setupLobbyUI(singlePlayer, remote);
   try {
+    await socketManager.ensureConnection();
     document.getElementById('lobby-status')!.textContent = 'Connected to server';
   } catch (error) {
     document.getElementById('lobby-status')!.textContent = 'Connection failed';

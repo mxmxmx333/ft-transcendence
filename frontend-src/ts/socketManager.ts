@@ -7,11 +7,14 @@ export class SocketManager {
   private socket?: Socket;
   private gameInstance: PongGame | null = null;
   
+  private isConnecting = false;
+  private connectionPromise: Promise<void> | null = null;
+
   // Reconnection settings
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = 5;
   private readonly reconnectDelay = 1000;
-  private readonly roomOperationTimeout = 10_000;
+  private readonly roomOperationTimeout = 10000;
   
   // Room operation handling
   private pendingResolve: ((roomId: string) => void) | null = null;
@@ -28,11 +31,40 @@ export class SocketManager {
     return SocketManager.instance;
   }
 
-  public connect(): Promise<void> {
+  private hasActiveConnection(): boolean {
+    return this.socket?.connected ?? false;
+  }
+
+  public async ensureConnection(): Promise<void> {
+    if (this.hasActiveConnection()) {
+      console.log('Socket already connected');
+      return Promise.resolve();
+    }
+    if (this.isConnecting && this.connectionPromise) {
+      console.log('Connection already in progress');
+      return this.connectionPromise;
+    }
+    
+    this.isConnecting = true;
+    this.connectionPromise = this.performConnection();
+    try {
+      await this.connectionPromise;
+    } finally {
+      this.isConnecting = false;
+      this.connectionPromise = null;
+    }
+  }
+
+  private performConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       const token = localStorage.getItem('authToken');
       if (!token) {
         return reject(new Error('No authentication token found'));
+      }
+
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = undefined;
       }
 
       this.socket = this.createSocket(token);
@@ -159,9 +191,11 @@ export class SocketManager {
     }
   }
 
-  public createRoom(): Promise<string> {
+  public async createRoom(): Promise<string> {
+    await this.ensureConnection();
+
     return new Promise((resolve, reject) => {
-      if (!this.isSocketReady()) {
+      if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
@@ -181,9 +215,11 @@ export class SocketManager {
     });
   }
 
-  public joinRoom(roomId: string): Promise<string> {
+  public async joinRoom(roomId: string): Promise<string> {
+    await this.ensureConnection();
+
     return new Promise((resolve, reject) => {
-      if (!this.isSocketReady()) {
+      if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
@@ -198,10 +234,6 @@ export class SocketManager {
     });
   }
 
-  private isSocketReady(): boolean {
-    return this.socket?.connected ?? false;
-  }
-
   private setupRoomOperationTimeout(reject: (error: Error) => void, errorMessage: string): NodeJS.Timeout {
     return setTimeout(() => {
       this.pendingResolve = null;
@@ -209,16 +241,18 @@ export class SocketManager {
     }, this.roomOperationTimeout);
   }
 
-  public leaveRoom(): void {
-    if (this.isSocketReady()) {
+  public async leaveRoom(): Promise<void> {
+    if (this.hasActiveConnection()) {
       this.socket!.emit('leave_room');
       console.log('[Client] leave_room emitted');
     }
   }
 
-  public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
-    if (this.isSocketReady()) {
+  public async paddleMove(payload: ClientToServerEvents['paddle_move']): Promise<void> {
+    if (this.hasActiveConnection()) {
       this.socket!.emit('paddle_move', payload);
+    } else {
+      console.warn('Cannot send paddle move: no active connection');
     }
   }
 
@@ -233,11 +267,13 @@ export class SocketManager {
       this.socket = undefined;
       console.log('Socket disconnected');
     }
+    this.isConnecting = false;
+    this.connectionPromise = null;
   }
 
   // Getter methods
   public isConnected(): boolean {
-    return this.isSocketReady();
+    return this.hasActiveConnection();
   }
 
   public getSocket(): Socket | undefined {

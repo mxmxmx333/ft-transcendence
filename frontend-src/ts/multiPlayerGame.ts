@@ -260,7 +260,7 @@ export class PongGame {
     this.gameRunning = false;
     console.log('Game over message:', message);
     const winner =
-      message.winner === 'guest'
+      message.winner === 'owner'
         ? this.isPlayer1
           ? 'YOU'
           : this.opponentNickname
