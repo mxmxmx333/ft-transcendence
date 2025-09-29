@@ -1,6 +1,6 @@
 .PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
 		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev
+		setup-env start-vault-dev vault-deps-dev cli
 
 ################################################################################
 # VARIABLES
@@ -42,10 +42,14 @@ build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
 	@$(COMPOSE) build web-application-firewall
+	@$(COMPOSE) build cli-client
 
 run:
 	@echo "🚀 Starting services..."
 	@$(COMPOSE) up -d web-application-firewall
+
+cli:
+	@$(COMPOSE) run --rm cli-client
 
 # ---- /etc/hosts Helpers (unverändert) ----
 assert-ip:
