@@ -59,3 +59,5 @@ headers:
 TODO: Ich habe pki roles, certs, policies und app roles im bootstrap-dev konfiguriert.
         Damit sollte ich soweit sein, dass ich die einzelnen services an https mit vault anbinden kann.
 WICHTIG: bevor das bootstrap läuft muss make setup-env aufgerufen werden, damit HOST_UID und HOST_GID korrekt gesetzt sind.
+
+
