@@ -66,37 +66,48 @@ server.register(jwt, {
   secret: JWT_TOKEN_SECRET!,
 });
 // TODO: Production: Nur bestimmte Origins erlauben
-// Korrekte User Id aus Payload extrahieren
 
-// === WebSocket Authentication Middleware ===
 io.use((socket, next) => {
-  // ✅ Dummy User für alle (nur Development!)
+try {
+  const token = socket.handshake.auth.token;
+
+  const isAIService = socket.handshake.query.serviceType === 'AI';
+  if (isAIService) {
+    const roomId = socket.handshake.query.roomId as string;
+    if (!roomId) {
+      return next(new Error('AI service missing room ID'));
+    }
+    socket.user = {
+      id: `AI-${roomId}`,
+      nickname: 'AI',
+      isService: true,
+      isAI: true
+    };
+    console.log(`[Auth] AI service authenticated for room: ${roomId}`);
+    return next();
+  }
+
+  if (!token) {
+    console.log('[Auth] No token provided');
+    return next(new Error('Authentication error: No token provided'));
+  }
+   
+  const decoded = server.jwt.verify(token) as any;
+  console.log('[Auth] Decoded token:', decoded);
+
   socket.user = {
-    id: `user-${Date.now()}`,
-    nickname: `Player-${socket.id.substring(0, 4)}`,
+    id: decoded.id,
+    nickname: decoded.nickname,
     isService: false,
     isAI: false
   };
-  console.log(`[Auth] User ${socket.user.nickname} connected (NO AUTH)`);
+  console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
   next();
+} catch (err) {
+  console.error('[Auth] JWT verification error:', err);
+  next(new Error('Authentication error: Invalid token'));
+}
 });
-
-  // const token = socket.handshake.auth.token;
-  // if (!token) {
-  //   console.log('[Auth] No token provided');
-  //   return next(new Error('Authentication error: No token provided'));
-  // }
-
-  // try {
-  //   const payload = server.jwt.verify(token) as AuthPayload;
-  //   socket.user = payload;
-  //   console.log(`[Auth] User ${payload.nickname} authenticated successfully`);
-  //   next();
-  // } catch (err) {
-  //   console.error('[Auth] JWT verification error:', err);
-  //   next(new Error('Missing or invalid token'));
-  // }
-
 
 registerIoHandlers(io);
 

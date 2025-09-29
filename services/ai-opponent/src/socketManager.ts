@@ -41,6 +41,10 @@ export class SocketManager {
       withCredentials: true,
       upgrade: true,
       rememberUpgrade: true,
+      query: {
+        serviceType: 'AI',
+        roomId: this.roomId || ''
+      }
     });
   }
 

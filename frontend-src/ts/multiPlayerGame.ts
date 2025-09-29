@@ -228,10 +228,18 @@ export class PongGame {
     const gameNick2 = document.getElementById('game-nick2');
 
     if (gameNick1 && gameNick2) {
-      // Ben owner'ım, sol tarafta benim ismim olacak
-      gameNick1.textContent = message.owner.nickname;
-      gameNick2.textContent = message.guest.nickname;
-      console.log(`Set nicknames: ${message.owner.nickname} vs ${message.guest.nickname}`);
+      if (this.isPlayer1) {
+        // I'm Owner (Player 1) - left
+        gameNick1.textContent = this.myNickname; // myNickname left
+        gameNick2.textContent = this.opponentNickname; // Opponent right
+      } else {
+        // I'm Guest (Player 2) - right
+        gameNick1.textContent = this.opponentNickname; // Opponent left
+        gameNick2.textContent = this.myNickname; // myNickname right
+      }
+      
+      console.log(`UI updated: ${gameNick1.textContent} vs ${gameNick2.textContent}`);
+      console.log(`I am: ${this.myNickname}, Opponent: ${this.opponentNickname}`);
     } else {
       console.error('Could not find game-nick elements!');
     }
