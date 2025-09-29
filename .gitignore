@@ -11,3 +11,27 @@ node_modules/
 
 # === Database ===
 pong.db
+
+# === Bootstrap Artifacts / Secrets ===
+services/vault/certs/*.key
+services/vault/certs/*-key.pem
+services/vault/certs/*-key.pkcs8
+keys.json
+*.done
+
+# === Docker Volumes ===
+vault1_data/
+vault2_data/
+vault3_data/
+vault1_logs/
+vault2_logs/
+vault3_logs/
+./database/
+
+# === CERTIFICATES and Credentials ===
+server.crt
+server.key
+ca.crt
+approle/
+client.crt
+client.key

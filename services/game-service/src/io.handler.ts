@@ -1,6 +1,7 @@
 import { Player, activeConnections } from './types/types';
 import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect } from './room';
 import type { Server, Socket } from 'socket.io';
+import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -30,27 +31,33 @@ export function registerIoHandlers(io: Server) {
       handleDisconnect(player);
     });
 
-    socket.on('paddle_move', (data: { yPos: number }) => {
-      if (!data || typeof data.yPos !== 'number') {
-        console.error(`[Socket] Invalid paddle_move data from ${player.id} in room ${player.roomId}`);
-        return;
-      }
-      console.log(
-        `[Socket] Player ${player.id} paddle moved to ${data.yPos} in room ${player.roomId}`
-      );
-      player.paddleY = data.yPos;
+    socket.on('paddle_move', (payload: PaddleMovePayload) => {
+      try {
+        if (!socket.room) {
+          console.error(`[Socket] Socket ${socket.id} has no room assigned`);
+          return;
+        }
 
-      if (player.roomId) {
-        socket.to(player.roomId).emit('paddle_update', {
-          playerId: player.id,
-          yPos: data.yPos,
-        });
+        const room = socket.room;
+
+        if (socket === room.owner?.conn) {
+          room.ownerMovement = payload.moveP1;
+          if (room.gameType === 'local') {
+            room.guestMovement = payload.moveP2;
+          }
+        } else if (socket === room.guest?.conn) {
+          room.guestMovement = payload.moveP2;
+        } else {
+          console.error(`[Socket] Socket ${socket.id} not found in room players`);
+        }
+      } catch (error) {
+        console.error('[Socket] Error in paddle_move handler:', error);
       }
     });
 
-    socket.on('create_room', () => {
+    socket.on('create_room', (payload: CreateRoomPayload['create_room']) => {
       console.log(`[Socket] Player ${player.id} creating room`);
-      handleCreateRoom(player);
+      handleCreateRoom(player, payload);
     });
 
     socket.on('join_room', (data: { roomId: string }) => {
@@ -59,7 +66,6 @@ export function registerIoHandlers(io: Server) {
         socket.emit('join_error', { message: 'Invalid room ID' });
         return;
       }
-
       console.log(`[Socket] Player ${player.id} joining room ${data.roomId}`);
       joinRoom(player, data.roomId);
     });
