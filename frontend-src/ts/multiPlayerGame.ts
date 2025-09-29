@@ -16,13 +16,17 @@ export class PongGame {
   private myNickname = 'Player';
   private socketManager?: SocketManager;
 
-  // TODO: CHECK IF THESE VALUES ALSO NEED TO BE RESIZABLE
-  // Game state
-
   // TODO: Fix Lobby message (w/s, up/down )
 
   // TODO: fix Game Over (on reset game)
+  
+  // Constants - normalized for 800x600
+  private paddleHeight = 100;
+  private paddleWidth = 15;
+  private ballRadius = 10;
+  private readonly winningScore = 10;
 
+  // Variables scaled to canvas size
   private playerY = 250;
   private opponentY = 250;
   private ballX = 400;
@@ -37,11 +41,9 @@ export class PongGame {
   private wPressed = false;
   private sPressed = false;
 
-  // Constants
-  private readonly paddleHeight = 100;
-  private readonly paddleWidth = 15;
-  private readonly ballRadius = 10;
-  private readonly winningScore = 10;
+  private canvasSizeRatio = 1;
+  private canvasSizeRatioX = 1;
+  private canvasSizeRatioY = 1;
 
   // game loop
   private lastPaddleUpdate = 0;
@@ -87,6 +89,13 @@ export class PongGame {
     this.canvas.height = height;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
+
+    this.canvasSizeRatioX = this.canvas.width / maxWidth;
+    this.canvasSizeRatioY = this.canvas.height / maxHeight;
+    this.canvasSizeRatio = Math.min(this.canvasSizeRatioX, this.canvasSizeRatioY);
+    this.paddleHeight = 100 * this.canvasSizeRatioY;
+    this.paddleWidth = 15 * this.canvasSizeRatioX;
+    this.ballRadius = 10 * this.canvasSizeRatio;
 
     window.addEventListener('resize', () => this.resizeCanvas());
   }
@@ -177,28 +186,22 @@ export class PongGame {
     }
   }
 
-  // UPDATED
   public updateFromServer(gameState: ServerToClientEvents['game_state']) {
-    this.ballX = gameState.ballX;
-    this.ballY = gameState.ballY;
+    this.ballX = gameState.ballX * this.canvasSizeRatioX;
+    this.ballY = gameState.ballY * this.canvasSizeRatioY;
     if (this.isPlayer1) {
-      this.playerY = gameState.paddle1Y;
-      this.opponentY = gameState.paddle2Y;
+      this.playerY = gameState.paddle1Y * this.canvasSizeRatioY;
+      this.opponentY = gameState.paddle2Y * this.canvasSizeRatioY;
       this.playerScore = gameState.ownerScore;
       this.opponentScore = gameState.guestScore;
     } else {
-      this.playerY = gameState.paddle2Y;
-      this.opponentY = gameState.paddle1Y;
+      this.playerY = gameState.paddle2Y * this.canvasSizeRatioY;
+      this.opponentY = gameState.paddle1Y * this.canvasSizeRatioY;
       this.playerScore = gameState.guestScore;
       this.opponentScore = gameState.ownerScore;
     }
     this.draw();
   }
-  // REMOVED
-  // public updatePaddles(yPos1: number, yPos2: number) {
-  //   this.playerY = yPos1;
-  //   this.opponentY = yPos2;
-  // }
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
@@ -216,24 +219,19 @@ export class PongGame {
     } else {
       this.opponentNickname = message.owner.nickname;
     }
-    // this.opponentNickname = message.guest.nickname;
     document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
-    // DEBUG: Hangi oyuncu olduğunu ve nicknameleri kontrol et
     console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
     console.log(`My opponent is: ${this.opponentNickname}`);
 
-    // UI güncellemeleri - BU KISIM ÇOK ÖNEMLİ
     const gameNick1 = document.getElementById('game-nick');
     const gameNick2 = document.getElementById('game-nick2');
 
     if (gameNick1 && gameNick2) {
       if (this.isPlayer1) {
-        // I'm Owner (Player 1) - left
         gameNick1.textContent = this.myNickname; // myNickname left
         gameNick2.textContent = this.opponentNickname; // Opponent right
       } else {
-        // I'm Guest (Player 2) - right
         gameNick1.textContent = this.opponentNickname; // Opponent left
         gameNick2.textContent = this.myNickname; // myNickname right
       }
@@ -300,7 +298,7 @@ export class PongGame {
     this.ctx.fillStyle = 'black';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Orta çizgi
+    // Center line
     this.ctx.strokeStyle = '#ffff00';
     this.ctx.setLineDash([10, 10]);
     this.ctx.beginPath();
@@ -310,31 +308,31 @@ export class PongGame {
     this.ctx.setLineDash([]);
 
     // Paddle pozisyonları - ekran boyutuna göre ölçeklendir
-    const scaleX = this.canvas.width / 800;
-    const scaleY = this.canvas.height / 600;
+    // const scaleX = this.canvas.width / 800;
+    // const scaleY = this.canvas.height / 600;
 
     // Paddles
-    const paddleRadius = 8;
+    const paddleRadius = 8 * this.canvasSizeRatio;
 
     // Kendi paddle'ımız (sol tarafta player1, sağ tarafta player2)
     this.ctx.fillStyle = this.isPlayer1 ? '#ff00ff' : '#00ffff';
-    const myPaddleX = this.isPlayer1 ? 10 * scaleX : this.canvas.width - 25 * scaleX;
+    const myPaddleX = this.isPlayer1 ? 10 * this.canvasSizeRatioX : this.canvas.width - 25 * this.canvasSizeRatioX;
     this.drawRoundedRect(
       myPaddleX,
-      this.playerY * scaleY,
-      this.paddleWidth * scaleX,
-      this.paddleHeight * scaleY,
+      this.playerY,
+      this.paddleWidth,
+      this.paddleHeight,
       paddleRadius
     );
 
     // Rakip paddle'ı
     this.ctx.fillStyle = this.isPlayer1 ? '#00ffff' : '#ff00ff';
-    const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 * scaleX : 10 * scaleX;
+    const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 * this.canvasSizeRatioX : 10 * this.canvasSizeRatioX;
     this.drawRoundedRect(
       opponentPaddleX,
-      this.opponentY * scaleY,
-      this.paddleWidth * scaleX,
-      this.paddleHeight * scaleY,
+      this.opponentY,
+      this.paddleWidth,
+      this.paddleHeight,
       paddleRadius
     );
 
@@ -342,9 +340,9 @@ export class PongGame {
     this.ctx.fillStyle = '#ffff00';
     this.ctx.beginPath();
     this.ctx.arc(
-      this.ballX * scaleX,
-      this.ballY * scaleY,
-      this.ballRadius * Math.min(scaleX, scaleY),
+      this.ballX,
+      this.ballY,
+      this.ballRadius,
       0,
       Math.PI * 2
     );
@@ -483,7 +481,6 @@ public startGame() {
 
   private gameLoop = (timestamp: number) => {
     if (!this.gameRunning) return;
-    // Nur alle X Millisekunden Paddle-Updates senden
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;
 
