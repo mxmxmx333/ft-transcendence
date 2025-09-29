@@ -50,11 +50,13 @@ export function startGame(room: GameRoom) {
       isOwner: true,
     });
 
-    // Guest'e gönder (Player 2)
-    room.guest.conn.emit('game_start', {
-      ...gameStartPayload,
-      isOwner: false,
-    });
+    if (room.gameType !== 'local') {
+      // Guest'e gönder (Player 2)
+      room.guest.conn.emit('game_start', {
+        ...gameStartPayload,
+        isOwner: false,
+      });
+    }
 
     console.log(`[Server] Game start messages sent to both players`);
   } catch (err) {

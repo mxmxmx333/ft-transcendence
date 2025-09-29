@@ -42,6 +42,9 @@ export function registerIoHandlers(io: Server) {
 
         if (socket === room.owner?.conn) {
           room.ownerMovement = payload.moveP1;
+          if (room.gameType === 'local') {
+            room.guestMovement = payload.moveP2;
+          }
         } else if (socket === room.guest?.conn) {
           room.guestMovement = payload.moveP2;
         } else {

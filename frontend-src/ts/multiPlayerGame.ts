@@ -107,27 +107,36 @@ export class PongGame {
   private setupControls() {
     // Keyboard
     const keyDownHandler = (e: KeyboardEvent) => {
-      if (this.isPlayer1) {
-        console.log('Player 1 controls');
-        // Player 1 uses W/S
-        if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-        else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-      } else {
-        console.log('Player 2 controls');
-        // Player 2 uses Arrow Keys
-        if (e.key === 'ArrowUp') this.upPressed = true;
-        else if (e.key === 'ArrowDown') this.downPressed = true;
-      }
+    if (e.key === 'w' || e.key === 'W') this.wPressed = true;
+    else if (e.key === 's' || e.key === 'S') this.sPressed = true;
+    if (e.key === 'ArrowUp') this.upPressed = true;
+    else if (e.key === 'ArrowDown') this.downPressed = true;
+
+      // if (this.isPlayer1) {
+      //   console.log('Player 1 controls');
+      //   // Player 1 uses W/S
+      //   if (e.key === 'w' || e.key === 'W') this.wPressed = true;
+      //   else if (e.key === 's' || e.key === 'S') this.sPressed = true;
+      // } else if (!this.isPlayer1 || !this.isRemote) {
+      //   console.log('Player 2 controls');
+      //   // Player 2 uses Arrow Keys
+      //   if (e.key === 'ArrowUp') this.upPressed = true;
+      //   else if (e.key === 'ArrowDown') this.downPressed = true;
+      // }
     };
 
     const keyUpHandler = (e: KeyboardEvent) => {
-      if (this.isPlayer1) {
-        if (e.key === 'w' || e.key === 'W') this.wPressed = false;
-        if (e.key === 's' || e.key === 'S') this.sPressed = false;
-      } else {
-        if (e.key === 'ArrowUp') this.upPressed = false;
-        if (e.key === 'ArrowDown') this.downPressed = false;
-      }
+      if (e.key === 'w' || e.key === 'W') this.wPressed = false;
+      if (e.key === 's' || e.key === 'S') this.sPressed = false;
+      if (e.key === 'ArrowUp') this.upPressed = false;
+      if (e.key === 'ArrowDown') this.downPressed = false;
+      // if (this.isPlayer1) {
+      //   if (e.key === 'w' || e.key === 'W') this.wPressed = false;
+      //   if (e.key === 's' || e.key === 'S') this.sPressed = false;
+      // } else if (!this.isPlayer1 || !this.isRemote) {
+      //   if (e.key === 'ArrowUp') this.upPressed = false;
+      //   if (e.key === 'ArrowDown') this.downPressed = false;
+      // }
     };
 
     document.addEventListener('keydown', keyDownHandler);
@@ -169,7 +178,8 @@ export class PongGame {
       if (response.ok) {
         const user = await response.json();
         this.myNickname = user.nickname;
-        document.getElementById('game-nick')!.textContent = user.nickname;
+        if (!this.isRemote && !this.isSinglePlayer) this.myNickname = 'Player1';
+        document.getElementById('game-nick')!.textContent = this.myNickname;
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
@@ -265,7 +275,7 @@ export class PongGame {
   public handleGameOver(message: any) {
     this.gameRunning = false;
     console.log('Game over message:', message);
-    const winner =
+    let winner =
       message.winner === 'owner'
         ? this.isPlayer1
           ? 'YOU'
@@ -273,6 +283,13 @@ export class PongGame {
         : this.isPlayer1
           ? this.opponentNickname
           : 'YOU';
+    if (!this.isRemote && !this.isSinglePlayer) {
+      if (winner === 'YOU') {
+        winner = 'Player1';
+      } else {
+        winner = 'Player2';
+      }
+    }
     console.log('Game over. Winner:', winner);
     console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
     this.drawGameOver(winner);
