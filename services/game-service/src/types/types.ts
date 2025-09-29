@@ -48,7 +48,7 @@ export interface CreateRoomPayload {
 
 export interface GameRoom {
   id: string;
-  gameType: 'single' | 'multi' | 'remote';
+  gameType: 'single' | 'local' | 'remote';
   owner: Player | null;
   guest: Player | null;
   ownerMovement: 'up' | 'down' | 'none';

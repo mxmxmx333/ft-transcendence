@@ -58,7 +58,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
   try {
     const room: GameRoom = {
       id: roomId,
-      gameType: payload.isSinglePlayer ? 'single' : payload.isRemote ? 'remote' : 'multi',
+      gameType: payload.isSinglePlayer ? 'single' : payload.isRemote ? 'remote' : 'local',
       owner: player,
       guest: null,
       ownerMovement: 'none',
@@ -104,6 +104,32 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
         console.error(`[Server] Error invoking AI service for room ${roomId}:`, error);
       }
     })();
+  }
+  else if (!payload.isRemote) {
+    try {
+      gameRooms[roomId].owner = player;
+      gameRooms[roomId].owner.nickname = 'Player1';
+      let player2: Player = {
+        conn : socket,
+        id : '123450',
+        nickname : 'Player2',
+        score : 0,
+        paddleY : 250,
+        roomId : roomId
+      }
+      
+      gameRooms[roomId].guest = player2;
+      console.log(`[Server] Both players assigned in local room ${roomId}, starting game between ${gameRooms[roomId].owner.nickname} and ${gameRooms[roomId].guest.nickname}`);
+      startGame(gameRooms[roomId]);
+    } catch (error) {
+      console.error(`[Server] Error starting game in room ${gameRooms[roomId].id}:`, error);
+      player.conn.emit('join_error', {
+        message: 'Failed to start game',
+      });
+      player.roomId = undefined;
+      gameRooms[roomId].guest = null;
+      return;
+    }
   }
 }
 

@@ -774,13 +774,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-     const optionsBtn = document.getElementById('options-btn');
-    if (optionsBtn) {
-        optionsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            navigateTo('/options');
-        });
-    }
+  const optionsBtn = document.getElementById('options-btn');
+  if (optionsBtn) {
+      optionsBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          navigateTo('/options');
+      });
+  }
 
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -791,9 +791,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    if (target.closest('#multiplayergame-btn')) {
+    if (target.closest('#multiplayergame-remote-btn')) {
       e.preventDefault();
       initPongGame(false, true);
+    }
+  });
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('#multiplayergame-local-btn')) {
+      e.preventDefault();
+      initPongGame(false, false);
     }
   });
 
@@ -915,7 +922,7 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
 }
 
 
- function startSinglePlayerGame(game: PongGame) {
+ function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: boolean) {
   try {
   const roomId = socketManager.createRoom();
     socketManager.onGameStart = () => {
@@ -936,10 +943,15 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   socketManager.setGameInstance(game);
   game.isSinglePlayer = singlePlayer;
   game.isRemote = remote;
-  if (singlePlayer) {
-    startSinglePlayerGame(game);
+  if (singlePlayer || !remote) {
+    startSinglePlayerGame(game, singlePlayer, remote);
     return;
   }
+  // if (!remote) {
+  //   document.getElementById('lobby-status')!.textContent = 'Starting local multiplayer game...';
+  //   startMultiplayerGame(game);
+  //   return;
+  // }
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';

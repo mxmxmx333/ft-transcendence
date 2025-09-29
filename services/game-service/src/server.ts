@@ -71,23 +71,22 @@ io.use((socket, next) => {
 try {
   const token = socket.handshake.auth.token;
 
-  const isAIService = socket.handshake.query.serviceType === 'AI';
-  if (isAIService) {
-    const roomId = socket.handshake.query.roomId as string;
-    if (!roomId) {
-      return next(new Error('AI service missing room ID'));
-    }
-    socket.user = {
-      id: `AI-${roomId}`,
-      nickname: 'AI',
-      isService: true,
-      isAI: true
-    };
-    console.log(`[Auth] AI service authenticated for room: ${roomId}`);
-    return next();
-  }
-
   if (!token) {
+    const isAIService = socket.handshake.query.serviceType === 'AI';
+    if (isAIService) {
+      const roomId = socket.handshake.query.roomId as string;
+      if (!roomId) {
+        return next(new Error('AI service missing room ID'));
+      }
+      socket.user = {
+        id: `AI-${roomId}`,
+        nickname: 'AI',
+        isService: true,
+        isAI: true
+      };
+      console.log(`[Auth] AI service authenticated for room: ${roomId}`);
+      return next();
+    }
     console.log('[Auth] No token provided');
     return next(new Error('Authentication error: No token provided'));
   }
