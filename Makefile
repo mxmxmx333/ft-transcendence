@@ -1,4 +1,4 @@
-.PHONY: all dep-check cert build run hosts-add hosts-remove assert-ip
+.PHONY: all dep-check cert build run hosts-add hosts-remove assert-ip cli
 
 ################################################################################
 # VARIABLES
@@ -55,10 +55,14 @@ build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
 	@$(COMPOSE) build web-application-firewall
+	@$(COMPOSE) build cli-client
 
 run:
 	@echo "🚀 Starting services..."
 	@$(COMPOSE) up -d web-application-firewall
+
+cli:
+	@$(COMPOSE) run --rm cli-client
 
 # Optional: Systemweite Domain → LAN-IP (nicht in all!)
 assert-ip:

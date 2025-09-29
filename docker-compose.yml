@@ -3,10 +3,10 @@ services:
     build:
       context: ./services/web-application-firewall
       dockerfile: Dockerfile
-      args: 
-        MODSEC_VERSION: ${MODSEC_VERSION:-3.0.8} 
-        NGINX_VERSION: ${NGINX_VERSION:-1.22.1} 
-        LMDB_VERSION: ${LMDB_VERSION:-0.9.29} 
+      args:
+        MODSEC_VERSION: ${MODSEC_VERSION:-3.0.8}
+        NGINX_VERSION: ${NGINX_VERSION:-1.22.1}
+        LMDB_VERSION: ${LMDB_VERSION:-0.9.29}
     ports:
       - "8080:80"          # WAF wird auf Host‑Port 8080 verfügbar
       - "8443:8443"         # HTTPS Port für WAF
@@ -24,7 +24,7 @@ services:
     restart: always
 
   api-gateway:
-    build: 
+    build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
           # Gate­way wird auf Host‑Port 3000 verfügbar
@@ -53,7 +53,7 @@ services:
     networks:
       - api-network
     restart: always
-  
+
   auth-user-service:
     build: ./services/auth-user-service
     environment:
@@ -65,6 +65,12 @@ services:
     restart: always
     volumes:
       - ./database:/app/database
+
+  cli-client:
+    build: ./cli
+    network_mode: host
+    profiles:
+      - cli
 
 networks:
   api-network:
