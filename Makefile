@@ -42,7 +42,7 @@ build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
 	@$(COMPOSE) build web-application-firewall
-	@$(COMPOSE) build cli-client
+	@$(COMPOSE) --profile cli build cli-client
 
 run:
 	@echo "🚀 Starting services..."
