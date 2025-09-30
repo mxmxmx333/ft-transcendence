@@ -1,4 +1,4 @@
-use crossterm::event::Event;
+use crossterm::event::{Event, KeyEventKind};
 use ratatui::Frame;
 
 use crate::websocket::events::request::PaddleMoveDirection;
@@ -34,14 +34,15 @@ impl Pages {
         }
     }
 
-    pub fn key_event(&mut self, event: &Event) -> Option<PageResults> {
-        match self {
-            Self::Login(page) => page.key_event(event),
-            Self::GameModeSelector(page) => page.key_event(event),
-            Self::JoinRoom(page) => page.key_event(event),
-            Self::GameLobby(page) => page.key_event(event),
-            Self::Game(page) => page.key_event(event),
-            Self::GameOver(page) => page.key_event(event),
+    pub fn key_event(&mut self, event: &Event, kind: KeyEventKind) -> Option<PageResults> {
+        match (self, kind) {
+            (Self::Login(page), KeyEventKind::Press) => page.key_event(event),
+            (Self::GameModeSelector(page), KeyEventKind::Press) => page.key_event(event),
+            (Self::JoinRoom(page), KeyEventKind::Press) => page.key_event(event),
+            (Self::GameLobby(page), KeyEventKind::Press) => page.key_event(event),
+            (Self::Game(page), _) => page.key_event(event),
+            (Self::GameOver(page), KeyEventKind::Press) => page.key_event(event),
+            (_, _) => None,
         }
     }
 
