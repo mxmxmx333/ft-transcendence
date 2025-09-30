@@ -35,8 +35,8 @@ services:
     environment:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info} # Fallback 'info'
-      GAME_SERVICE_UPSTREAM: http://game-service:3001
-      AUTH_USER_SERVICE_UPSTREAM: http://auth-user-service:3002
+      GAME_SERVICE_UPSTREAM: https://game-service:3001
+      AUTH_USER_SERVICE_UPSTREAM: https://auth-user-service:3002
     networks:
       - api-network
     volumes:
@@ -49,10 +49,11 @@ services:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       JWT_SECRET: ${JWT_SECRET}
+      API_GATEWAY_UPSTREAM: https://api-gateway:3000
     networks:
       - api-network
     restart: unless-stopped
-  
+
   auth-user-service:
     build: ./services/auth-user-service
     environment:
@@ -74,7 +75,7 @@ services:
   vault-seed-config:
     image: alpine:3.20
     profiles: [ "dev", "prod" ]
-    volumes: 
+    volumes:
       - ./services/vault/config/:/source:ro
       - ./services/vault/scripts/:/scripts:ro
       - vault-dev-config:/dest-dev
@@ -88,7 +89,7 @@ services:
   vault-dev-seed:
     image: alpine:3.20
     profiles: [ "dev" ]          # nur mit --profile dev
-    volumes: 
+    volumes:
       - vault-dev-runtime-certs:/destination
       - ./services/vault/scripts/:/scripts:ro
     environment:
@@ -98,7 +99,7 @@ services:
       DEST: "/destination"
     entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
     restart: "no"
-    
+
   vault-bootstrap-dev:
     build:
       context: .
@@ -129,7 +130,7 @@ services:
   vault-dev:
     image: hashicorp/vault:1.17
     profiles: [ "dev" ]
-    user: "0:0"  
+    user: "0:0"
     entrypoint: vault server -config=/vault/config/vault-dev.hcl
     cap_add: [ "IPC_LOCK" ]
     ulimits: { memlock: -1 }
@@ -147,7 +148,7 @@ services:
   vault-1-seed:
     image: alpine:3.20
     profiles: [ "prod" ]
-    volumes: 
+    volumes:
       - vault1-runtime-certs:/destination
       - ./services/vault/scripts/:/scripts:ro
     entrypoint: ["sh", "/scripts/vault-seed-cert.sh"]
@@ -206,7 +207,7 @@ services:
     ulimits: { memlock: -1 }
     volumes:
       - vault2-config:/vault/config:ro
-      - vault2-runtime-certs:/vault/certs:ro 
+      - vault2-runtime-certs:/vault/certs:ro
       - vault2-data:/vault/raft
       - vault2-logs:/vault/logs
     expose: [ "8200" ]
