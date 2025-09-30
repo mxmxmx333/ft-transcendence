@@ -648,23 +648,22 @@ function showStatistics() {
   document.querySelector('.user-profile-page')?.classList.add('hidden');
 }
 
-function showTournamentPage() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
+// function showTournamentPage() {
+//   const loginPage = document.querySelector('.login-page');
+//   const profilePage = document.querySelector('.profile-page');
+//   const gamePage = document.querySelector('.game-page');
+//   const multiPGamePage = document.querySelector('.multiplayer-lobby');
 
-  manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector(".options-page")?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
+//   manageNavbar();
+//   loginPage?.classList.add('hidden');
+//   profilePage?.classList.add('hidden');
+//   gamePage?.classList.add('hidden');
+//   multiPGamePage?.classList.add('hidden');
+//   document.querySelector(".options-page")?.classList.add('hidden');
+//   document.querySelector('.user-search-page')?.classList.add('hidden');
+//   document.querySelector('.user-profile-page')?.classList.add('hidden');
+// }
 
-
-}
 function showAuthPage() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
@@ -821,6 +820,44 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+  
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    
+    // Create Tournament
+    if (target.closest('#create-tournament-btn')) {
+      e.preventDefault();
+      createTournament();
+    }
+    
+    // Join Tournament
+    if (target.closest('#join-tournament-btn')) {
+      e.preventDefault();
+      joinTournament();
+    }
+    
+    // Start Tournament
+    if (target.closest('#start-tournament-btn')) {
+      e.preventDefault();
+      startTournament();
+    }
+    
+    // Leave Tournament
+    if (target.closest('#leave-tournament-btn')) {
+      e.preventDefault();
+      leaveTournament();
+    }
+  });
+
+  // Tournament ID Input - Enter key support
+  document.addEventListener('keypress', (e) => {
+    if (e.target instanceof HTMLInputElement && e.target.id === 'tournament-id-input') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinTournament();
+      }
+    }
+  });
 
   handleRouting();
 });
@@ -1002,4 +1039,179 @@ function startMultiplayerGame(game: PongGame) {
 
   (window as any).currentGame = game;
   // game.start();
+}
+
+
+// TOURNAMENT
+function showTournamentLobby(): void {
+  hideAllPages();
+  document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+  resetTournamentUI();
+}
+
+function hideAllPages(): void {
+  document.querySelector('.login-page')?.classList.add('hidden');
+  document.querySelector('.profile-page')?.classList.add('hidden');
+  document.querySelector('.game-page')?.classList.add('hidden');
+  document.querySelector('.newgame-page')?.classList.add('hidden');
+  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  document.querySelector('.options-page')?.classList.add('hidden');
+  document.querySelector('.user-search-page')?.classList.add('hidden');
+  document.querySelector('.user-profile-page')?.classList.add('hidden');
+}
+
+function resetTournamentUI(): void {
+  document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
+  const tournamentInput = document.getElementById('tournament-id-input') as HTMLInputElement;
+  if (tournamentInput) tournamentInput.value = '';
+  document.getElementById('tournament-info')?.classList.add('hidden');
+  document.getElementById('tournament-owner-controls')?.classList.add('hidden');
+}
+
+async function createTournament(): Promise<void> {
+  try {
+    document.getElementById('tournament-status')!.textContent = 'Creating tournament...';
+    
+    const roomId = await socketManager.createTournament();
+    console.log('Tournament room ID:', roomId); // Debug
+
+    showTournamentInfo(roomId, true); // true = isOwner
+    document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
+
+    // TODO: Später mit socketManager.createTournament() ersetzen
+    
+  } catch (error) {
+    console.error('Failed to create tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to create tournament. Please try again.';
+  }
+}
+
+async function joinTournament(): Promise<void> {
+  const tournamentIdInput = document.getElementById('tournament-id-input') as HTMLInputElement;
+  const tournamentId = tournamentIdInput.value.trim().toUpperCase();
+  
+  if (!tournamentId) {
+    alert('Please enter a tournament ID');
+    return;
+  }
+  
+  if (tournamentId.length < 3) {
+    alert('Tournament ID must be at least 3 characters');
+    return;
+  }
+  
+  try {
+    document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
+    
+    // Für jetzt: Mock Implementation
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+    
+    showTournamentInfo(tournamentId, false); // false = not owner
+    document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
+    
+    // TODO: Später mit socketManager.joinTournament(tournamentId) ersetzen
+    
+  } catch (error) {
+    console.error('Failed to join tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
+  }
+}
+
+function showTournamentInfo(tournamentId: string, isOwner: boolean): void {
+  document.getElementById('current-tournament-id')!.textContent = tournamentId;
+  document.getElementById('tournament-info')?.classList.remove('hidden');
+  
+  if (isOwner) {
+    document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
+  }
+  
+  // Mock players für Demo
+  const mockPlayers = [
+    { nickname: 'You', isOwner: isOwner },
+    { nickname: 'Player2', isOwner: false },
+    { nickname: 'Player3', isOwner: false }
+  ];
+  
+  updateTournamentPlayers(mockPlayers);
+}
+
+function updateTournamentPlayers(players: Array<{nickname: string, isOwner: boolean}>): void {
+  const playersList = document.getElementById('tournament-players-list')!;
+  const playerCount = document.getElementById('tournament-player-count')!;
+  const startBtn = document.getElementById('start-tournament-btn') as HTMLButtonElement;
+  
+  playersList.innerHTML = '';
+  
+  players.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'flex justify-between items-center p-2 bg-gray-800 rounded';
+    playerDiv.innerHTML = `
+      <span class="text-white">${player.nickname}</span>
+      <span class="text-xs ${player.isOwner ? 'neon-text-yellow' : 'text-gray-400'}">
+        ${player.isOwner ? '👑 Owner' : 'Player'}
+      </span>
+    `;
+    playersList.appendChild(playerDiv);
+  });
+  
+  playerCount.textContent = `${players.length}/5`;
+  
+  // Enable start button if enough players and user is owner
+  if (startBtn) {
+    const isOwner = players.some(p => p.nickname === 'You' && p.isOwner);
+    startBtn.disabled = players.length < 3 || !isOwner;
+    startBtn.textContent = players.length < 3 
+      ? `Start Tournament (Min. 3 players)` 
+      : `Start Tournament (${players.length} players)`;
+  }
+}
+
+async function startTournament(): Promise<void> {
+  try {
+    document.getElementById('tournament-status')!.textContent = 'Starting tournament...';
+    
+    // TODO: Implement actual tournament start logic
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    document.getElementById('tournament-status')!.textContent = 'Tournament started! Prepare for your first match.';
+    
+  } catch (error) {
+    console.error('Failed to start tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to start tournament. Please try again.';
+  }
+}
+
+async function leaveTournament(): Promise<void> {
+  if (!confirm('Are you sure you want to leave the tournament?')) {
+    return;
+  }
+  
+  try {
+    // TODO: Implement actual leave tournament logic
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    resetTournamentUI();
+    document.getElementById('tournament-status')!.textContent = 'Left tournament';
+    
+  } catch (error) {
+    console.error('Failed to leave tournament:', error);
+  }
+}
+
+// Update showTournamentPage function
+async function showTournamentPage(): Promise<void> {
+  if (!isAuthenticated()) {
+    navigateTo('/');
+    return;
+  }
+  showTournamentLobby();
+  
+  try {
+    await socketManager.ensureConnection();
+    document.getElementById('tournament-status')!.textContent = 'Connected to server - Ready for tournament';
+  } catch (error) {
+    console.error('Tournament connection failed:', error);
+    document.getElementById('tournament-status')!.textContent = 'Connection failed - tournament unavailable';
+  }
 }

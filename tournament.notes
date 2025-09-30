@@ -1,0 +1,14 @@
+
+--> ähnliche Lobby wie bei Multiplayer Remote Spiel
+--> kann entweder Tournament beitreten mit ID oder neues starten
+--> Wenn ich neues starte, bekomm ich die ID und kann die dann verteilen
+--> kann auch "abbrechen"
+--> wenn ich beireten will, gebe ich die TournamentID ein (Max = 5)
+- die Beigetretenen treten direkt dem tournamentRoom bei und werden dann auf eine neue Seite vielleicht weitergeleitet? 
+--> irgendwo muss angezeigt werden wer alles bereits beigetreten ist
+--> Owner startet dann das Tournament (Min 3)
+--> Seite mit "Get Ready" muss kommen (sagt wer spielt als nächstes) --> Timer mit 3 sekunden
+--> 1. Spiel startet --> KO System
+--> im gameservice wird unterschiedne wer spielt und wer nicht --> dementsprechend wird input behandelt oder net
+--> Gewinner spielt das nächste Spiel gegen den/die nächsten
+

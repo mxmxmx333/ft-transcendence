@@ -191,6 +191,31 @@ export class SocketManager {
     }
   }
 
+  public async createTournament(): Promise<string> {
+    await this.ensureConnection();
+
+    return new Promise((resolve, reject) => {
+      if (!this.hasActiveConnection()) {
+        return reject(new Error('Socket not connected'));
+      }
+
+      this.pendingResolve = resolve;
+      const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
+
+      this.socket!.once('room_created', () => clearTimeout(timeout));
+      this.socket!.once('create_error', () => clearTimeout(timeout));
+
+      // const roomConfig = {
+      //   isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
+      //   isRemote: this.gameInstance?.isRemote ?? false
+      // };
+
+      // this.socket!.emit('create_room', roomConfig);
+      this.socket!.emit('create_tournament_room');
+      console.log('[Client] create_tournament_room emitted');
+    });
+  }
+
   public async createRoom(): Promise<string> {
     await this.ensureConnection();
 

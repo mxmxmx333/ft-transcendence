@@ -1,14 +1,16 @@
-import { Player, GameRoom, activeConnections, gameRooms } from './types/types';
+import { Player, GameRoom, activeConnections, gameRooms, TournamentRoom, tournamentRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { PaddleMovePayload, CreateRoomPayload } from './types/types';
 import { apiGatewayUpstream } from './server';
+import { startTournament } from './tournament';
 import fs from 'node:fs';
 import path from 'path';
 
 // Neu: Undici für TLS/Dispatcher
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
+import { start } from 'node:repl';
 
 // === TLS / Custom CA für fetch ===
 const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
@@ -38,7 +40,7 @@ function generateUniqueRoomId(): string {
   let id;
   do {
     id = Math.random().toString(36).substring(2, 8).toUpperCase();
-  } while (gameRooms[id]); // Prüft, ob ID schon existiert
+  } while (gameRooms[id] || gameRooms[`T${id}`]); // Prüft, ob ID schon existiert
   return id;
 }
 
@@ -131,6 +133,120 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
       return;
     }
   }
+}
+
+export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPayload['create_tournament_room']) {
+  console.log(`[Server] handleCreateTournamentRoom called by player ${player.id}`);
+  if (player.roomId) {
+    console.log(`[Server] Player ${player.id} is already in a room`);
+    player.conn.emit('create_error', {
+      message: 'You are already in a room',
+    });
+    return;
+  }
+  const socket = player.conn;
+  console.log(`[Server] Player ${player.nickname} is creating a TournamentRoom`);
+  const roomId = 'T'+generateUniqueRoomId();
+  console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
+  try {
+    const room: TournamentRoom = {
+      id: roomId,
+      owner: player,
+      players: [player],
+      lastWinner: null,
+      gameRoom: null,
+    };
+    tournamentRooms[roomId] = room;
+    socket.room = room;
+    console.log(`[Server] Room ${roomId} created successfully`);
+  } catch (error) {
+    if (tournamentRooms[roomId]) {
+      delete tournamentRooms[roomId];
+    }
+    console.error(`[Server] Error creating TournamentRoom for player ${player.id}:`, error);
+    player.conn.emit('create_error', {
+      message: 'Failed to create room',
+    });
+    return;
+  }
+  socket.join(roomId);
+  player.roomId = roomId;
+  ////emit
+  player.conn.emit('tournament_room_created', {
+    roomId: player.roomId,
+    success: true,
+  });
+}
+
+export function joinTournamentRoom(player: Player, roomId: string) {
+  const room = tournamentRooms[roomId];
+  if (player.roomId) {
+    player.conn.emit('join_error', {
+      message: 'You are already in a room',
+    });
+    return;
+  }
+  if (!room) {
+    player.conn.emit('join_error', {
+      message: 'Room not found',
+    });
+    return;
+  }
+  if (!room.owner) {
+    console.log(`Player ${player.nickname} joining TournamentRoom ${roomId} as owner`);
+    room.owner = player;
+    player.roomId = roomId;
+    ////emit
+    player.conn.emit('joined_tournament_room', {
+      roomId: room.id,
+      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+      success: true,
+    });
+    console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id} as owner`);
+    return;
+  }
+  if (room.players.length >= 5) {
+    player.conn.emit('join_error', {
+      message: 'TournamentRoom is full',
+    });
+    return;
+  }
+  room.players.push(player);
+  console.log(`Player ${player.nickname} joining TournamentRoom ${roomId}`);
+
+  player.roomId = roomId;
+  player.conn.join(roomId);
+  player.conn.room = room;
+  io.to(roomId).emit('joined_tournament_room', {
+    roomId: room.id,
+    message: `Player ${player.nickname} has joined the TournamentRoom`,
+    success: true,
+  });
+  console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id}`);
+}
+
+export function checkStartTournament(player: Player, roomId: string) {
+  const room = tournamentRooms[roomId];
+  if (!room) {
+    player.conn.emit('join_error', {
+      message: 'Room not found',
+    });
+    return;
+  }
+  if (room.owner?.id !== player.id) {
+    player.conn.emit('join_error', {message: 'Only the owner can start the tournament',});
+    return;
+  }
+  if (room.players.length < 3) {
+    player.conn.emit('join_error', {message: 'At least 3 players are required to start the tournament',});
+    return;
+  }
+  if (room.gameRoom) {
+    player.conn.emit('join_error', {message: 'Tournament already started',});
+    return;
+  }
+  startTournament(roomId);
+  // Owner vs Player2 starten
 }
 
 export function joinRoom(player: Player, roomId: string) {

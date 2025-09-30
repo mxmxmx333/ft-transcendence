@@ -75,8 +75,7 @@ export function startGame(room: GameRoom) {
     updateGameState(room);
     broadcastGameState(room);
   }, 1000 / 60);
-
-  console.log(`[Server] Game loop started for room ${room.id}`);
+  // console.log(`[Server] Game loop started for room ${room.id}`);
 }
 
 function updateGameState(room: GameRoom) {
@@ -208,6 +207,9 @@ export function endGame(room: GameRoom) {
 
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
 
+    if (room.gameType === 'tournament') {
+      return; // Raum darf nicht gecleaned werden!
+  }
   // 5 saniye sonra oyuncuları lobby'e yönlendir
   setTimeout(() => {
     if (room.owner) {

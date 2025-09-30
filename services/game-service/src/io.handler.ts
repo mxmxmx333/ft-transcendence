@@ -1,5 +1,5 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect } from './room';
+import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament } from './room';
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
 
@@ -53,6 +53,31 @@ export function registerIoHandlers(io: Server) {
       } catch (error) {
         console.error('[Socket] Error in paddle_move handler:', error);
       }
+    });
+
+    socket.on('create_tournament_room', (payload: CreateRoomPayload['create_tournament_room']) => {
+      console.log(`[Socket] Player ${player.id} creating tournament room`);
+      handleCreateTournamentRoom(player, payload);
+    });
+
+    socket.on('join_tournament_room', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid join_tournament_room data from ${player.id}`);
+        socket.emit('join_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} joining tournament room ${data.roomId}`);
+      joinTournamentRoom(player, data.roomId);
+    });
+
+    socket.on('start_tournament', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid start_tournament data from ${player.id}`);
+        socket.emit('join_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} starting tournament in room ${data.roomId}`);
+      checkStartTournament(player, data.roomId);
     });
 
     socket.on('create_room', (payload: CreateRoomPayload['create_room']) => {
