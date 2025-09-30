@@ -15,7 +15,7 @@ dotenv.config();
 
 function mustRead(p: string, label: string) {
   if (!fs.existsSync(p)) throw new Error(`${label} not found: ${p}`);
-  return fs.readFileSync(p); // Buffer ok
+  return fs.readFileSync(p);
 }
 
 type VaultState = {
@@ -26,9 +26,9 @@ type VaultState = {
 
 declare module 'fastify' {
   interface FastifyInstance {
-    vault: {
-      dispatcher: Dispatcher;                 // <- undici Dispatcher, nicht UndiciAgent
-      fetch: typeof undiciFetch;              // <- konsequent undici-Fetch-Types
+    vauth: {
+      dispatcher: Dispatcher;
+      fetch: typeof undiciFetch;
       rawFetch: typeof undiciFetch;
       getToken: () => string | undefined;
       ensureToken: () => Promise<void>;
@@ -48,7 +48,6 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
 
   if (!VAULT_ADDR) throw new Error('VAULT_ADDR is required in .env');
 
-  // mTLS Dispatcher (WICHTIG: TLS-Optionen unter connect.tls)
   const ca   = mustRead(caPath,  'Vault CA');
   const cert = mustRead(crtPath, 'Client certificate');
   const key  = mustRead(keyPath, 'Client key');
@@ -65,12 +64,11 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   const state: VaultState = {};
   const marginMs = Math.max(Number(VAULT_TOKEN_MARGIN_SEC) || 30, 5) * 1000;
 
-  // Typisiert als undiciFetch
   const rawFetch: typeof undiciFetch = (input, init) =>
     undiciFetch(input, { ...(init as UndiciRequestInit), dispatcher });
 
   const vfetch: typeof undiciFetch = (input, init) => {
-    const headers = new UndiciHeaders(init?.headers); // undici-Headers!
+    const headers = new UndiciHeaders(init?.headers);
     if (state.token && !headers.has('X-Vault-Token')) {
       headers.set('X-Vault-Token', state.token);
     }
@@ -116,8 +114,8 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     if (state.expiresAt - Date.now() <= marginMs) return renewNow();
   }
 
-  fastify.decorate('vault', {
-    dispatcher,                  // <- Typ: Dispatcher
+  fastify.decorate('vauth', {
+    dispatcher,
     fetch: vfetch,
     rawFetch: rawFetch,
     getToken: () => state.token,
@@ -129,7 +127,7 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   await loginWithCert();
 
   fastify.addHook('onClose', async () => {
-    await dispatcher.close();    // undici Agent sauber schließen
+    await dispatcher.close();
   });
 };
 
