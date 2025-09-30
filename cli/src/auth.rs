@@ -53,7 +53,7 @@ pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginRespo
         .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
 
     let endpoint = if cfg!(debug_assertions) {
-        format!("http://{}:3000/api/login", host)
+        format!("https://{}:3000/api/login", host)
     } else {
         format!("https://{}:8443/api/login", host)
     };

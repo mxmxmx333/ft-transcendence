@@ -24,6 +24,10 @@ pub struct GameStartEvent {
     pub ball_x: f64,
     #[serde(rename(deserialize = "ballY"))]
     pub ball_y: f64,
+    #[serde(rename(deserialize = "ballVX"))]
+    _ball_vx: f64,
+    #[serde(rename(deserialize = "ballVY"))]
+    _ball_vy: f64,
     #[serde(rename(deserialize = "paddle1Y"))]
     pub paddle1_y: f64,
     #[serde(rename(deserialize = "paddle2Y"))]
@@ -40,8 +44,15 @@ pub struct GameStartEvent {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum NumberString {
+  Number(u32),
+  String(String)
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct GameStartEventPlayer {
-    pub id: String,
+    pub id: NumberString,
     pub nickname: String,
 }
 
