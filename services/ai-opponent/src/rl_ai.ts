@@ -49,7 +49,7 @@ class ImprovedNeuralNetwork {
   }
 
   private initializeWeights() {
-    // Xavier/Glorot Initialisierung für bessere Konvergenz (Vermeidung von zu großen Anfangsgewichten, ist damit ±√(2/inputs) ~0.427) -> Gradienten explodieren/verschwinden nicht 
+    // Xavier/Glorot Initialisierung für bessere Konvergenz (Vermeidung von zu großen Anfangsgewichten, ist damit ±√(2/inputs) ~0.427) -> Gradienten explodieren/verschwinden nicht
     const xavierScale1 = Math.sqrt(2.0 / this.inputSize);
     const xavierScale2 = Math.sqrt(2.0 / this.hiddenSize1);
     const xavierScale3 = Math.sqrt(6.0 / this.hiddenSize2);
@@ -222,13 +222,15 @@ class ImprovedNeuralNetwork {
 
     // Update hidden layer 1 (bias1 und weights1)
     for (let i = 0; i < this.hiddenSize1; i++) {
-      this.momentumBias1[i] = this.momentumRate * this.momentumBias1[i] + (1 - this.momentumRate) * (lr * delta1[i]);
+      this.momentumBias1[i] =
+        this.momentumRate * this.momentumBias1[i] + (1 - this.momentumRate) * (lr * delta1[i]);
       this.bias1[i] += this.momentumBias1[i];
 
       for (let j = 0; j < this.inputSize; j++) {
         if (!this.momentum1[j]) this.momentum1[j] = new Array(this.hiddenSize1).fill(0);
         const gradW1 = lr * delta1[i] * state[j];
-        this.momentum1[j][i] = this.momentumRate * this.momentum1[j][i] + (1 - this.momentumRate) * gradW1;
+        this.momentum1[j][i] =
+          this.momentumRate * this.momentum1[j][i] + (1 - this.momentumRate) * gradW1;
         this.weights1[j][i] += this.momentum1[j][i];
       }
     }
@@ -246,9 +248,9 @@ class ImprovedNeuralNetwork {
     bias3: number[];
   } {
     return {
-      weights1: this.weights1.map(row => [...row]),
-      weights2: this.weights2.map(row => [...row]),
-      weights3: this.weights3.map(row => [...row]),
+      weights1: this.weights1.map((row) => [...row]),
+      weights2: this.weights2.map((row) => [...row]),
+      weights3: this.weights3.map((row) => [...row]),
       bias1: [...this.bias1],
       bias2: [...this.bias2],
       bias3: [...this.bias3],
@@ -267,25 +269,27 @@ class ImprovedNeuralNetwork {
     bias3: number[];
   }): void {
     // Validate dimensions before loading
-    if (data.weights1.length !== this.inputSize ||
-        data.weights1[0]?.length !== this.hiddenSize1 ||
-        data.weights2.length !== this.hiddenSize1 ||
-        data.weights2[0]?.length !== this.hiddenSize2 ||
-        data.weights3.length !== this.hiddenSize2 ||
-        data.weights3[0]?.length !== this.outputSize) {
+    if (
+      data.weights1.length !== this.inputSize ||
+      data.weights1[0]?.length !== this.hiddenSize1 ||
+      data.weights2.length !== this.hiddenSize1 ||
+      data.weights2[0]?.length !== this.hiddenSize2 ||
+      data.weights3.length !== this.hiddenSize2 ||
+      data.weights3[0]?.length !== this.outputSize
+    ) {
       console.warn('[NeuralNetwork] Weight dimensions mismatch, reinitializing...');
       this.initializeWeights();
       return;
     }
 
     try {
-      this.weights1 = data.weights1.map(row => [...row]);
-      this.weights2 = data.weights2.map(row => [...row]);
-      this.weights3 = data.weights3.map(row => [...row]);
+      this.weights1 = data.weights1.map((row) => [...row]);
+      this.weights2 = data.weights2.map((row) => [...row]);
+      this.weights3 = data.weights3.map((row) => [...row]);
       this.bias1 = [...data.bias1];
       this.bias2 = [...data.bias2];
       this.bias3 = [...data.bias3];
-      
+
       console.log('[NeuralNetwork] Weights loaded successfully');
     } catch (error) {
       console.error('[NeuralNetwork] Failed to load weights:', error);
@@ -309,7 +313,7 @@ export class ImprovedReinforcementLearningAI {
 
   // Strategische Variablen
   private consecutiveLosses = 0;
-  
+
   // Persistenz-Eigenschaften
   private recentGames: number[] = []; // 1 für Sieg, 0 für Niederlage
   private lastSaveTime = 0;
@@ -327,12 +331,12 @@ export class ImprovedReinforcementLearningAI {
    */
   private async initializeFromPersistence(): Promise<void> {
     if (this.isLoading || this.initialized) return;
-    
+
     this.isLoading = true;
     try {
       console.log('[RL-AI] Loading persisted model from files...');
       const { weightsData, performanceStats } = await aiFilePersistenceManager.loadAIModel();
-      
+
       if (weightsData && performanceStats) {
         // Load network weights
         this.network.loadWeights({
@@ -343,15 +347,17 @@ export class ImprovedReinforcementLearningAI {
           bias2: weightsData.bias2,
           bias3: weightsData.bias3,
         });
-        
+
         // Load AI state
         this.epsilon = weightsData.epsilon;
         this.gameCount = weightsData.gameCount;
         this.winCount = weightsData.winCount;
         this.totalReward = weightsData.totalReward;
         this.recentGames = performanceStats.recentGames || [];
-        
-        console.log(`[RL-AI] Model loaded successfully - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`);
+
+        console.log(
+          `[RL-AI] Model loaded successfully - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`
+        );
       } else {
         console.log('[RL-AI] No persisted model found, starting fresh');
       }
@@ -377,7 +383,7 @@ export class ImprovedReinforcementLearningAI {
 
     const ballToAI = (ballY - (aiY + this.constants.paddleHeight / 2)) / canvasHeight; // -1 bis +1
     const ballToPlayer = (ballY - (playerY + this.constants.paddleHeight / 2)) / canvasHeight; // -1 bis +1
-    
+
     // Verschiedene Zeitskalen für Vorhersage
     const shortTermY = this.predictBallPosition(state, 15) / canvasHeight; // 0-1
     const mediumTermY = this.predictBallPosition(state, 30) / canvasHeight; // 0-1
@@ -401,17 +407,17 @@ export class ImprovedReinforcementLearningAI {
     // const urgency = Math.max(0, 1 - timeToReachAI / 60); // Dringlichkeit basierend auf Zeit
 
     return [
-      ballNormX,           // 0-1
-      ballNormY,           // 0-1  
-      ballNormVX,          // -1 bis +1 (nicht geclampt)
-      ballNormVY,          // -1 bis +1 (nicht geclampt)
-      aiNormY,             // 0-1
-      playerNormY,         // 0-1
-      ballToAI,            // -1 bis +1
-      ballToPlayer,        // -1 bis +1
-      shortTermY,          // 0-1
-      mediumTermY,         // 0-1
-      longTermY            // 0-1
+      ballNormX, // 0-1
+      ballNormY, // 0-1
+      ballNormVX, // -1 bis +1 (nicht geclampt)
+      ballNormVY, // -1 bis +1 (nicht geclampt)
+      aiNormY, // 0-1
+      playerNormY, // 0-1
+      ballToAI, // -1 bis +1
+      ballToPlayer, // -1 bis +1
+      shortTermY, // 0-1
+      mediumTermY, // 0-1
+      longTermY, // 0-1
     ];
   }
 
@@ -449,7 +455,9 @@ export class ImprovedReinforcementLearningAI {
 
     // Grundbelohnung für Ballnähe (wichtigster Faktor)
     const ballDistance = Math.abs(state.ballY - (state.aiY + this.constants.paddleCenter));
-    const nextBallDistance = Math.abs(nextState.ballY - (nextState.aiY + this.constants.paddleCenter));
+    const nextBallDistance = Math.abs(
+      nextState.ballY - (nextState.aiY + this.constants.paddleCenter)
+    );
     const distanceImprovement = ballDistance - nextBallDistance;
 
     if (distanceImprovement > 2) {
@@ -467,11 +475,12 @@ export class ImprovedReinforcementLearningAI {
 
     // Nur belohnen wenn sich AI bewegt UND dabei näher zum Optimum kommt
     if (movementDistance > 1 && nextOptimality < currentOptimality - 3) {
-      reward += 0.4 * (currentOptimality - nextOptimality) / 50; // Bewegungsabhängige Belohnung
+      reward += (0.4 * (currentOptimality - nextOptimality)) / 50; // Bewegungsabhängige Belohnung
     }
 
     // Rechtzeitige Reaktion auf Ball-Richtungsänderung
-    const timeToImpact = state.ballVX > 0 ? (state.canvasWidth - state.ballX) / Math.max(state.ballVX, 1) : 999;
+    const timeToImpact =
+      state.ballVX > 0 ? (state.canvasWidth - state.ballX) / Math.max(state.ballVX, 1) : 999;
     if (timeToImpact < 60 && movementDistance > 2) {
       // Belohne schnelle Reaktion bei herannahender Kollision
       const urgencyBonus = Math.max(0, (60 - timeToImpact) / 60);
@@ -479,7 +488,7 @@ export class ImprovedReinforcementLearningAI {
     }
 
     // Strafe für Bewegung zur falschen Zeit
-    if (state.ballVX < 0 && Math.abs(state.ballX - (state.canvasWidth * 0.8)) > 100) {
+    if (state.ballVX < 0 && Math.abs(state.ballX - state.canvasWidth * 0.8) > 100) {
       // Ball ist weit weg und bewegt sich weg von AI
       if (movementDistance > 10) {
         reward -= 0.1; // Leichte Strafe für unnötige Bewegung
@@ -488,9 +497,11 @@ export class ImprovedReinforcementLearningAI {
 
     // Defensive Bonus - nur für gute Positionierung bei Annäherung
     if (state.ballVX < 0) {
-      const ballDistanceToAI = Math.abs(nextState.ballY - (nextState.aiY + this.constants.paddleCenter));
-      const timeToImpact = (state.ballX) / Math.max(Math.abs(state.ballVX), 1);
-      
+      const ballDistanceToAI = Math.abs(
+        nextState.ballY - (nextState.aiY + this.constants.paddleCenter)
+      );
+      const timeToImpact = state.ballX / Math.max(Math.abs(state.ballVX), 1);
+
       if (timeToImpact < 30 && ballDistanceToAI < 40) {
         // Hohe Belohnung für perfekte Timing-Positionierung
         reward += 0.6 * (1 - ballDistanceToAI / 40) * (1 - timeToImpact / 30);
@@ -501,7 +512,7 @@ export class ImprovedReinforcementLearningAI {
     if (state.ballVX > 0 && state.ballX > state.canvasWidth * 0.7) {
       const targetArea = state.playerY + this.constants.paddleCenter; // Ziel ist die Mitte des Spieler-Schlägers
       if (Math.abs(state.ballY - targetArea) > Math.abs(nextState.ballY - targetArea)) {
-        reward += 0.05
+        reward += 0.05;
       }
     }
 
@@ -561,12 +572,12 @@ export class ImprovedReinforcementLearningAI {
       if (this.consecutiveLosses > 8) {
         console.log('[RL-AI] Poor performance detected, increasing exploration...');
         this.epsilon = Math.min(0.8, this.epsilon * 1.5); // Mehr Exploration
-        
+
         // Aggressiveres Training statt Bias-Anpassung
         if (this.experienceBuffer.length > 3) {
           this.network.updateWeights(this.experienceBuffer, 0.1); // Hohe Learning Rate
         }
-        
+
         this.consecutiveLosses = 0; // Reset counter
       }
     }
@@ -623,7 +634,7 @@ export class ImprovedReinforcementLearningAI {
     }
     this.winCount++;
     this.consecutiveLosses = 0;
-    
+
     // Track recent performance
     this.recentGames.push(1); // Win
     this.trimRecentGames();
@@ -637,7 +648,7 @@ export class ImprovedReinforcementLearningAI {
       lastExp.priority = 2.0; // Hohe Priorität auch für Fehler lernen
     }
     this.consecutiveLosses++;
-    
+
     // Track recent performance
     this.recentGames.push(0); // Loss
     this.trimRecentGames();
@@ -672,7 +683,7 @@ export class ImprovedReinforcementLearningAI {
     console.log(
       `[RL-AI] Game ${this.gameCount} ended. W/L: ${this.winCount}/${this.gameCount - this.winCount} (${(winRate * 100).toFixed(1)}%) | Epsilon: ${this.epsilon.toFixed(3)}`
     );
-    
+
     // Save model periodically
     this.saveModelIfNeeded();
   }
@@ -686,19 +697,19 @@ export class ImprovedReinforcementLearningAI {
       this.recentGames = this.recentGames.slice(-MAX_RECENT_GAMES);
     }
   }
-  
+
   /**
    * Save model to file if enough time has passed
    */
   private async saveModelIfNeeded(): Promise<void> {
     const now = Date.now();
-    if (!this.initialized || this.isLoading || (now - this.lastSaveTime < this.SAVE_INTERVAL)) {
+    if (!this.initialized || this.isLoading || now - this.lastSaveTime < this.SAVE_INTERVAL) {
       return;
     }
-    
+
     try {
       this.lastSaveTime = now;
-      
+
       const weightsData: SerializedWeights = {
         ...this.network.serializeWeights(),
         epsilon: this.epsilon,
@@ -706,14 +717,14 @@ export class ImprovedReinforcementLearningAI {
         winCount: this.winCount,
         totalReward: this.totalReward,
       };
-      
+
       const performanceStats: PerformanceStats = {
         winRate: this.winCount / Math.max(this.gameCount, 1),
         averageReward: this.totalReward / Math.max(this.gameCount, 1),
         recentGames: [...this.recentGames],
         lastGameTimestamp: now,
       };
-      
+
       await aiFilePersistenceManager.saveAIModel(weightsData, performanceStats);
     } catch (error) {
       console.error('[RL-AI] Failed to save model to file:', error);
@@ -731,7 +742,7 @@ export class ImprovedReinforcementLearningAI {
       avgReward: this.gameCount > 0 ? (this.totalReward / this.gameCount).toFixed(2) : '0.00',
     };
   }
-  
+
   /**
    * Force save the current model state
    */
@@ -739,7 +750,7 @@ export class ImprovedReinforcementLearningAI {
     this.lastSaveTime = 0; // Reset timer to force save
     await this.saveModelIfNeeded();
   }
-  
+
   /**
    * Get current AI statistics including file-based data
    */
@@ -754,7 +765,7 @@ export class ImprovedReinforcementLearningAI {
     const winRate = this.winCount / Math.max(this.gameCount, 1);
     const recentWins = this.recentGames.slice(-20).reduce((sum, game) => sum + game, 0);
     const recentWinRate = recentWins / Math.max(this.recentGames.slice(-20).length, 1);
-    
+
     return {
       gameCount: this.gameCount,
       winCount: this.winCount,
@@ -764,7 +775,7 @@ export class ImprovedReinforcementLearningAI {
       experienceCount: this.experienceBuffer.length,
     };
   }
-  
+
   /**
    * Cleanup and final save before destruction
    */

@@ -1,22 +1,22 @@
 import fastify from 'fastify';
 import path from 'path';
 import dbConnector from './db';
-import authPlugin from './auth';
 import AuthService from './auth.service';
 import AuthController from './auth.controller';
 import db from './db';
 import fs from 'fs';
+import vaultClient from './vault-client';
+import vAuth from './auth';
+
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-
 const certDir = process.env.CERT_DIR || '../certs';
 const keyPath = path.join(__dirname, certDir, 'server.key');
 const certPath = path.join(__dirname, certDir, 'server.crt');
 const caPath = path.join(__dirname, certDir, 'ca.crt');
-
 
 async function buildServer() {
   let httpsOptions;
@@ -52,7 +52,8 @@ async function buildServer() {
 
   // Register plugins
   await server.register(dbConnector);
-  await server.register(authPlugin);
+  await server.register(vaultClient);
+  await server.register(vAuth);
 
   // Error handling
   server.setErrorHandler((error, request, reply) => {
@@ -124,9 +125,12 @@ async function start() {
     req.log.info({ headers: req.headers }, 'Incoming profile request');
     req.log.info({ auth: req.headers.authorization }, 'Auth header');
     try {
-      const decoded = await req.jwtVerify<{ id: string }>();
-      const user = await authService.getUserById(Number(decoded.id));
-
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const decoded = await req.server.vAuth.verify(token);
+      const user = await authService.getUserById(Number(decoded.sub));
       if (!user) {
         return reply.status(404).send({ error: 'User not found' });
       }
@@ -138,64 +142,67 @@ async function start() {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
   });
-// New don't delete pls
+  // New don't delete pls
 
-// === More new methods
-server.get<{ Params: { id: string } }>('/api/user/:id', async (req, reply) => {
-  return authController.getUserById(req, reply);
-});
+  // === More new methods
+  server.get<{ Params: { id: string } }>('/api/user/:id', async (req, reply) => {
+    return authController.getUserById(req, reply);
+  });
 
-// Alternatif kullanıcı profil endpoint'i
-server.get<{ Params: { id: string } }>('/api/users/:id', async (req, reply) => {
-  return authController.getUserByIdAlt(req, reply);
-});
+  // Alternatif kullanıcı profil endpoint'i
+  server.get<{ Params: { id: string } }>('/api/users/:id', async (req, reply) => {
+    return authController.getUserByIdAlt(req, reply);
+  });
 
-// Friend request'leri getirme endpoint'i
-server.get('/api/friends/requests', async (req, reply) => {
-  return authController.getFriendRequests(req, reply);
-});
+  // Friend request'leri getirme endpoint'i
+  server.get('/api/friends/requests', async (req, reply) => {
+    return authController.getFriendRequests(req, reply);
+  });
 
-// Friend request'e cevap verme endpoint'i
-server.post('/api/friends/request/:id/accept', async (req, reply) => {
-  return authController.respondToFriendRequestById(
-    { ...req, body: { action: 'accept' } } as any, 
-    reply
+  // Friend request'e cevap verme endpoint'i
+  server.post('/api/friends/request/:id/accept', async (req, reply) => {
+    return authController.respondToFriendRequestById(
+      { ...req, body: { action: 'accept' } } as any,
+      reply
+    );
+  });
+
+  server.post('/api/friends/request/:id/decline', async (req, reply) => {
+    return authController.respondToFriendRequestById(
+      { ...req, body: { action: 'decline' } } as any,
+      reply
+    );
+  });
+
+  server.post<{ Params: { id: string }; Body: { action: 'accept' | 'decline' } }>(
+    '/api/friends/request/:id/:action?',
+    async (req, reply) => {
+      // URL parametresinden action'ı al veya body'den
+      const actionFromUrl = (req.params as any).action;
+      const actionFromBody = (req.body as any)?.action;
+      const action = actionFromUrl || actionFromBody;
+
+      if (!action) {
+        return reply.status(400).send({ error: 'Action parameter required' });
+      }
+
+      return authController.respondToFriendRequestById(
+        {
+          ...req,
+          params: req.params,
+          body: { action },
+        } as any,
+        reply
+      );
+    }
   );
-});
 
-server.post('/api/friends/request/:id/decline', async (req, reply) => {
-  return authController.respondToFriendRequestById(
-    { ...req, body: { action: 'decline' } } as any, 
-    reply
-  );
-});
-
-server.post<{ Params: { id: string }, Body: { action: 'accept' | 'decline' } }>('/api/friends/request/:id/:action?', async (req, reply) => {
-  // URL parametresinden action'ı al veya body'den
-  const actionFromUrl = (req.params as any).action;
-  const actionFromBody = (req.body as any)?.action;
-  const action = actionFromUrl || actionFromBody;
-  
-  if (!action) {
-    return reply.status(400).send({ error: 'Action parameter required' });
-  }
-
-  return authController.respondToFriendRequestById(
-    { 
-      ...req, 
-      params: req.params, 
-      body: { action } 
-    } as any, 
-    reply
-  );
-});
-
-// =========
+  // =========
   server.put<{ Body: UpdateProfileBody }>('/api/profile', async (req, reply) => {
     return authController.updateProfile(req, reply);
   });
-  
-    server.get<{ Querystring: { q: string } }>('/api/users/search', async (req, reply) => {
+
+  server.get<{ Querystring: { q: string } }>('/api/users/search', async (req, reply) => {
     req.log.info({ query: req.query }, 'Incoming search request');
     return authController.searchUsers(req, reply);
   });
@@ -220,7 +227,7 @@ server.post<{ Params: { id: string }, Body: { action: 'accept' | 'decline' } }>(
     reply.header('Access-Control-Allow-Origin', '*');
     reply.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    
+
     if (request.method === 'OPTIONS') {
       reply.status(200).send();
       return;

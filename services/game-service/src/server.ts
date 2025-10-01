@@ -59,7 +59,7 @@ export const io = new SocketIOServer(server.server, {
     credentials: true,
   },
   transports: ['websocket', 'polling'],
-  allowEIO3: true, 
+  allowEIO3: true,
 });
 
 server.register(jwt, {
@@ -68,44 +68,44 @@ server.register(jwt, {
 // TODO: Production: Nur bestimmte Origins erlauben
 
 io.use((socket, next) => {
-try {
-  const token = socket.handshake.auth.token;
+  try {
+    const token = socket.handshake.auth.token;
 
-  if (!token) {
-    const isAIService = socket.handshake.query.serviceType === 'AI';
-    if (isAIService) {
-      const roomId = socket.handshake.query.roomId as string;
-      if (!roomId) {
-        return next(new Error('AI service missing room ID'));
+    if (!token) {
+      const isAIService = socket.handshake.query.serviceType === 'AI';
+      if (isAIService) {
+        const roomId = socket.handshake.query.roomId as string;
+        if (!roomId) {
+          return next(new Error('AI service missing room ID'));
+        }
+        socket.user = {
+          id: `AI-${roomId}`,
+          nickname: 'AI',
+          isService: true,
+          isAI: true,
+        };
+        console.log(`[Auth] AI service authenticated for room: ${roomId}`);
+        return next();
       }
-      socket.user = {
-        id: `AI-${roomId}`,
-        nickname: 'AI',
-        isService: true,
-        isAI: true
-      };
-      console.log(`[Auth] AI service authenticated for room: ${roomId}`);
-      return next();
+      console.log('[Auth] No token provided');
+      return next(new Error('Authentication error: No token provided'));
     }
-    console.log('[Auth] No token provided');
-    return next(new Error('Authentication error: No token provided'));
-  }
-   
-  const decoded = server.jwt.verify(token) as any;
-  console.log('[Auth] Decoded token:', decoded);
 
-  socket.user = {
-    id: decoded.id,
-    nickname: decoded.nickname,
-    isService: false,
-    isAI: false
-  };
-  console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
-  next();
-} catch (err) {
-  console.error('[Auth] JWT verification error:', err);
-  next(new Error('Authentication error: Invalid token'));
-}
+    const decoded = server.jwt.verify(token) as any;
+    console.log('[Auth] Decoded token:', decoded);
+
+    socket.user = {
+      id: decoded.id,
+      nickname: decoded.nickname,
+      isService: false,
+      isAI: false,
+    };
+    console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
+    next();
+  } catch (err) {
+    console.error('[Auth] JWT verification error:', err);
+    next(new Error('Authentication error: Invalid token'));
+  }
 });
 
 registerIoHandlers(io);

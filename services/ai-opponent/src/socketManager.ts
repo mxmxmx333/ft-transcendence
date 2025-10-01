@@ -43,8 +43,8 @@ export class SocketManager {
       rememberUpgrade: true,
       query: {
         serviceType: 'AI',
-        roomId: this.roomId || ''
-      }
+        roomId: this.roomId || '',
+      },
     });
   }
 
@@ -59,7 +59,7 @@ export class SocketManager {
     this.socket!.on('connect', () => {
       console.log('[SocketManager] Connected:', this.socket?.id);
       this.reconnectAttempts = 0;
-      
+
       // Auto-join room wenn roomId vorhanden
       if (this.roomId) {
         this.socket!.emit('join_room', { roomId: this.roomId });
@@ -136,8 +136,10 @@ export class SocketManager {
     }
 
     this.reconnectAttempts++;
-    console.warn(`[SocketManager] Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-    
+    console.warn(
+      `[SocketManager] Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
+    );
+
     setTimeout(() => {
       this.socket?.connect();
     }, this.reconnectDelay);
@@ -148,18 +150,14 @@ export class SocketManager {
       'create_room',
       {
         isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
-        isRemote: this.gameInstance?.isRemote ?? false
+        isRemote: this.gameInstance?.isRemote ?? false,
       },
       'Room creation timeout'
     );
   }
 
   public joinRoom(roomId: string): Promise<string> {
-    return this.executeRoomAction(
-      'join_room',
-      { roomId },
-      'Join room timeout'
-    );
+    return this.executeRoomAction('join_room', { roomId }, 'Join room timeout');
   }
 
   private executeRoomAction(
@@ -196,14 +194,14 @@ export class SocketManager {
       console.warn('[SocketManager] Cannot leave room - not connected');
       return;
     }
-    
+
     this.socket.emit('leave_room');
     console.log('[SocketManager] Leave room emitted');
   }
 
   public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
     if (!this.socket?.connected) return;
-    
+
     this.socket.emit('paddle_move', payload);
     // console.log('[SocketManager] Paddle move:', payload);
   }

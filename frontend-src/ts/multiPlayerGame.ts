@@ -19,7 +19,7 @@ export class PongGame {
   // TODO: Fix Lobby message (w/s, up/down )
 
   // TODO: fix Game Over (on reset game)
-  
+
   // Constants - normalized for 800x600
   private paddleHeight = 100;
   private paddleWidth = 15;
@@ -107,10 +107,10 @@ export class PongGame {
   private setupControls() {
     // Keyboard
     const keyDownHandler = (e: KeyboardEvent) => {
-    if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-    else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-    if (e.key === 'ArrowUp') this.upPressed = true;
-    else if (e.key === 'ArrowDown') this.downPressed = true;
+      if (e.key === 'w' || e.key === 'W') this.wPressed = true;
+      else if (e.key === 's' || e.key === 'S') this.sPressed = true;
+      if (e.key === 'ArrowUp') this.upPressed = true;
+      else if (e.key === 'ArrowDown') this.downPressed = true;
 
       // if (this.isPlayer1) {
       //   console.log('Player 1 controls');
@@ -245,7 +245,7 @@ export class PongGame {
         gameNick1.textContent = this.opponentNickname; // Opponent left
         gameNick2.textContent = this.myNickname; // myNickname right
       }
-      
+
       console.log(`UI updated: ${gameNick1.textContent} vs ${gameNick2.textContent}`);
       console.log(`I am: ${this.myNickname}, Opponent: ${this.opponentNickname}`);
     } else {
@@ -333,7 +333,9 @@ export class PongGame {
 
     // Kendi paddle'ımız (sol tarafta player1, sağ tarafta player2)
     this.ctx.fillStyle = this.isPlayer1 ? '#ff00ff' : '#00ffff';
-    const myPaddleX = this.isPlayer1 ? 10 * this.canvasSizeRatioX : this.canvas.width - 25 * this.canvasSizeRatioX;
+    const myPaddleX = this.isPlayer1
+      ? 10 * this.canvasSizeRatioX
+      : this.canvas.width - 25 * this.canvasSizeRatioX;
     this.drawRoundedRect(
       myPaddleX,
       this.playerY,
@@ -344,7 +346,9 @@ export class PongGame {
 
     // Rakip paddle'ı
     this.ctx.fillStyle = this.isPlayer1 ? '#00ffff' : '#ff00ff';
-    const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 * this.canvasSizeRatioX : 10 * this.canvasSizeRatioX;
+    const opponentPaddleX = this.isPlayer1
+      ? this.canvas.width - 25 * this.canvasSizeRatioX
+      : 10 * this.canvasSizeRatioX;
     this.drawRoundedRect(
       opponentPaddleX,
       this.opponentY,
@@ -356,13 +360,7 @@ export class PongGame {
     // Top
     this.ctx.fillStyle = '#ffff00';
     this.ctx.beginPath();
-    this.ctx.arc(
-      this.ballX,
-      this.ballY,
-      this.ballRadius,
-      0,
-      Math.PI * 2
-    );
+    this.ctx.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
     this.ctx.fill();
 
     // Skorları güncelle
@@ -415,31 +413,31 @@ export class PongGame {
   }
 
   private drawGameOver(winner: string) {
-  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-  this.ctx.fillStyle = '#ffffff';
-  this.ctx.font = 'bold 48px Arial';
-  this.ctx.textAlign = 'center';
-  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 48px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
 
-  this.ctx.font = 'bold 36px Arial';
-  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+    this.ctx.font = 'bold 36px Arial';
+    this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
 
-  this.ctx.font = '24px Arial';
-  this.ctx.fillText(
-    'Game will return to lobby in 5 seconds',
-    this.canvas.width / 2,
-    this.canvas.height / 2 + 80
-  );
+    this.ctx.font = '24px Arial';
+    this.ctx.fillText(
+      'Game will return to lobby in 5 seconds',
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 80
+    );
 
-  // 5 saniye sonra lobby'e dön
-  setTimeout(() => {
-    this.resetGame();
-    document.querySelector('.game-page')?.classList.add('hidden');
-    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  }, 5000);
-}
+    // 5 saniye sonra lobby'e dön
+    setTimeout(() => {
+      this.resetGame();
+      document.querySelector('.game-page')?.classList.add('hidden');
+      document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+    }, 5000);
+  }
 
   private resetGame() {
     this.playerScore = 0;
@@ -462,12 +460,12 @@ export class PongGame {
     this.animationId = requestAnimationFrame(this.gameLoop);
   }
 
-public startGame() {
+  public startGame() {
     if (this.gameRunning && !this.isPaused) {
       console.warn('Game is already running');
       return;
     }
-    
+
     if (this.isPaused) {
       this.resume();
     } else {
@@ -477,7 +475,7 @@ public startGame() {
 
   public pauseGame() {
     if (!this.gameRunning || this.isPaused) return;
-    
+
     this.isPaused = true;
     this.gameRunning = false;
     if (this.animationId) {
@@ -488,7 +486,7 @@ public startGame() {
 
   public resume() {
     if (!this.isPaused) return;
-    
+
     this.isPaused = false;
     this.gameRunning = true;
     this.lastTimeStamp = performance.now();

@@ -34,9 +34,8 @@ export interface GameStartPayload {
 }
 
 export interface PaddleMovePayload {
- 
-    moveP1: 'up' | 'down' | 'none';
-    moveP2: 'up' | 'down' | 'none';
+  moveP1: 'up' | 'down' | 'none';
+  moveP2: 'up' | 'down' | 'none';
 }
 
 export interface CreateRoomPayload {

@@ -89,9 +89,7 @@ export default class AuthService {
     const info = stmt.run(nickname, email, password_hash, avatar, status);
 
     // Create initial game statistics for the user
-    const gameStatsStmt = this.db.prepare(
-      'INSERT INTO game_statistics (user_id) VALUES (?)'
-    );
+    const gameStatsStmt = this.db.prepare('INSERT INTO game_statistics (user_id) VALUES (?)');
     gameStatsStmt.run(info.lastInsertRowid);
 
     const newUser = this.getUserById(info.lastInsertRowid);
@@ -107,56 +105,58 @@ export default class AuthService {
   }
 
   getUserProfile(userId: number, currentUserId: number): any {
-  try {
-    const userStmt = this.db.prepare('SELECT id, nickname, email, avatar, status, created_at FROM users WHERE id = ?');
-    const user = userStmt.get(userId);
-    
-    if (!user) {
-      return null;
-    }
+    try {
+      const userStmt = this.db.prepare(
+        'SELECT id, nickname, email, avatar, status, created_at FROM users WHERE id = ?'
+      );
+      const user = userStmt.get(userId);
 
-    // Friend durumunu kontrol et
-    const friendshipStmt = this.db.prepare(`
+      if (!user) {
+        return null;
+      }
+
+      // Friend durumunu kontrol et
+      const friendshipStmt = this.db.prepare(`
       SELECT status as friendship_status 
       FROM friendships 
       WHERE (requester_id = ? AND addressee_id = ?) 
          OR (requester_id = ? AND addressee_id = ?)
     `);
-    const friendship = friendshipStmt.get(currentUserId, userId, userId, currentUserId);
-    
-    // Game istatistiklerini getir
-    const statsStmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
-    const stats = statsStmt.get(userId);
+      const friendship = friendshipStmt.get(currentUserId, userId, userId, currentUserId);
 
-    return {
-      ...user,
-      friendship_status: friendship ? friendship.friendship_status : 'none',
-      game_stats: stats || {
-        games_played: 0,
-        games_won: 0,
-        games_lost: 0,
-        total_score: 0
-      }
-    };
-  } catch (error) {
-    console.error('Error getting user profile:', error);
-    return null;
+      // Game istatistiklerini getir
+      const statsStmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
+      const stats = statsStmt.get(userId);
+
+      return {
+        ...user,
+        friendship_status: friendship ? friendship.friendship_status : 'none',
+        game_stats: stats || {
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          total_score: 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
   }
-}
 
-getUserByIdPublic(userId: number): any {
-  try {
-    const stmt = this.db.prepare(`
+  getUserByIdPublic(userId: number): any {
+    try {
+      const stmt = this.db.prepare(`
       SELECT id, nickname, avatar, status, created_at 
       FROM users 
       WHERE id = ?
     `);
-    return stmt.get(userId);
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
-    return null;
+      return stmt.get(userId);
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
+      return null;
+    }
   }
-}
 
   getUserByNickname(nickname: string): User | null {
     const stmt = this.db.prepare('SELECT * FROM users WHERE nickname = ?');
@@ -203,7 +203,7 @@ getUserByIdPublic(userId: number): any {
         'SELECT * FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)'
       );
       const existing = existingStmt.get(requesterId, addresseeId, addresseeId, requesterId);
-      
+
       if (existing) {
         throw new Error('Friendship relationship already exists');
       }
@@ -222,28 +222,28 @@ getUserByIdPublic(userId: number): any {
   }
 
   respondToFriendRequest(friendshipId: number, response: 'accepted' | 'declined'): boolean {
-  try {
-    // Önce friendship'in var olduğunu kontrol et
-    const checkStmt = this.db.prepare('SELECT * FROM friendships WHERE id = ?');
-    const friendship = checkStmt.get(friendshipId);
-    
-    if (!friendship) {
-      throw new Error('Friendship not found');
-    }
+    try {
+      // Önce friendship'in var olduğunu kontrol et
+      const checkStmt = this.db.prepare('SELECT * FROM friendships WHERE id = ?');
+      const friendship = checkStmt.get(friendshipId);
 
-    const stmt = this.db.prepare('UPDATE friendships SET status = ? WHERE id = ?');
-    const info = stmt.run(response, friendshipId);
-    
-    if (info.changes === 0) {
-      throw new Error('No friendship found to update');
+      if (!friendship) {
+        throw new Error('Friendship not found');
+      }
+
+      const stmt = this.db.prepare('UPDATE friendships SET status = ? WHERE id = ?');
+      const info = stmt.run(response, friendshipId);
+
+      if (info.changes === 0) {
+        throw new Error('No friendship found to update');
+      }
+
+      return info.changes > 0;
+    } catch (error: any) {
+      console.error('Error responding to friend request:', error);
+      throw new Error(`Failed to respond to friend request: ${error.message}`);
     }
-    
-    return info.changes > 0;
-  } catch (error: any) {
-    console.error('Error responding to friend request:', error);
-    throw new Error(`Failed to respond to friend request: ${error.message}`);
   }
-}
 
   getFriends(userId: number): any[] {
     const stmt = this.db.prepare(`
@@ -343,8 +343,7 @@ getUserByIdPublic(userId: number): any {
       'viking',
       'samurai',
       'cyberpunk',
-      'steampunk'
+      'steampunk',
     ];
   }
-  
 }
