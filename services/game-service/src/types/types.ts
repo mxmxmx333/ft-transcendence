@@ -70,6 +70,7 @@ export interface TournamentRoom {
   id: string;
   owner: Player | null;
   players: Player[];
+  lostPlayers: Player[];
   lastWinner: Player | null;
   gameRoom: GameRoom | null;
 }

@@ -111,6 +111,8 @@ export class SocketManager {
     this.socket.on('error', (error: any) => {
       console.error('Socket error:', error);
     });
+
+    this.setupTournamentEventListeners();
   }
 
   private setupGameEventListeners(): void {
@@ -164,6 +166,59 @@ export class SocketManager {
     });
   }
 
+  private setupTournamentEventListeners(): void {
+  if (!this.socket) return;
+
+  this.socket.on('tournament_room_created', (data: any) => {
+    console.log('Tournament room created:', data);
+    this.resolvePendingOperation(data.roomId);
+  });
+
+  this.socket.on('joined_tournament_room', (data: any) => {
+    console.log('Joined tournament room:', data);
+    this.resolvePendingOperation(data.roomId);
+  });
+
+  this.socket.on('tournament_players_updated', (data: any) => {
+    console.log('Tournament players updated:', data);
+    // Router function aufrufen
+    if ((window as any).updateTournamentPlayers) {
+      (window as any).updateTournamentPlayers(data.players);
+    }
+  });
+
+  this.socket.on('tournament_error', (error: any) => {
+    console.error('Tournament error:', error);
+    alert(`Tournament error: ${error.message}`);
+  });
+
+  this.socket.on('tournament_started', (data: any) => {
+    console.log('Tournament started:', data);
+    // Game start logic hier
+  });
+
+  this.socket.on('tournament_match_starting', (data: any) => {
+    console.log('Tournament match starting:', data);
+    if ((window as any).handleTournamentMatchStart) {
+      (window as any).handleTournamentMatchStart(data);
+    }
+  });
+
+  this.socket.on('tournament_match_ended', (data: any) => {
+    console.log('Tournament match ended:', data);
+    if ((window as any).handleTournamentMatchEnd) {
+      (window as any).handleTournamentMatchEnd(data);
+    }
+  });
+
+  this.socket.on('tournament_winner', (data: any) => {
+    console.log('Tournament winner:', data);
+    if ((window as any).handleTournamentEnd) {
+      (window as any).handleTournamentEnd(data);
+    }
+  });
+}
+
   private resolvePendingOperation(roomId: string): void {
     if (this.pendingResolve) {
       this.pendingResolve(roomId);
@@ -205,15 +260,45 @@ export class SocketManager {
       this.socket!.once('room_created', () => clearTimeout(timeout));
       this.socket!.once('create_error', () => clearTimeout(timeout));
 
-      // const roomConfig = {
-      //   isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
-      //   isRemote: this.gameInstance?.isRemote ?? false
-      // };
-
-      // this.socket!.emit('create_room', roomConfig);
       this.socket!.emit('create_tournament_room');
       console.log('[Client] create_tournament_room emitted');
     });
+  }
+
+  public async joinTournament(roomId: string): Promise<string> {
+    await this.ensureConnection();
+
+    return new Promise((resolve, reject) => {
+      if (!this.hasActiveConnection()) {
+        return reject(new Error('Socket not connected'));
+      }
+
+      this.pendingResolve = resolve;
+      const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
+
+      this.socket!.once('joined_tournament_room', () => clearTimeout(timeout));
+      this.socket!.once('join_tournament_error', () => clearTimeout(timeout));
+
+      this.socket!.emit('join_tournament_room', { roomId });
+      console.log('[Client] join_tournament emitted for room:', roomId);
+    });
+  }
+
+  public async startTournament(tournamentId: string): Promise<void> {
+    await this.ensureConnection();
+    this.socket!.emit('start_tournament', { roomId: tournamentId });
+    console.log('[Client] start_tournament emitted for tournament:', tournamentId);
+  }
+
+  public async leaveTournament(): Promise<void> {
+    if (this.hasActiveConnection()) {
+      // Tournament ID aus UI holen
+      const tournamentId = document.getElementById('current-tournament-id')?.textContent;
+      if (tournamentId && tournamentId !== '-') {
+        this.socket!.emit('leave_tournament', { roomId: tournamentId });
+        console.log('[Client] leave_tournament emitted for:', tournamentId);
+      }
+    }
   }
 
   public async createRoom(): Promise<string> {

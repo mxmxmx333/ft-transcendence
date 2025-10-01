@@ -1,7 +1,9 @@
-import { GameRoom, gameRooms } from './types/types';
+import { GameRoom, gameRooms, tournamentRooms } from './types/types';
 import { io } from './server';
 import { handleLeaveRoom } from './room';
 import type { GameStartPayload } from './types/types';
+import { setMaxIdleHTTPParsers } from 'http';
+import { handleTournamentGameEnd } from './tournament';
 
 export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
@@ -64,9 +66,13 @@ export function startGame(room: GameRoom) {
     throw new Error(`[startGame] Failed to send game start message: ${err}`);
   }
 
+  // To-Do: implement Timer for game start countdown
+  // setTimeout(() => {
+  //   // Start the game loop after countdown
+  // }, 3000);
   // Game loop başlat
   room.gameLoop = setInterval(() => {
-    if (!gameRooms[room.id] || !room.owner || !room.guest) {
+    if (!(gameRooms[room.id] || tournamentRooms[room.id]) || !room.owner || !room.guest) {
       console.log(`[Server] Game loop stopped for room ${room.id}`);
       clearInterval(room.gameLoop);
       room.gameLoop = undefined;
@@ -199,17 +205,19 @@ export function endGame(room: GameRoom) {
     },
     message: `Game over! ${winnerNickname} wins!`,
   });
-
+  
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
   }
+  
+  if (room.gameType === 'tournament' ) {
+    handleTournamentGameEnd(room, winner);
+    return;
+  }
 
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
 
-    if (room.gameType === 'tournament') {
-      return; // Raum darf nicht gecleaned werden!
-  }
   // 5 saniye sonra oyuncuları lobby'e yönlendir
   setTimeout(() => {
     if (room.owner) {

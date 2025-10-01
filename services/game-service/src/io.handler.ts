@@ -1,5 +1,5 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament } from './room';
+import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom } from './room';
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
 
@@ -78,6 +78,16 @@ export function registerIoHandlers(io: Server) {
       }
       console.log(`[Socket] Player ${player.id} starting tournament in room ${data.roomId}`);
       checkStartTournament(player, data.roomId);
+    });
+
+    socket.on('leave_tournament', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid leave_tournament data from ${player.id}`);
+        socket.emit('tournament_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} leaving tournament ${data.roomId}`);
+      leaveTournamentRoom(player, data.roomId);
     });
 
     socket.on('create_room', (payload: CreateRoomPayload['create_room']) => {

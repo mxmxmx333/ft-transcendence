@@ -257,6 +257,8 @@ export class PongGame {
       `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
     );
 
+    // To-Do: set Countdown timer before starting
+
     // Sayfa geçişi
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     document.querySelector('.game-page')?.classList.remove('hidden');

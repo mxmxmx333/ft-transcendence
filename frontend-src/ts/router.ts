@@ -1078,8 +1078,6 @@ async function createTournament(): Promise<void> {
 
     showTournamentInfo(roomId, true); // true = isOwner
     document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
-
-    // TODO: Später mit socketManager.createTournament() ersetzen
     
   } catch (error) {
     console.error('Failed to create tournament:', error);
@@ -1104,14 +1102,11 @@ async function joinTournament(): Promise<void> {
   try {
     document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
     
-    // Für jetzt: Mock Implementation
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-    
+    await socketManager.joinTournament(tournamentId);
+
     showTournamentInfo(tournamentId, false); // false = not owner
     document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
-    
-    // TODO: Später mit socketManager.joinTournament(tournamentId) ersetzen
-    
+
   } catch (error) {
     console.error('Failed to join tournament:', error);
     document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
@@ -1125,6 +1120,7 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean): void {
   if (isOwner) {
     document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
   }
+  //// das ist noch zu fixen!!! --> backend emit schicken mit "give tournament info" und dann hier empfangen und players updaten
   
   // Mock players für Demo
   const mockPlayers = [
@@ -1171,10 +1167,13 @@ async function startTournament(): Promise<void> {
   try {
     document.getElementById('tournament-status')!.textContent = 'Starting tournament...';
     
-    // TODO: Implement actual tournament start logic
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const tournamentId = document.getElementById('current-tournament-id')!.textContent;
     
-    document.getElementById('tournament-status')!.textContent = 'Tournament started! Prepare for your first match.';
+    if (!tournamentId || tournamentId === '-') {
+      throw new Error('No tournament ID found');
+    }
+    
+    await socketManager.startTournament(tournamentId);
     
   } catch (error) {
     console.error('Failed to start tournament:', error);
@@ -1188,8 +1187,8 @@ async function leaveTournament(): Promise<void> {
   }
   
   try {
-    // TODO: Implement actual leave tournament logic
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Echte Socket-Implementierung
+    await socketManager.leaveTournament();
     
     resetTournamentUI();
     document.getElementById('tournament-status')!.textContent = 'Left tournament';
@@ -1215,3 +1214,61 @@ async function showTournamentPage(): Promise<void> {
     document.getElementById('tournament-status')!.textContent = 'Connection failed - tournament unavailable';
   }
 }
+
+// =============================================================================
+// TOURNAMENT EVENT HANDLERS
+// =============================================================================
+
+/**
+ * Behandelt Tournament Match Start Events
+ */
+function handleTournamentMatchStart(data: any): void {
+  const status = document.getElementById('tournament-status');
+  if (status) {
+    status.textContent = `Round ${data.round}, Match ${data.match}: ${data.player1} vs ${data.player2}`;
+  }
+  
+  // Tournament-Info temporär ausblenden, Game-Page anzeigen
+  setTimeout(() => {
+    hideAllPages();
+    document.querySelector('.game-page')?.classList.remove('hidden');
+  }, 3000);
+}
+
+/**
+ * Behandelt Tournament Match End Events
+ */
+function handleTournamentMatchEnd(data: any): void {
+  const status = document.getElementById('tournament-status');
+  if (status) {
+    status.textContent = `Match ended! Winner: ${data.winner}`;
+  }
+  
+  // Zurück zur Tournament-Lobby
+  setTimeout(() => {
+    hideAllPages();
+    document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+  }, 2000);
+}
+
+/**
+ * Behandelt Tournament End Events
+ */
+function handleTournamentEnd(data: any): void {
+  const status = document.getElementById('tournament-status');
+  if (status) {
+    status.textContent = `🏆 Tournament finished! Winner: ${data.message}`;
+  }
+  
+  // Tournament beenden
+  setTimeout(() => {
+    resetTournamentUI();
+    document.getElementById('tournament-status')!.textContent = 'Tournament completed';
+  }, 5000);
+}
+
+// Globale Funktionen für Socket Events registrieren
+(window as any).updateTournamentPlayers = updateTournamentPlayers;
+(window as any).handleTournamentMatchStart = handleTournamentMatchStart;
+(window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
+(window as any).handleTournamentEnd = handleTournamentEnd;
