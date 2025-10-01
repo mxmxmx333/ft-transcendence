@@ -220,7 +220,11 @@ export class PongGame {
     console.log('Guest info:', message.guest);
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
+
+    console.debug('[Game] hiiiiier');
     if (this.gameRunning) this.stop();
+
+    console.debug('[Game] hiiiiier');
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;

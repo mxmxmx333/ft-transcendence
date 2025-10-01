@@ -1223,16 +1223,28 @@ async function showTournamentPage(): Promise<void> {
  * Behandelt Tournament Match Start Events
  */
 function handleTournamentMatchStart(data: any): void {
+  console.log('[Frontend] Tournament Match Start'); // Debug
+  const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+  if (!canvas) return;
+  const game = new PongGame(canvas, socketManager);
+  socketManager.setGameInstance(game);
+
   const status = document.getElementById('tournament-status');
   if (status) {
     status.textContent = `Round ${data.round}, Match ${data.match}: ${data.player1} vs ${data.player2}`;
   }
-  
-  // Tournament-Info temporär ausblenden, Game-Page anzeigen
-  setTimeout(() => {
-    hideAllPages();
+
+  socketManager.onGameStart = () => {
+    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     document.querySelector('.game-page')?.classList.remove('hidden');
-  }, 3000);
+    startMultiplayerGame(game);
+  };
+
+  // // Tournament-Info temporär ausblenden, Game-Page anzeigen
+  // setTimeout(() => {
+  //   hideAllPages();
+  //   document.querySelector('.game-page')?.classList.remove('hidden');
+  // }, 3000);
 }
 
 /**
@@ -1267,8 +1279,8 @@ function handleTournamentEnd(data: any): void {
   }, 5000);
 }
 
-// Globale Funktionen für Socket Events registrieren
-(window as any).updateTournamentPlayers = updateTournamentPlayers;
+// // Globale Funktionen für Socket Events registrieren
+// (window as any).updateTournamentPlayers = updateTournamentPlayers;
 (window as any).handleTournamentMatchStart = handleTournamentMatchStart;
-(window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
-(window as any).handleTournamentEnd = handleTournamentEnd;
+// (window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
+// (window as any).handleTournamentEnd = handleTournamentEnd;

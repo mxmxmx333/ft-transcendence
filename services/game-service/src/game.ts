@@ -58,6 +58,13 @@ export function startGame(room: GameRoom) {
         ...gameStartPayload,
         isOwner: false,
       });
+
+      if (room.gameType === 'tournament') {
+        io.to(room.id).emit('game_start', {
+          ...gameStartPayload,
+          isOwner: false,
+        });
+      }
     }
 
     console.log(`[Server] Game start messages sent to both players`);

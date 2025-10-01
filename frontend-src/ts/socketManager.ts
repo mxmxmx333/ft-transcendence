@@ -120,6 +120,7 @@ export class SocketManager {
 
     this.socket.on('game_start', (payload: ServerToClientEvents['game_start']) => {
       console.log('Game start received:', payload);
+      console.debug('[Game] this.gameInstance:', this.gameInstance);
       this.gameInstance?.handleGameStart(payload);
       this.onGameStart?.(payload);
     });
@@ -197,7 +198,7 @@ export class SocketManager {
     // Game start logic hier
   });
 
-  this.socket.on('tournament_match_starting', (data: any) => {
+  this.socket.on('tournament_match_start', (data: any) => {
     console.log('Tournament match starting:', data);
     if ((window as any).handleTournamentMatchStart) {
       (window as any).handleTournamentMatchStart(data);

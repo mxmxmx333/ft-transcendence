@@ -1,4 +1,4 @@
-import { Player, GameRoom, tournamentRooms, TournamentRoom } from './types/types';
+import { Player, GameRoom, tournamentRooms, TournamentRoom, gameRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { start } from 'node:repl';
@@ -65,7 +65,8 @@ function startMatch(room: TournamentRoom) {
             },
             isPrivate: true,
         };
-        room.gameRoom = gameroom;            
+        room.gameRoom = gameroom;    
+        gameRooms[gameroom.id] = gameroom;      
     }
     catch (error) {
         console.error(`[Server] Error preparing game between ${owner.nickname} and ${guest.nickname}:`, error);
@@ -75,6 +76,12 @@ function startMatch(room: TournamentRoom) {
     if (!room.gameRoom) {
         console.error(`[Server] GameRoom not created for players ${owner.nickname} and ${guest.nickname}`);
         return;
+    }
+    try {
+        io.to(room.id).emit('tournament_match_start');
+        console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
+    } catch (error) {
+        console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);
     }
     startGame(room.gameRoom);
 }
