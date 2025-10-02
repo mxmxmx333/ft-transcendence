@@ -45,13 +45,44 @@ if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
 fi
 
 # ------- Phase 2: unseal (falls nötig) -------
-if ! vault status -format=json | jq -e '.sealed == false' >/dev/null; then
-  echo ">> unseal"
-  UNSEAL_KEY="$(jq -r '.unseal_keys_b64[0]' "$KEYS_JSON")"
-  [ -n "$UNSEAL_KEY" ] || { echo "!! no unseal key in $KEYS_JSON"; exit 1; }
-  vault operator unseal "$UNSEAL_KEY"
-fi
+# Verbesserte Unseal-Logik für mehrere Shares
+unseal_vault() {
+  local keys_needed
+  local keys_provided=0
+  
+  # Wie viele Keys brauchen wir?
+  keys_needed=$(vault status -format=json | jq -r '.t // 1')
+  echo ">> need $keys_needed unseal keys"
+  
+  # Alle verfügbaren Keys probieren
+  for i in $(seq 0 $((keys_needed - 1))); do
+    UNSEAL_KEY="$(jq -r ".unseal_keys_b64[$i] // empty" "$KEYS_JSON")"
+    
+    if [ -n "$UNSEAL_KEY" ] && [ "$UNSEAL_KEY" != "null" ]; then
+      echo ">> using unseal key $((i + 1))..."
+      
+      if vault operator unseal "$UNSEAL_KEY"; then
+        keys_provided=$((keys_provided + 1))
+        echo ">> provided $keys_provided/$keys_needed keys"
+        
+        # Prüfe ob schon genug
+        if vault status -format=json | jq -e '.sealed == false' >/dev/null; then
+          echo "✅ vault unsealed successfully"
+          return 0
+        fi
+      else
+        echo "❌ failed to apply unseal key $((i + 1))"
+      fi
+    fi
+  done
+  
+  echo "❌ could not unseal vault with available keys"
+  return 1
+}
 
+if ! vault status -format=json | jq -e '.sealed == false' >/dev/null; then
+  unseal_vault || exit 1
+fi
 # ------- Phase 3: login (Root-Token nur für Bootstrap) -------
 export VAULT_TOKEN="$(jq -r '.root_token' "$KEYS_JSON")"
 [ -n "$VAULT_TOKEN" ] || { echo "!! no root token in $KEYS_JSON"; exit 1; }
@@ -197,8 +228,6 @@ vault read  -field=role_id  auth/approle/role/auth-user-service/role-id      > /
 vault write -f -format=json auth/approle/role/auth-user-service/secret-id | jq -r '.data.secret_id' > /certs/auth-user-service/approle/secret_id
 chmod 600 /certs/auth-user-service/approle/role_id /certs/auth-user-service/approle/secret_id
 chown "${HOST_UID:-0}:${HOST_GID:-0}" /certs/auth-user-service/approle/* 2>/dev/null || true
-
-
 
 
 # ------- Phase 9: (optional) mTLS per Zusatz-HCL aktivieren -------

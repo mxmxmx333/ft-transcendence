@@ -40,7 +40,7 @@ export function startGame(room: GameRoom) {
         id: room.guest.id,
         nickname: room.guest.nickname,
       },
-      isOwner: false, 
+      isOwner: false,
       success: true,
     };
 
@@ -130,9 +130,9 @@ function updateGameState(room: GameRoom) {
 
   // Oyun bitti mi kontrol et
   if (room.owner!.score >= 10 || room.guest!.score >= 10) {
-  endGame(room);
-  return; // Game loop'u durdur
-}
+    endGame(room);
+    return; // Game loop'u durdur
+  }
 }
 
 function handleCollisions(room: GameRoom) {

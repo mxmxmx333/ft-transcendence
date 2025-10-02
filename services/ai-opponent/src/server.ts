@@ -30,15 +30,15 @@ class AIServerClass {
 
       const socketManager = new SocketManager(roomId);
       const game = new PongGame(socketManager);
-      
+
       socketManager.setGameInstance(game);
 
       const instanceData: AIInstance = {
         socketManager,
         game,
-        createdAt: Date.now()
+        createdAt: Date.now(),
       };
-      
+
       this.aiInstances.set(roomId, instanceData);
 
       // Setup cleanup when game ends
@@ -52,10 +52,10 @@ class AIServerClass {
       return null;
     }
   }
-  
+
   public async removeAIInstance(roomId: string): Promise<boolean> {
     const instance = this.aiInstances.get(roomId);
-    
+
     if (!instance) {
       console.log(`[AIServer] No AI instance found for room: ${roomId}`);
       return false;
@@ -90,7 +90,7 @@ class AIServerClass {
   public getActiveInstances(): string[] {
     return Array.from(this.aiInstances.keys());
   }
-  
+
   public getStats() {
     return {
       activeInstances: this.aiInstances.size,
@@ -98,26 +98,26 @@ class AIServerClass {
       instances: Array.from(this.aiInstances.entries()).map(([roomId, instance]) => ({
         roomId,
         uptime: Date.now() - instance.createdAt,
-        createdAt: new Date(instance.createdAt).toISOString()
-      }))
+        createdAt: new Date(instance.createdAt).toISOString(),
+      })),
     };
   }
-  
+
   public async cleanupOldInstances(maxAgeMs: number = DEFAULT_INSTANCE_MAX_AGE): Promise<number> {
     const now = Date.now();
     const roomsToRemove: string[] = [];
-  
+
     for (const [roomId, instance] of this.aiInstances) {
       if (now - instance.createdAt > maxAgeMs) {
         roomsToRemove.push(roomId);
       }
     }
-  
+
     for (const roomId of roomsToRemove) {
       console.log(`[AIServer] Cleaning up old instance for room: ${roomId}`);
       await this.removeAIInstance(roomId);
     }
-  
+
     return roomsToRemove.length;
   }
 
@@ -135,8 +135,8 @@ class AIServerClass {
 dotenv.config();
 
 // Validate required environment variables
-export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM || 'https://localhost:3000';
-console.log(`[Server] Using API Gateway: ${apiGatewayUpstream}`);
+export const gameServiceUpstream = process.env.GAME_SERVICE_UPSTREAM || 'https://localhost:3000';
+console.log(`[Server] Using Game Service: ${gameServiceUpstream}`);
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const aiServer = new AIServerClass();
@@ -157,8 +157,7 @@ async function buildServer(): Promise<FastifyInstance> {
       },
     };
     console.log('[Server] ✅ SSL certificates found, starting with HTTPS');
-  }
-  else {
+  } else {
     console.warn('[Server] ⚠️ SSL certificates not found, starting without HTTPS');
   }
   const server = Fastify({
@@ -185,7 +184,7 @@ async function start() {
 
   server.get('/api/ai', async (request, reply) => {
     console.log('[Server] Received request at /api/ai/');
-    
+
     const roomId = request.headers['roomid'];
     if (!roomId || typeof roomId !== 'string') {
       return reply.status(400).send({ error: 'Missing or invalid roomId header' });
@@ -199,7 +198,7 @@ async function start() {
 
       // Connect and join room
       instance.socketManager.connect();
-      
+
       const socket = instance.socketManager.getSocket();
       const joinRoomHandler = () => {
         socket?.emit('join_room', { roomId });
@@ -215,7 +214,7 @@ async function start() {
       return {
         message: `AI opponent ready for room ${roomId}`,
         roomId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error(`[Server] Error creating AI instance for room ${roomId}:`, error);
@@ -234,7 +233,7 @@ async function start() {
     }
 
     const removed = await aiServer.removeAIInstance(roomId);
-    
+
     if (removed) {
       return { message: `AI instance for room ${roomId} removed` };
     } else {

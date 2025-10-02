@@ -11,13 +11,13 @@ export default fp(
       console.log(`Database path: ${dbPath}`);
 
       // ---->  unneccessairy because better-sqlite3 creates the file if it doesn't exist
-      // 
+      //
       // if (!fs.existsSync(dbPath)) {
       //   fs.writeFileSync(dbPath, '');
       //   console.log('New Database created at:', dbPath);
       // }
 
-      const db = new Database(dbPath, { verbose: console.log });
+      const db = new Database(dbPath, { verbose: console.debug });
 
       db.exec(`
   CREATE TABLE IF NOT EXISTS users (

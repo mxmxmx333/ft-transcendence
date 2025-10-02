@@ -38,7 +38,7 @@ export const DEFAULT_CONSTANTS: Constants = {
   winningScore: 10,
   playableHeight: 600,
   canvasWidth: 800,
-  canvasHeight: 600
+  canvasHeight: 600,
 };
 
 export interface GameState {
@@ -120,4 +120,3 @@ export interface AIModelFile {
   weightsData: SerializedWeights;
   performanceStats: PerformanceStats;
 }
-

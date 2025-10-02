@@ -3,9 +3,10 @@ import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { PaddleMovePayload, CreateRoomPayload } from './types/types';
-import { apiGatewayUpstream } from './server';
+import { apiGatewayUpstream, aiUpstream} from './server';
 import fs from 'node:fs';
 import path from 'path';
+
 
 // Neu: Undici für TLS/Dispatcher
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
@@ -26,7 +27,9 @@ try {
     setGlobalDispatcher(dispatcher);
     console.log(`[TLS] Using custom CA for outgoing HTTPS via Undici dispatcher: ${caPath}`);
   } else {
-    console.warn(`[TLS] CA file not found at ${caPath}. Outgoing HTTPS will use default trust store.`);
+    console.warn(
+      `[TLS] CA file not found at ${caPath}. Outgoing HTTPS will use default trust store.`
+    );
   }
 } catch (e) {
   console.warn(`[TLS] Failed to initialize Undici dispatcher with CA ${caPath}:`, e);
@@ -96,7 +99,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
     (async () => {
       try {
         // Node 18+: globalThis.fetch vorhanden – verwendet den globalen Undici-Dispatcher (mit CA)
-        await fetch(`${apiGatewayUpstream}/api/ai`, {
+        await fetch(`${aiUpstream}/api/ai`, {
           method: 'GET',
           headers: { roomid: roomId },
         });
@@ -104,22 +107,23 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
         console.error(`[Server] Error invoking AI service for room ${roomId}:`, error);
       }
     })();
-  }
-  else if (!payload.isRemote) {
+  } else if (!payload.isRemote) {
     try {
       gameRooms[roomId].owner = player;
       gameRooms[roomId].owner.nickname = 'Player1';
       let player2: Player = {
-        conn : socket,
-        id : '123450',
-        nickname : 'Player2',
-        score : 0,
-        paddleY : 250,
-        roomId : roomId
-      }
-      
+        conn: socket,
+        id: '123450',
+        nickname: 'Player2',
+        score: 0,
+        paddleY: 250,
+        roomId: roomId,
+      };
+
       gameRooms[roomId].guest = player2;
-      console.log(`[Server] Both players assigned in local room ${roomId}, starting game between ${gameRooms[roomId].owner.nickname} and ${gameRooms[roomId].guest.nickname}`);
+      console.log(
+        `[Server] Both players assigned in local room ${roomId}, starting game between ${gameRooms[roomId].owner.nickname} and ${gameRooms[roomId].guest.nickname}`
+      );
       startGame(gameRooms[roomId]);
     } catch (error) {
       console.error(`[Server] Error starting game in room ${gameRooms[roomId].id}:`, error);
