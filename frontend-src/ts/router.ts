@@ -1279,8 +1279,9 @@ function handleTournamentEnd(data: any): void {
   }, 5000);
 }
 
-// // Globale Funktionen für Socket Events registrieren
-// (window as any).updateTournamentPlayers = updateTournamentPlayers;
+// To-Do: das gescheit aufräumen und nur importieren
+// Globale Funktionen für Socket Events registrieren
+(window as any).updateTournamentPlayers = updateTournamentPlayers;
 (window as any).handleTournamentMatchStart = handleTournamentMatchStart;
-// (window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
-// (window as any).handleTournamentEnd = handleTournamentEnd;
+(window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
+(window as any).handleTournamentEnd = handleTournamentEnd;

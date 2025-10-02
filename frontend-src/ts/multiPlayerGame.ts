@@ -301,6 +301,29 @@ export class PongGame {
     this.drawGameOver(winner);
   }
 
+  public matchEnd(message: any) {
+    this.gameRunning = false;
+    console.log('Match end message:', message);
+    let winner =
+      message.winner === 'owner'
+        ? this.isPlayer1
+          ? 'YOU'
+          : this.opponentNickname
+        : this.isPlayer1
+          ? this.opponentNickname
+          : 'YOU';
+    if (!this.isRemote && !this.isSinglePlayer) {
+      if (winner === 'YOU') {
+        winner = 'Player1';
+      } else {
+        winner = 'Player2';
+      }
+    }
+    console.log('Match ended. Winner:', winner);
+    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
+    this.drawMatchOver(winner);
+  }
+
   public handleOpponentDisconnected() {
     this.updateStatus('Opponent disconnected');
     setTimeout(() => {
@@ -435,6 +458,33 @@ export class PongGame {
   this.ctx.font = '24px Arial';
   this.ctx.fillText(
     'Game will return to lobby in 5 seconds',
+    this.canvas.width / 2,
+    this.canvas.height / 2 + 80
+  );
+
+  // 5 saniye sonra lobby'e dön
+  setTimeout(() => {
+    this.resetGame();
+    document.querySelector('.game-page')?.classList.add('hidden');
+    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+  }, 5000);
+}
+
+  private drawMatchOver(winner: string) {
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+  this.ctx.fillStyle = '#ffffff';
+  this.ctx.font = 'bold 48px Arial';
+  this.ctx.textAlign = 'center';
+  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+  this.ctx.font = 'bold 36px Arial';
+  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+
+  this.ctx.font = '24px Arial';
+  this.ctx.fillText(
+    'Next Match will start in 5 seconds',
     this.canvas.width / 2,
     this.canvas.height / 2 + 80
   );

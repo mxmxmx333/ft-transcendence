@@ -200,13 +200,17 @@ export class SocketManager {
 
   this.socket.on('tournament_match_start', (data: any) => {
     console.log('Tournament match starting:', data);
+    //in router
     if ((window as any).handleTournamentMatchStart) {
       (window as any).handleTournamentMatchStart(data);
     }
   });
 
-  this.socket.on('tournament_match_ended', (data: any) => {
+  this.socket.on('tournament_match_end', (data: any) => {
     console.log('Tournament match ended:', data);
+    // in multiplayer
+    this.gameInstance?.matchEnd(data);
+    //in router
     if ((window as any).handleTournamentMatchEnd) {
       (window as any).handleTournamentMatchEnd(data);
     }

@@ -12,3 +12,8 @@
 --> im gameservice wird unterschiedne wer spielt und wer nicht --> dementsprechend wird input behandelt oder net
 --> Gewinner spielt das nächste Spiel gegen den/die nächsten
 
+
+bei match-ende schicken tournament_match_end --> nicht game_over!!
+--> im backend anpassen
+--> im frontend richtig anpassen (richtige message, canvas anpassen und evtl neues erstellen??)
+

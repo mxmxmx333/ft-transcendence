@@ -204,15 +204,17 @@ export function endGame(room: GameRoom) {
 
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
-  io.to(room.id).emit('game_over', {
-    winner,
-    finalScore: {
-      owner: room.owner!.score,
-      guest: room.guest!.score,
-    },
-    message: `Game over! ${winnerNickname} wins!`,
-  });
-  
+  if (room.gameType !== 'tournament' ) {
+    io.to(room.id).emit('game_over', {
+      winner,
+      finalScore: {
+        owner: room.owner!.score,
+        guest: room.guest!.score,
+      },
+      message: `Game over! ${winnerNickname} wins!`,
+    });
+  }
+
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;

@@ -1,7 +1,6 @@
 import { Player, GameRoom, tournamentRooms, TournamentRoom, gameRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
-import { start } from 'node:repl';
 
 export function startTournament(roomId: string) {
     const room = tournamentRooms[roomId];
@@ -123,7 +122,7 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
     tournamentRoom.gameRoom = null;
 
     try {
-        io.to(tournamentRoom.id).emit('tournament_match_ended', {
+        io.to(tournamentRoom.id).emit('tournament_match_end', {
             winner: winnerPlayer.id,
             loser: loserPlayer.id,
             message: `${winnerPlayer.nickname} won against ${loserPlayer.nickname}!`
@@ -131,10 +130,10 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
     } catch (error) {
         console.log(`[Server] Tournament match ended broadcast failed for room ${tournamentRoom.id}:`, error);
     }
-    startMatch(tournamentRoom);
-    
-    // ✅ Nächsten Match nach kurzer Pause starten
-    // setTimeout(() => {
-    //     startMatch(tournamentRoom!);
-    // }, 2000);
+    // startMatch(tournamentRoom);
+
+    // ✅ Nächstes Match nach kurzer Pause starten
+    setTimeout(() => {
+        startMatch(tournamentRoom!);
+    }, 2000);
 }
