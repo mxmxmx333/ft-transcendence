@@ -119,8 +119,8 @@ impl App {
 
                 Some(Ok(event)) = reader.next().fuse() => {
                     match event {
-                      crossterm::event::Event::Key(_) => {
-                          match self.current_page.key_event(&event) {
+                      crossterm::event::Event::Key(key) => {
+                          match self.current_page.key_event(&event, key.kind) {
                               Some(PageResults::Login((host, email, password))) => {
                                 let host = host.clone();
                                 let email = email.clone();
@@ -257,7 +257,7 @@ impl App {
 
 fn get_endpoint(host: &str) -> String {
     if cfg!(debug_assertions) {
-        format!("ws://{}:3000/socket.io/?EIO=4&transport=websocket", host)
+        format!("wss://{}:3000/socket.io/?EIO=4&transport=websocket", host)
     } else {
         format!("wss://{}:8443/socket.io/?EIO=4&transport=websocket", host)
     }
