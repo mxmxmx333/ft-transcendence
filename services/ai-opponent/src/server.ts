@@ -135,8 +135,8 @@ class AIServerClass {
 dotenv.config();
 
 // Validate required environment variables
-export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM || 'https://localhost:3000';
-console.log(`[Server] Using API Gateway: ${apiGatewayUpstream}`);
+export const gameServiceUpstream = process.env.GAME_SERVICE_UPSTREAM || 'https://localhost:3000';
+console.log(`[Server] Using Game Service: ${gameServiceUpstream}`);
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const aiServer = new AIServerClass();

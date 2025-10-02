@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { PongGame } from './game';
 import type { GameStartPayload, ServerToClientEvents } from './socket-interfaces';
 import type { ClientToServerEvents } from './socket-interfaces';
-import { apiGatewayUpstream } from './server';
+import { gameServiceUpstream } from './server';
 
 export class SocketManager {
   // private static instance: SocketManager;
@@ -30,7 +30,7 @@ export class SocketManager {
   }
 
   private createSocket(): void {
-    this.socket = io(apiGatewayUpstream || 'https://localhost:3000', {
+    this.socket = io(gameServiceUpstream || 'https://localhost:3000', {
       path: '/socket.io',
       transports: ['websocket'],
       autoConnect: false,
