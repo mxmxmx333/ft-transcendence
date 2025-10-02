@@ -1,10 +1,11 @@
 import Fastify, { fastify } from 'fastify';
-import fastifyStatic from '@fastify/static';
 import path from 'path';
-import cors from '@fastify/cors';
 import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import fastifyStatic from '@fastify/static';
+import vaultClient from './vault-client';
+import vAuth from './auth';
 dotenv.config();
 
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
@@ -61,6 +62,71 @@ async function buildServer() {
         : {}),
     },
     ...httpsOptions,
+  });
+  // Register plugins
+  await server.register(vaultClient);
+  await server.register(vAuth);
+
+  server.addHook('preHandler', async (request, reply) => {
+    if (request.url.startsWith('/socket.io')) {
+      server.log.info('🔍 Socket.IO request detected');
+      server.log.info(`Headers: ${JSON.stringify(request.headers, null, 2)}`);
+      server.log.info(`URL: ${request.url}`);
+      server.log.info(`Method: ${request.method}`);
+      server.log.info(`Auth Header: ${request.headers.authorization || 'MISSING'}`);
+    }
+    // Definiere welche Routen Auth benötigen
+    const protectedRoutes = [
+      '/api/profile',
+      '/api/user',
+      '/api/users',
+      '/api/friends',
+      '/api/game',
+      '/socket.io',
+    ];
+    const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));
+
+    if (!needsAuth) {
+      return;
+    }
+
+  let token = null;
+
+  // 1. Versuche Authorization Header (für HTTP API Calls)
+  const authHeader = request.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+    server.log.info('🔍 Token from Authorization header');
+  }
+  
+  // 2. Für Socket.IO: Token aus Query Parameter
+  if (!token && request.url.startsWith('/socket.io')) {
+    const url = new URL(request.url, 'http://localhost');
+    token = url.searchParams.get('token');
+    server.log.info(`🔍 Socket.IO token from query: ${token ? 'FOUND' : 'MISSING'}`);
+  }
+
+  if (!token) {
+    server.log.warn(`❌ No token found for ${request.url}`);
+    return reply.code(401).send({
+      error: 'Authorization token missing',
+      message: 'Please provide a valid Bearer token or token query parameter',
+    });
+  }
+
+    try {
+      const user = await server.vAuth.verify(token);
+
+      request.headers['x-user-id'] = user.sub;
+      request.headers['x-user-nickname'] = user.nickname;
+      server.log.info(`✅ Authorized user: ${user.nickname} (${user.sub})`);
+    } catch (error) {
+      server.log.warn(`❌ Auth failed: ${error}`);
+      return reply.code(401).send({
+        error: 'Invalid token',
+        message: 'Token verification failed',
+      });
+    }
   });
 
   // === ROUTE GAME SERVICE ===

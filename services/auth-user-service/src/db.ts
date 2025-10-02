@@ -17,7 +17,7 @@ export default fp(
       //   console.log('New Database created at:', dbPath);
       // }
 
-      const db = new Database(dbPath, { verbose: console.log });
+      const db = new Database(dbPath, { verbose: console.debug });
 
       db.exec(`
   CREATE TABLE IF NOT EXISTS users (

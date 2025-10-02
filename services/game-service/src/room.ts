@@ -3,9 +3,10 @@ import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { PaddleMovePayload, CreateRoomPayload } from './types/types';
-import { apiGatewayUpstream } from './server';
+import { apiGatewayUpstream, aiUpstream} from './server';
 import fs from 'node:fs';
 import path from 'path';
+
 
 // Neu: Undici für TLS/Dispatcher
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
@@ -98,7 +99,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
     (async () => {
       try {
         // Node 18+: globalThis.fetch vorhanden – verwendet den globalen Undici-Dispatcher (mit CA)
-        await fetch(`${apiGatewayUpstream}/api/ai`, {
+        await fetch(`${aiUpstream}/api/ai`, {
           method: 'GET',
           headers: { roomid: roomId },
         });

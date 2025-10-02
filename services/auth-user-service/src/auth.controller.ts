@@ -73,10 +73,9 @@ export default class AuthController {
       });
 
       // jwt for each
-      const token = this.fastify.jwt.sign({
+      const token = await this.fastify.vAuth.sign({
+        sub: user.id?.toString(),
         nickname: user.nickname,
-        id: user.id,
-        email: user.email,
       });
 
       // status codes have to be correct :/
@@ -126,10 +125,9 @@ export default class AuthController {
       // Update user status to online
       this.authService.updateUserStatus(user.id!, 'online');
 
-      const token = this.fastify.jwt.sign({
+      const token = await this.fastify.vAuth.sign({
+        sub: user.id?.toString(),
         nickname: user.nickname,
-        id: user.id,
-        email: user.email,
       });
 
       return reply.send({
@@ -155,7 +153,12 @@ export default class AuthController {
   // ======= NEW PROFILE METHODS =======
   async getProfile(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const user = await this.authService.getUserById(decoded.id);
 
       if (!user) {
@@ -182,7 +185,12 @@ export default class AuthController {
   // === NEW METHODS PLS DONT DELETE THERE ARE STILL BUGS
   async getUserById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const decodedraw = await request.server.vAuth.verify(token);
+      const decoded: { id: number; nickname: string } = decodedraw as any;
       const userId = parseInt(request.params.id);
 
       if (isNaN(userId)) {
@@ -203,7 +211,12 @@ export default class AuthController {
   }
   async getUserByIdAlt(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const userId = parseInt(request.params.id);
 
       if (isNaN(userId)) {
@@ -224,7 +237,12 @@ export default class AuthController {
   }
   async getFriendRequests(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const requests = this.authService.getFriendRequests(decoded.id);
 
       return reply.send({ requests });
@@ -285,10 +303,14 @@ export default class AuthController {
       }
 
       const token = authHeader.substring(7);
-      let decoded: any;
-
+      if (!token) {
+        console.log('No token found after Bearer');
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      let decoded: { id: number; nickname: string };
       try {
-        decoded = this.fastify.jwt.verify(token);
+        const extracted = await request.server.vAuth.verify(token);
+        decoded = extracted as any;
       } catch (jwtError) {
         console.error('JWT verification error:', jwtError);
         return reply.status(401).send({ error: 'Invalid token' });
@@ -351,7 +373,12 @@ export default class AuthController {
 
   async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const { nickname, avatar, status } = request.body;
       let updated = false;
 
@@ -424,7 +451,12 @@ export default class AuthController {
     reply: FastifyReply
   ) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const { q } = request.query;
 
       if (!q || q.trim().length < 2) {
@@ -446,7 +478,12 @@ export default class AuthController {
     reply: FastifyReply
   ) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const { targetUserId } = request.body;
 
       if (!targetUserId || targetUserId === decoded.id) {
@@ -472,7 +509,11 @@ export default class AuthController {
     reply: FastifyReply
   ) {
     try {
-      await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      await request.server.vAuth.verify(token);
       const { friendshipId, response } = request.body;
 
       if (!friendshipId || !['accepted', 'declined'].includes(response)) {
@@ -495,7 +536,12 @@ export default class AuthController {
 
   async getFriends(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const friends = await this.authService.getFriends(decoded.id);
       return reply.send({ friends });
     } catch (error) {
@@ -518,7 +564,12 @@ export default class AuthController {
     reply: FastifyReply
   ) {
     try {
-      const decoded = await request.jwtVerify<{ id: number }>();
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const extracted = await request.server.vAuth.verify(token);
+      let decoded: { id: number; nickname: string } = extracted as any;
       const friendId = parseInt(request.params.friendId);
 
       if (!friendId || friendId === decoded.id) {

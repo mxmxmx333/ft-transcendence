@@ -8,7 +8,6 @@ import fs from 'fs';
 import vaultClient from './vault-client';
 import vAuth from './auth';
 
-
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
