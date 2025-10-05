@@ -1,8 +1,11 @@
 export default interface User {
   id?: number;
-  nickname: string;
-  email: string;
-  password_hash: string;
+  auth_method: string;
+  nickname: string | null;
+  email: string | null;
+  password_hash: string | null;
+  external_id: number | null;
+  totp_secret: string | null;
   avatar?: string;
   status?: string;
   created_at?: string;

@@ -3,13 +3,18 @@ import path from 'path';
 import dbConnector from './db';
 import AuthService from './auth.service';
 import AuthController from './auth.controller';
-import db from './db';
 import fs from 'fs';
 import vaultClient from './vault-client';
 import vAuth from './auth';
+import OAuthService from './oauth';
+import { SqliteError } from 'better-sqlite3';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
+export const frontendUrl = process.env.FRONTEND_URL;
+if (!frontendUrl) {
+  throw new Error('FRONTEND_URL environment variable is not set');
+}
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const certDir = process.env.CERT_DIR || '../certs';
@@ -36,14 +41,14 @@ async function buildServer() {
       level: 'debug',
       ...(isDevelopment
         ? {
-            transport: {
-              target: 'pino-pretty',
-              options: {
-                colorize: true,
-                singleLine: false,
-              },
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              singleLine: false,
             },
-          }
+          },
+        }
         : {}),
     },
     ...httpsOptions,
@@ -73,6 +78,7 @@ interface LoginBody {
   email: string;
   password: string;
 }
+
 // I added new features don't delete
 interface UpdateProfileBody {
   nickname?: string;
@@ -92,7 +98,8 @@ interface FriendResponseBody {
 async function start() {
   const server = await buildServer();
   const authService = new AuthService(server);
-  const authController = new AuthController(authService, server);
+  const oAuthService = new OAuthService();
+  const authController = new AuthController(authService, oAuthService, server);
 
   server.post<{ Body: SignupBody }>('/api/signup', (request, reply) =>
     authController.signup(request, reply)
@@ -101,13 +108,44 @@ async function start() {
   server.post<{ Body: LoginBody }>('/api/login', async (request, reply) => {
     // 1) Logge eingehende Payload
     request.log.info({ headers: request.headers }, 'Incoming login request headers');
-    request.log.info({ body: request.body }, 'Incoming login request');
 
     // 2) Rufe deinen Controller auf
     const result = await authController.login(request, reply);
 
     // 3) (Optional) Logge die Antwort
     request.log.info({ result }, 'Login response');
+
+    return result;
+  });
+
+  server.get('/api/auth/42', async (request, reply) => {
+    if (!oAuthService.envVariablesConfigured()) {
+      return reply.status(500).send({
+        error: 'OAuth settings not configured in .env file'
+      });
+    }
+
+    request.log.info({headers: request.headers}, 'Incoming oauth request headers');
+
+    const result = await authController.oAuthLogin(request, reply);
+
+    request.log.info({result}, 'OAuth Login response');
+
+    return result;
+  });
+
+  server.get('/api/auth/42/callback', async (request, reply) => {
+    if (!oAuthService.envVariablesConfigured()) {
+      return reply.status(500).send({
+        error: 'OAuth settings not configured in .env file'
+      });
+    }
+
+    request.log.info({headers: request.headers}, 'Incoming oauth callback headers');
+
+    const result = await authController.oAuthLoginCallback(request, reply);
+
+    request.log.info({result}, 'OAuth Login callback response');
 
     return result;
   });
@@ -129,7 +167,7 @@ async function start() {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
       const decoded = await req.server.vAuth.verify(token);
-      const user = await authService.getUserById(Number(decoded.sub));
+      const user = authService.getUserById(Number(decoded.sub));
       if (!user) {
         return reply.status(404).send({ error: 'User not found' });
       }
@@ -140,6 +178,43 @@ async function start() {
     } catch (err) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
+  });
+
+  server.post<{ Body: { nickname: string } }>('/api/profile/set-nickname', async (request, reply) => {
+    request.log.info({ headers: request.headers }, 'Incoming profile request');
+    try {
+      const token = request.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      const decoded = await request.server.vAuth.verify(token);
+      if (!decoded.nickname_required) {
+        return reply.status(403).send({ error: 'Setting Nickname only allowed during sign up.' });
+      }
+
+      const user = authService.getUserById(Number(decoded.sub));
+      if (!user || user.id === undefined) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+
+      try {
+        const result = authService.setNickname(user.id, request.body.nickname);
+        const signToken = await authController.signUserInfos(result);
+
+        return reply.send({ success: true, token: signToken, user: result });
+      } catch (error) {
+        if (error instanceof SqliteError) {
+          if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return reply.send({ success: false, error: 'Nickname already in use' });
+          }
+          return reply.send({ success: false, error: 'Unknown database error' });
+        }
+        return reply.send({ success: false, error: 'Signing error' });
+      }
+    } catch (err) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+
   });
   // New don't delete pls
 

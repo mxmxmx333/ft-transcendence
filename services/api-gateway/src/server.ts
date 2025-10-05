@@ -78,6 +78,7 @@ async function buildServer() {
     // Definiere welche Routen Auth benötigen
     const protectedRoutes = [
       '/api/profile',
+      '/api/profile/set-nickname',
       '/api/user',
       '/api/users',
       '/api/friends',
@@ -98,7 +99,7 @@ async function buildServer() {
     token = authHeader.slice(7);
     server.log.info('🔍 Token from Authorization header');
   }
-  
+
   // 2. Für Socket.IO: Token aus Query Parameter
   if (!token && request.url.startsWith('/socket.io')) {
     const url = new URL(request.url, 'http://localhost');
@@ -117,8 +118,14 @@ async function buildServer() {
     try {
       const user = await server.vAuth.verify(token);
 
+      if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
+      }
+
       request.headers['x-user-id'] = user.sub;
-      request.headers['x-user-nickname'] = user.nickname;
+      if (user.nickname !== null) {
+        request.headers['x-user-nickname'] = user.nickname;
+      }
       server.log.info(`✅ Authorized user: ${user.nickname} (${user.sub})`);
     } catch (error) {
       server.log.warn(`❌ Auth failed: ${error}`);
@@ -219,6 +226,20 @@ async function buildServer() {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/login',
     rewritePrefix: '/api/login',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/42',
+    rewritePrefix: '/api/auth/42',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/42/callback',
+    rewritePrefix: '/api/auth/42/callback',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
