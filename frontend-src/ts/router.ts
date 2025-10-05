@@ -1,4 +1,4 @@
-import { isAuthenticated } from './auth.js';
+import { isAuthenticated, isPreAuthenticated } from './auth.js';
 import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
@@ -10,6 +10,7 @@ type Route = {
   path: string;
   view: () => void;
   authRequired?: boolean;
+  preAuthRequired?: boolean;
 };
 
 const routes: Route[] = [
@@ -53,6 +54,15 @@ const routes: Route[] = [
     view: showUserProfilePage,
     authRequired: true,
   },
+  {
+    path: '/oAuthCallback',
+    view: showOAuthResultPage,
+  },
+  {
+    path: '/choose-nickname',
+    view: showNicknamePage,
+    preAuthRequired: true,
+  }
 ];
 
 export function manageNavbar() {
@@ -136,6 +146,8 @@ function showOptionsPage() {
   document.querySelector('.options-page')?.classList.remove('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 
   loadOptionsData();
   setupOptionsPageListeners(); // Bu satırı ekleyin
@@ -170,6 +182,8 @@ function showUserSearchPage() {
   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 
   // Search sayfasını göster
   document.querySelector('.user-search-page')?.classList.remove('hidden');
@@ -282,7 +296,7 @@ function renderSearchResults(users: any[], container: HTMLElement) {
       return `
             <div class="user-result flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors border border-gray-700">
                 <div class="flex items-center space-x-4">
-                    <img src="/imgs/avatars/${user.avatar || 'default'}.png" 
+                    <img src="/imgs/avatars/${user.avatar || 'default'}.png"
                          class="w-12 h-12 rounded-full border-2 border-gray-600"
                          onerror="this.src='/imgs/avatars/default.png'">
                     <div>
@@ -477,6 +491,8 @@ function showUserProfilePage() {
   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.remove('hidden');
 
   // URL'den user ID'yi al ve profil verilerini yükle
@@ -487,6 +503,78 @@ function showUserProfilePage() {
     // Geçersiz user ID, search sayfasına yönlendir
     navigateTo('/search');
   }
+}
+
+async function showOAuthResultPage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const state = urlParams.get('state');
+
+  manageNavbar();
+  document.querySelector('.login-page')?.classList.add('hidden');
+  document.querySelector('.profile-page')?.classList.add('hidden');
+  document.querySelector('.game-page')?.classList.add('hidden');
+  document.querySelector('.newgame-page')?.classList.add('hidden');
+  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  document.querySelector('.options-page')?.classList.add('hidden');
+  document.querySelector('.user-search-page')?.classList.add('hidden');
+  document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
+
+  const oauth_result_header = document.getElementById('oauth-result-header');
+  const oauth_result_text= document.getElementById('oauth-result-text');
+
+  let header = 'Authentication Error';
+  let text = 'Error when trying to login through 42.';
+
+  if (code !== null && state !== null) {
+    const result = await fetch('/api/auth/42/callback?' + urlParams.toString());
+    if (result.ok) {
+      const data = await result.json();
+
+      console.log(data);
+      if (data.token && data.action_required !== false) {
+        localStorage.setItem('preAuthToken', data.token);
+        const location = data.action_required === 'nickname' ? '/choose-nickname' : data.action_required === '2fa' ? '/2fa' : null;
+        if (location) {
+          window.location.href = location;
+          return;
+        }
+      } else if (data.token && data.action_required === false) {
+        // TODO: Check if the user should be redirected back to CLI instead of setting it in the browser
+        localStorage.setItem('authToken', data.token);
+        navigateTo('/profile');
+        return;
+      } else if (!data.token && isAuthenticated()) {
+        navigateTo('/profile');
+        return;
+      }
+    }
+  }
+
+  if (oauth_result_header) {
+    oauth_result_header.innerText = header;
+  }
+
+  if (oauth_result_text) {
+    oauth_result_text.innerText = text;
+  }
+
+  document.querySelector('.oauth-result-page')?.classList.remove('hidden');
+}
+
+function showNicknamePage() {
+  manageNavbar();
+  document.querySelector('.login-page')?.classList.add('hidden');
+  document.querySelector('.profile-page')?.classList.add('hidden');
+  document.querySelector('.game-page')?.classList.add('hidden');
+  document.querySelector('.newgame-page')?.classList.add('hidden');
+  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  document.querySelector('.options-page')?.classList.add('hidden');
+  document.querySelector('.user-search-page')?.classList.add('hidden');
+  document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.remove('hidden');
 }
 
 async function loadUserProfileData(userId: number) {
@@ -633,6 +721,8 @@ function showLiveChat() {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
 function showStatistics() {
@@ -649,6 +739,8 @@ function showStatistics() {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
 function showTournamentPage() {
@@ -665,6 +757,8 @@ function showTournamentPage() {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 function showAuthPage() {
   const loginPage = document.querySelector('.login-page');
@@ -679,6 +773,8 @@ function showAuthPage() {
   gamePage?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
 function showProfilePage() {
@@ -700,6 +796,8 @@ function showProfilePage() {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 
   loadProfileData();
 }
@@ -718,6 +816,8 @@ function showGamePage() {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
 export function navigateTo(path: string) {
@@ -753,6 +853,11 @@ function handleRouting() {
     return;
   }
 
+  if (route.preAuthRequired && !isPreAuthenticated()) {
+    navigateTo('/');
+    return;
+  }
+
   route.view();
 }
 
@@ -775,6 +880,33 @@ document.addEventListener('DOMContentLoaded', () => {
     optionsBtn.addEventListener('click', (e) => {
       e.preventDefault();
       navigateTo('/options');
+    });
+  }
+
+  const remoteAuthButton = document.getElementById('remote-auth-btn');
+  if (remoteAuthButton) {
+    remoteAuthButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const result = await fetch('/api/auth/42');
+      if (!result.ok) {
+        navigateTo('/oAuthCallback');
+      } else {
+        const { url }= await result.json();
+        if (!url) {
+          navigateTo('/oAuthCallback');
+        } else {
+          window.location.href = url;
+        }
+      }
+    });
+  }
+
+  const loginScreenBtn = document.getElementById('loginscreen-btn');
+  if (loginScreenBtn) {
+    loginScreenBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateTo('/');
     });
   }
 
@@ -846,15 +978,17 @@ async function loadProfileData() {
 
     const data = await response.json();
 
-    if (!data.nickname || !data.email) {
+    if (!data.nickname) {
       throw new Error('Invalid profile data received');
     }
+
+    const email = data.email ?? 'N/A (Logged in through 42)';
 
     const nicknameElement = document.getElementById('profile-nickname');
     const emailElement = document.getElementById('profile-email');
 
     if (nicknameElement) nicknameElement.textContent = data.nickname;
-    if (emailElement) emailElement.textContent = data.email;
+    if (emailElement) emailElement.textContent = email;
   } catch (error) {
     console.error('Profile data load error:', error);
     localStorage.removeItem('authToken');
@@ -898,6 +1032,8 @@ function showMultiplayerLobby() {
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {

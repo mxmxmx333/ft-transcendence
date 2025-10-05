@@ -1,5 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import AuthService from './auth.service';
+import OAuthService, { OAuthCallbackRequestSchema, OAuthError, OAuthRequestSchema } from './oauth';
+import User from './user';
+import { frontendUrl } from './server';
 
 interface SignupBody {
   nickname: string;
@@ -35,6 +38,7 @@ export default class AuthController {
   private fastify: any;
   constructor(
     private authService: AuthService,
+    private oAuthService: OAuthService,
     fastifyInstance: any
   ) {
     this.fastify = fastifyInstance;
@@ -52,7 +56,7 @@ export default class AuthController {
           details: ['nickname', 'email', 'password'],
         });
       }
-      const existingUser = await this.authService.getUserByEmail(email);
+      const existingUser = this.authService.getUserByEmail(email);
       if (existingUser) {
         return reply.status(409).send({
           error: 'Bu email zaten kayıtlı',
@@ -64,24 +68,25 @@ export default class AuthController {
       const hashedPassword = await this.fastify.bcrypt.hash(password, 10);
 
       // We need to expend user's variables.
-      const user = await this.authService.createUser({
+      const user = this.authService.createUser({
         nickname,
+        auth_method: 'local',
         email,
         password_hash: hashedPassword,
+        external_id: null,
+        totp_secret: null,
         avatar: 'default',
         status: 'online',
       });
 
       // jwt for each
-      const token = await this.fastify.vAuth.sign({
-        sub: user.id?.toString(),
-        nickname: user.nickname,
-      });
+      const token = await this.signUserInfos(user);
 
       // status codes have to be correct :/
       return reply.status(201).send({
         success: true,
         token,
+        action_required: false,
         user: {
           id: user.id,
           nickname: user.nickname,
@@ -106,7 +111,7 @@ export default class AuthController {
     const { email, password } = request.body;
 
     try {
-      const user = await this.authService.getUserByEmail(email);
+      const user = this.authService.getUserByEmail(email);
       if (!user) {
         return reply.status(401).send({
           error: 'Invalid credentials',
@@ -125,14 +130,22 @@ export default class AuthController {
       // Update user status to online
       this.authService.updateUserStatus(user.id!, 'online');
 
-      const token = await this.fastify.vAuth.sign({
-        sub: user.id?.toString(),
-        nickname: user.nickname,
-      });
+      this.fastify.log.error(user);
+      const token = await this.signUserInfos(user);
+      const action_required = user.nickname === null ? 'nickname' : user.totp_secret !== null ? '2fa' : false;
+
+      if (action_required !== false) {
+        return reply.send({
+          success: true,
+          token,
+          action_required,
+        });
+      }
 
       return reply.send({
         success: true,
         token,
+        action_required,
         user: {
           id: user.id,
           nickname: user.nickname,
@@ -150,6 +163,107 @@ export default class AuthController {
     }
   }
 
+  async oAuthLogin(request: FastifyRequest, reply: FastifyReply) {
+    const result = await OAuthRequestSchema.safeParseAsync(request.query);
+
+    if (!result.success) {
+      return reply.code(400).send(result.error);
+    }
+
+    const state = this.oAuthService.generateRandomState(result.data.cli);
+
+    const callbackUrl = frontendUrl + '/oAuthCallback';
+
+    const url = new URL("https://api.intra.42.fr/oauth/authorize");
+    url.searchParams.append('client_id', this.oAuthService.oauth_client_id!);
+    url.searchParams.append('redirect_uri', callbackUrl);
+    url.searchParams.append('scope', 'public');
+    url.searchParams.append('state', state);
+    url.searchParams.append('response_type', 'code');
+
+    return reply.send({ url: url.toString() });
+  }
+
+  async oAuthLoginCallback(request: FastifyRequest, reply: FastifyReply) {
+    const result = await OAuthCallbackRequestSchema.safeParseAsync(request.query);
+
+    if (!result.success) {
+      return reply.code(400).send(result.error);
+    }
+
+    try {
+      const { access_token, client_type } = await this.oAuthService.fetchAccessToken(result.data);
+      const profileInfos = await this.oAuthService.fetchProfileInfos(access_token);
+
+      const user = this.authService.getUserByExternalId(profileInfos.id);
+
+      if (user) {
+        this.authService.updateUserStatus(user.id!, 'online');
+
+        const token = await this.signUserInfos(user);
+        const action_required = user.nickname === null ? 'nickname' : false;
+
+        if (action_required !== false) {
+          return reply.send({
+            success: true,
+            token,
+            action_required,
+          });
+        }
+
+        return reply.send({
+          success: true,
+          token,
+          action_required,
+          user: {
+            id: user.id,
+            nickname: user.nickname,
+            email: user.email,
+            avatar: user.avatar,
+            status: 'online',
+          },
+        });
+      }
+
+      const newUser = this.authService.createUser({
+        auth_method: 'remote',
+        nickname: null,
+        email: null,
+        password_hash: null,
+        external_id: profileInfos.id,
+        totp_secret: null,
+        avatar: 'default',
+        status: 'online',
+      });
+
+      const token = await this.signUserInfos(newUser);
+
+      return reply.status(201).send({
+        success: true,
+        token,
+        action_required: 'nickname',
+      });
+    } catch (error) {
+      this.fastify.log.error(error);
+      if (error instanceof OAuthError) {
+        return reply.code(error.code).send(error.message);
+      }
+
+      return reply.code(500).send(error);
+    }
+  }
+
+  async signUserInfos(user: User) {
+      const token = await this.fastify.vAuth.sign({
+        sub: user.id?.toString(),
+        nickname: user.nickname,
+        nickname_required: user.nickname === null,
+        totp_required: user.totp_secret !== null,
+      });
+
+      return token;
+  }
+
   // ======= NEW PROFILE METHODS =======
   async getProfile(request: FastifyRequest, reply: FastifyReply) {
     try {
@@ -159,14 +273,14 @@ export default class AuthController {
       }
       const extracted = await request.server.vAuth.verify(token);
       let decoded: { id: number; nickname: string } = extracted as any;
-      const user = await this.authService.getUserById(decoded.id);
+      const user = this.authService.getUserById(decoded.id);
 
       if (!user) {
         return reply.status(404).send({ error: 'User not found' });
       }
 
       const gameStats = await this.authService.getUserGameStats(decoded.id);
-      const friendsCount = await this.authService.getFriends(decoded.id).length;
+      const friendsCount = this.authService.getFriends(decoded.id).length;
 
       return reply.send({
         id: user.id,
@@ -384,7 +498,7 @@ export default class AuthController {
 
       if (nickname) {
         try {
-          const success = await this.authService.updateUserNickname(decoded.id, nickname);
+          const success = this.authService.updateUserNickname(decoded.id, nickname);
           if (!success) {
             return reply.status(400).send({ error: 'Failed to update nickname' });
           }
@@ -402,7 +516,7 @@ export default class AuthController {
         if (!availableAvatars.includes(avatar)) {
           return reply.status(400).send({ error: 'Invalid avatar selection' });
         }
-        const success = await this.authService.updateUserAvatar(decoded.id, avatar);
+        const success = this.authService.updateUserAvatar(decoded.id, avatar);
         if (success) updated = true;
       }
 
@@ -411,7 +525,7 @@ export default class AuthController {
         if (!validStatuses.includes(status)) {
           return reply.status(400).send({ error: 'Invalid status' });
         }
-        const success = await this.authService.updateUserStatus(decoded.id, status);
+        const success = this.authService.updateUserStatus(decoded.id, status);
         if (success) updated = true;
       }
 
@@ -419,7 +533,7 @@ export default class AuthController {
         return reply.status(400).send({ error: 'No valid updates provided' });
       }
 
-      const updatedUser = await this.authService.getUserById(decoded.id);
+      const updatedUser = this.authService.getUserById(decoded.id);
       return reply.send({
         success: true,
         user: {
@@ -463,7 +577,7 @@ export default class AuthController {
         return reply.status(400).send({ error: 'Search term must be at least 2 characters' });
       }
 
-      const users = await this.authService.searchUsers(q.trim(), decoded.id);
+      const users = this.authService.searchUsers(q.trim(), decoded.id);
       return reply.send({ users });
     } catch (error) {
       if (error === 'Unauthorized') {
@@ -490,7 +604,7 @@ export default class AuthController {
         return reply.status(400).send({ error: 'Invalid target user' });
       }
 
-      const success = await this.authService.sendFriendRequest(decoded.id, targetUserId);
+      const success = this.authService.sendFriendRequest(decoded.id, targetUserId);
       if (!success) {
         return reply.status(400).send({ error: 'Failed to send friend request' });
       }
@@ -520,7 +634,7 @@ export default class AuthController {
         return reply.status(400).send({ error: 'Invalid request parameters' });
       }
 
-      const success = await this.authService.respondToFriendRequest(friendshipId, response);
+      const success = this.authService.respondToFriendRequest(friendshipId, response);
       if (!success) {
         return reply.status(400).send({ error: 'Failed to respond to friend request' });
       }
@@ -542,7 +656,7 @@ export default class AuthController {
       }
       const extracted = await request.server.vAuth.verify(token);
       let decoded: { id: number; nickname: string } = extracted as any;
-      const friends = await this.authService.getFriends(decoded.id);
+      const friends = this.authService.getFriends(decoded.id);
       return reply.send({ friends });
     } catch (error) {
       return reply.status(500).send({ error: 'Failed to get friends' });
@@ -576,7 +690,7 @@ export default class AuthController {
         return reply.status(400).send({ error: 'Invalid friend ID' });
       }
 
-      const success = await this.authService.removeFriend(decoded.id, friendId);
+      const success = this.authService.removeFriend(decoded.id, friendId);
       if (!success) {
         return reply.status(400).send({ error: 'Failed to remove friend' });
       }
