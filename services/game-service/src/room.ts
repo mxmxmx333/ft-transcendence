@@ -11,6 +11,7 @@ import path from 'path';
 // Neu: Undici für TLS/Dispatcher
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
 import { start } from 'node:repl';
+import { clear } from 'node:console';
 
 // === TLS / Custom CA für fetch ===
 const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
@@ -155,6 +156,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
       players: [player],
       lostPlayers: [],
       lastWinner: null,
+      matchCount: 0,
     };
     tournamentRooms[roomId] = room;
     socket.room = room;
@@ -174,6 +176,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   ////emit
   player.conn.emit('tournament_room_created', {
     roomId: player.roomId,
+    players: [{id: player.id, nickname: player.nickname}],
     success: true,
   });
 }
@@ -192,27 +195,46 @@ export function joinTournamentRoom(player: Player, roomId: string) {
     });
     return;
   }
-  if (!room.owner) {
-    console.log(`Player ${player.nickname} joining TournamentRoom ${roomId} as owner`);
-    room.owner = player;
-    player.roomId = roomId;
-    ////emit
-    io.to(roomId).emit('joined_tournament_room', {
-      roomId: room.id,
-      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
-      success: true,
-    });
-    console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id} as owner`);
-    return;
-  }
+
   if (room.players.length >= 5) {
     player.conn.emit('join_error', {
       message: 'TournamentRoom is full',
     });
     return;
   }
+
   room.players.push(player);
   console.log(`Player ${player.nickname} joining TournamentRoom ${roomId}`);
+
+  const cleanPlayers = room.players.map(player => ({
+    id: player.id,
+    nickname: player.nickname,
+    isOwner: player.id === room.owner?.id
+  }));
+
+  if (!room.owner) {
+    console.log(`Player ${player.nickname} joining TournamentRoom ${roomId} as owner`);
+    room.owner = player;
+    player.roomId = roomId;
+    
+    ////emit
+    io.to(roomId).emit('joined_tournament_room', {
+      roomId: room.id,
+      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+      players: cleanPlayers,
+      totalPlayers: cleanPlayers.length,
+      success: true,
+    });
+    io.to(roomId).emit('tournament_player_joined', {
+      roomId: room.id,
+      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+      players: cleanPlayers,
+      totalPlayers: cleanPlayers.length,
+      success: true,
+    });
+    console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id} as owner`);
+    return;
+  }
 
   player.roomId = roomId;
   player.conn.join(roomId);
@@ -220,6 +242,15 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   io.to(roomId).emit('joined_tournament_room', {
     roomId: room.id,
     message: `Player ${player.nickname} has joined the TournamentRoom`,
+    players: cleanPlayers,
+    totalPlayers: cleanPlayers.length,
+    success: true,
+  });
+  io.to(roomId).emit('tournament_player_joined', {
+    roomId: room.id,
+    message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+    players: cleanPlayers,
+    totalPlayers: cleanPlayers.length,
     success: true,
   });
   console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id}`);

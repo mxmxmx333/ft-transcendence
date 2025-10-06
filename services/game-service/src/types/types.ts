@@ -72,6 +72,7 @@ export interface TournamentRoom {
   players: Player[];  // Wartende Spieler
   lostPlayers: Player[];
   lastWinner: Player | null;
+  matchCount: number;
 
   // Game State nur während Match
   ownerMovement?: 'up' | 'down' | 'none';

@@ -136,10 +136,6 @@ export class SocketManager {
     });
 
     this.socket.on('game_state', (state: ServerToClientEvents['game_state']) => {
-      // console.log('Game state update:', state);
-      // console.log('Current game instance:', this.gameInstance);
-      // console.log('Is gameInstance null?', this.gameInstance === null);
-      // console.log('Socket ID:', this.socket?.id);
       this.gameInstance?.updateFromServer(state);
     });
   }
@@ -176,12 +172,12 @@ export class SocketManager {
 
   this.socket.on('tournament_room_created', (data: any) => {
     console.log('Tournament room created:', data);
-    this.resolvePendingOperation(data.roomId);
+    this.resolvePendingOperation(data);
   });
 
   this.socket.on('joined_tournament_room', (data: any) => {
     console.log('Joined tournament room:', data);
-    this.resolvePendingOperation(data.roomId);
+    this.resolvePendingOperation(data);
   });
 
   this.socket.on('tournament_players_updated', (data: any) => {
@@ -197,6 +193,21 @@ export class SocketManager {
     alert(`Tournament error: ${error.message}`);
   });
 
+  this.socket.on('tournament_player_joined', (data: any) => {
+    console.log('Player joined tournament:', data);
+    if ((window as any).updateTournamentPlayers) {
+      (window as any).updateTournamentPlayers(data.players || data.room?.players || []);
+    }
+  });
+
+  this.socket.on('tournament_player_left', (data: any) => {
+    console.log('Player left tournament:', data);
+    if ((window as any).updateTournamentPlayers) {
+      (window as any).updateTournamentPlayers(data.players || data.room?.players || []);
+    }
+  });
+
+
   this.socket.on('tournament_started', (data: any) => {
     console.log('Tournament started:', data);
     // Game start logic hier
@@ -205,21 +216,21 @@ export class SocketManager {
   this.socket.on('tournament_match_start', () => {
     console.log('Current game instance:', this.gameInstance);
     
-    // ✅ Reset game instance for new match
+    // Reset game instance for new match
     if (this.gameInstance) {
         console.log('🔄 Stopping previous game instance');
         this.gameInstance.stop();
         this.gameInstance = null;
     }
     
-    // ✅ Navigate to game page if not already there
+    // Navigate to game page if not already there
     const currentPath = window.location.hash;
     if (!currentPath.includes('#/pong')) {
         console.log('🔄 Navigating to game page for tournament match');
         window.location.hash = '#/pong';
     }
     
-    // ✅ Call window function like the other tournament events
+    // Call window function like the other tournament events
     if ((window as any).handleTournamentMatchStart) {
       (window as any).handleTournamentMatchStart();
     }
@@ -244,9 +255,9 @@ export class SocketManager {
   });
 }
 
-  private resolvePendingOperation(roomId: string): void {
+  private resolvePendingOperation(data: any): void {
     if (this.pendingResolve) {
-      this.pendingResolve(roomId);
+      this.pendingResolve(data);
       this.pendingResolve = null;
     }
   }
@@ -271,7 +282,7 @@ export class SocketManager {
     }
   }
 
-  public async createTournament(): Promise<string> {
+  public async createTournament(): Promise<any> {
     await this.ensureConnection();
 
     return new Promise((resolve, reject) => {
@@ -290,7 +301,7 @@ export class SocketManager {
     });
   }
 
-  public async joinTournament(roomId: string): Promise<string> {
+  public async joinTournament(roomId: string): Promise<any> {
     await this.ensureConnection();
 
     return new Promise((resolve, reject) => {

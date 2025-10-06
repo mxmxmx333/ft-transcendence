@@ -52,6 +52,7 @@ function startMatch(room: TournamentRoom) {
     room.guest = guest;
     room.ownerMovement = 'none';
     room.guestMovement = 'none';
+    room.matchCount += 1;
     room.gameState = {
         ballX: 400,
         ballY: 300,
@@ -71,12 +72,27 @@ function startMatch(room: TournamentRoom) {
         io.to(room.id).emit('tournament_match_start', {
             player1: owner.nickname,
             player2: guest.nickname,
+            roomId: room.id,
+            owner: cleanPlayerForSocket(room.owner),
+            guest: cleanPlayerForSocket(room.guest),
+            matchNumber: room.matchCount,
+            message: `Match ${room.matchCount}: ${room.owner.nickname} vs ${room.guest.nickname}`
         });
         console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
     } catch (error) {
         console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);
     }
     startGame(room as any);
+}
+
+function cleanPlayerForSocket(player: Player) {
+    return {
+        id: player.id,
+        nickname: player.nickname,
+        roomId: player.roomId,
+        paddleY: player.paddleY,
+        score: player.score,
+    };
 }
 
 export function handleTournamentGameEnd(room: GameRoom, winner: string) {

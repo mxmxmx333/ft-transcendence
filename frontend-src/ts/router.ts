@@ -1073,10 +1073,12 @@ async function createTournament(): Promise<void> {
   try {
     document.getElementById('tournament-status')!.textContent = 'Creating tournament...';
     
-    const roomId = await socketManager.createTournament();
-    console.log('Tournament room ID:', roomId); // Debug
+    const tournamentData = await socketManager.createTournament();
+    console.log('Tournament created with data:', tournamentData);
 
-    showTournamentInfo(roomId, true); // true = isOwner
+    const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
+    
+    showTournamentInfo(roomId, true, tournamentData); // ✅ tournamentData hinzufügen
     document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
     
   } catch (error) {
@@ -1101,10 +1103,12 @@ async function joinTournament(): Promise<void> {
   
   try {
     document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
-    
-    await socketManager.joinTournament(tournamentId);
 
-    showTournamentInfo(tournamentId, false); // false = not owner
+    const tournamentData = await socketManager.joinTournament(tournamentId);
+
+    console.log('Tournament data received:', tournamentData);
+
+    showTournamentInfo(tournamentId, false, tournamentData); // false = not owner
     document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
 
   } catch (error) {
@@ -1113,39 +1117,65 @@ async function joinTournament(): Promise<void> {
   }
 }
 
-function showTournamentInfo(tournamentId: string, isOwner: boolean): void {
+function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentData?: any): void {
   document.getElementById('current-tournament-id')!.textContent = tournamentId;
   document.getElementById('tournament-info')?.classList.remove('hidden');
   
   if (isOwner) {
     document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
   }
-  //// das ist noch zu fixen!!! --> backend emit schicken mit "give tournament info" und dann hier empfangen und players updaten
+
+  if (tournamentData && tournamentData.players) {
+    console.log('Using real player data:', tournamentData.players);
+    updateTournamentPlayers(tournamentData.players);
+  } else if (tournamentData && tournamentData.room && tournamentData.room.players) {
+    console.log('Using nested player data:', tournamentData.room.players);
+    updateTournamentPlayers(tournamentData.room.players);
+  } else {
+    console.log('No player data found, using mock data');
+    // ✅ Fallback zu Mock Daten
+    const mockPlayers = [
+      { nickname: 'You', isOwner: isOwner },
+      { nickname: 'Player2', isOwner: false }
+    ];
   
-  // Mock players für Demo
-  const mockPlayers = [
-    { nickname: 'You', isOwner: isOwner },
-    { nickname: 'Player2', isOwner: false },
-    { nickname: 'Player3', isOwner: false }
-  ];
-  
-  updateTournamentPlayers(mockPlayers);
+  }
+  updateTournamentPlayers(tournamentData.players || [{ nickname: 'You', isOwner: isOwner },
+      { nickname: 'Player2', isOwner: false }]);
 }
 
-function updateTournamentPlayers(players: Array<{nickname: string, isOwner: boolean}>): void {
+function updateTournamentPlayers(playersData: any): void {
+  console.log('Live update - Tournament players changed:', playersData);
+  
+  // ✅ Verschiedene Server-Datenstrukturen handhaben
+  let players = playersData;
+  if (playersData && !Array.isArray(playersData)) {
+    players = playersData.players || playersData.room?.players || [];
+  }
+  
+  if (!Array.isArray(players)) {
+    console.warn('Invalid players data received:', playersData);
+    return;
+  }
+  
   const playersList = document.getElementById('tournament-players-list')!;
   const playerCount = document.getElementById('tournament-player-count')!;
   const startBtn = document.getElementById('start-tournament-btn') as HTMLButtonElement;
   
   playersList.innerHTML = '';
+  console.log('Updating tournament players:', players);
   
   players.forEach(player => {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'flex justify-between items-center p-2 bg-gray-800 rounded';
+
+    const nickname = player.nickname ;
+    const isPlayerOwner = player.isOwner || false;
+
     playerDiv.innerHTML = `
-      <span class="text-white">${player.nickname}</span>
-      <span class="text-xs ${player.isOwner ? 'neon-text-yellow' : 'text-gray-400'}">
-        ${player.isOwner ? '👑 Owner' : 'Player'}
+      <span class="text-white">${nickname}</span>
+      <span class="text-xs ${isPlayerOwner ? 'neon-text-yellow' : 'text-gray-400'}">
+        ${isPlayerOwner ? '👑 Owner' : 'Player'}
       </span>
     `;
     playersList.appendChild(playerDiv);
@@ -1155,12 +1185,34 @@ function updateTournamentPlayers(players: Array<{nickname: string, isOwner: bool
   
   // Enable start button if enough players and user is owner
   if (startBtn) {
-    const isOwner = players.some(p => p.nickname === 'You' && p.isOwner);
-    startBtn.disabled = players.length < 3 || !isOwner;
+   const currentUser = getCurrentUserNickname(); // Helper function needed
+    const isCurrentUserOwner = players.some(p => 
+      (p.nickname === currentUser || p.nickname === 'You') && (p.isOwner)
+    );
+    
+    startBtn.disabled = players.length < 3 || !isCurrentUserOwner;
     startBtn.textContent = players.length < 3 
       ? `Start Tournament (Min. 3 players)` 
       : `Start Tournament (${players.length} players)`;
+    
+    const statusElement = document.getElementById('tournament-status');
+    if (statusElement && players.length >= 3 && isCurrentUserOwner) {
+      statusElement.textContent = `Ready to start with ${players.length} players!`;
+    }
   }
+}
+
+function getCurrentUserNickname(): string {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.nickname || payload.name || 'You';
+    }
+  } catch (e) {
+    console.error('Could not decode token for nickname');
+  }
+  return 'You';
 }
 
 async function startTournament(): Promise<void> {
@@ -1223,7 +1275,7 @@ function handleTournamentMatchStart(data: any): void {
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) {
-    console.error('❌ Canvas not found!');
+    console.error('Canvas not found!');
     return;
   }
   canvas.classList.remove('hidden', 'invisible', 'opacity-0');
@@ -1233,10 +1285,17 @@ function handleTournamentMatchStart(data: any): void {
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
 
-  console.log('✅ Tournament game setup complete, canvas visible');
+  if (data.owner && data.guest) {
+    const statusElement = document.getElementById('tournament-status');
+    if (statusElement) {
+      statusElement.textContent = `Match: ${data.owner.nickname} vs ${data.guest.nickname}`;
+    }
+  }
+
+  console.log('Tournament game setup complete, canvas visible');
 
   socketManager.onGameStart = () => {
-    console.log('🎮 Tournament game starting!');
+    console.log('Tournament game starting!');
     startMultiplayerGame(game);
   };
 }
@@ -1244,14 +1303,25 @@ function handleTournamentMatchStart(data: any): void {
 function handleTournamentMatchEnd(data: any): void {
   console.log('Tournament match ended:', data);
   
-  // ✅ Nur Message zeigen, NICHT navigieren
+  // Nur Message zeigen, NICHT navigieren
   const status = document.getElementById('tournament-status');
   if (status) {
-    status.textContent = `Match ended! Winner: ${data.winnerName || data.winner}`;
+    const winnerName = data.winnerName || data.winner;
+    const loserName = data.loserName || data.loser;
+    const message = data.message || `${winnerName} wins!`;
+    
+    status.textContent = `Match Result: ${message}`;
   }
   
-  // ✅ Auf Game-Page bleiben für nächstes Match
-  console.log('✅ Match end handled, waiting for next match or tournament end');
+  setTimeout(() => {
+    const status = document.getElementById('tournament-status');
+    if (status) {
+      status.textContent = 'Waiting for next match...';
+    }
+  }, 2000);
+
+  // Auf Game-Page bleiben für nächstes Match
+  console.log('Match end handled, waiting for next match or tournament end');
 }
 
 function handleTournamentEnd(data: any): void {
@@ -1259,10 +1329,18 @@ function handleTournamentEnd(data: any): void {
   
   const status = document.getElementById('tournament-status');
   if (status) {
-    status.textContent = `🏆 Tournament finished! Winner: ${data.message}`;
+    const winnerMessage = data.message || `Tournament finished!`;
+    const winnerName = data.winnerName || data.winner;
+    
+    status.textContent = `🏆 ${winnerMessage}`;
+    
+    // Zusätzliche Winner-Info falls verfügbar
+    if (winnerName && typeof winnerName === 'string') {
+      status.textContent = `🏆 Tournament Winner: ${winnerName}!`;
+    }
   }
   
-  // ✅ NUR hier zur Tournament-Lobby zurück
+  // NUR hier zur Tournament-Lobby zurück
   setTimeout(() => {
     hideAllPages();
     document.querySelector('.tournament-lobby')?.classList.remove('hidden');
