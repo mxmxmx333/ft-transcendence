@@ -60,7 +60,7 @@ export class PongGame {
     this.setupCanvas();
     this.setupControls();
     this.setupSocketListeners();
-    this.setupUI();
+    // this.setupUI();
   }
 
   private setupSocketListeners() {

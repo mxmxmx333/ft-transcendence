@@ -48,7 +48,7 @@ function startMatch(room: TournamentRoom) {
     console.debug(`[Server] players: ${room.players.map(p => p.nickname).join(', ')}`);
     console.log(`[Server] Starting match between ${owner.nickname} and ${guest.nickname} in tournament room ${room.id}`);
     
-    room.owner = owner;        // ✅ Aktuelle Match-Teilnehmer
+    room.owner = owner;        // Aktuelle Match-Teilnehmer
     room.guest = guest;
     room.ownerMovement = 'none';
     room.guestMovement = 'none';
@@ -62,35 +62,11 @@ function startMatch(room: TournamentRoom) {
     
     gameRooms[room.id] = room as any;
     
-    // try {
-    //     const gameroom: GameRoom = {
-    //         id: room.id,
-    //         gameType: 'tournament',
-    //         owner: owner,
-    //         guest: guest,
-    //         ownerMovement: 'none',
-    //         guestMovement: 'none',
-    //         gameState: {
-    //             ballX: 400,
-    //             ballY: 300,
-    //             ballVX: 5 * (Math.random() > 0.5 ? 1 : -1),
-    //             ballVY: 3 * (Math.random() > 0.5 ? 1 : -1),
-    //             lastUpdate: Date.now(),
-    //         },
-    //         isPrivate: true,
-    //     };
-    //     room.gameRoom = gameroom;    
-    //     gameRooms[gameroom.id] = gameroom;      
-    // }
-    // catch (error) {
-    //     console.error(`[Server] Error preparing game between ${owner.nickname} and ${guest.nickname}:`, error);
-    //     return;
-    //     // To-Do: error handling (disconnection)
-    // }
-    // if (!room.gameRoom) {
-    //     console.error(`[Server] GameRoom not created for players ${owner.nickname} and ${guest.nickname}`);
-    //     return;
-    // }
+    owner.score = 0;
+    guest.score = 0;
+    owner.paddleY = 250;
+    guest.paddleY = 250;
+
     try {
         io.to(room.id).emit('tournament_match_start', {
             player1: owner.nickname,
@@ -132,18 +108,18 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
 
     console.log(`[Server] Tournament match ended. Winner: ${winnerPlayer.nickname}`);
 
-    // ✅ Verlierer eliminieren
+    // Verlierer eliminieren
     tournamentRoom.lostPlayers.push(loserPlayer);
     
-    // ✅ Gewinner für nächste Runde setzen
+    // Gewinner für nächste Runde setzen
     tournamentRoom.lastWinner = winnerPlayer;
     
-    // ✅ Game State zurücksetzen für nächstes Match
-    delete tournamentRoom.owner;
-    delete tournamentRoom.guest;
-    delete tournamentRoom.gameState;
-    delete tournamentRoom.ownerMovement;
-    delete tournamentRoom.guestMovement;
+    // Game State zurücksetzen für nächstes Match
+    tournamentRoom.owner = undefined;
+    tournamentRoom.guest = undefined;
+    tournamentRoom.gameState = undefined;
+    tournamentRoom.ownerMovement = 'none';
+    tournamentRoom.guestMovement = 'none';
 
     try {
         io.to(room.id).emit('tournament_match_end', {

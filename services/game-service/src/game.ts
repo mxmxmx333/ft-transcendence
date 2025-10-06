@@ -79,16 +79,34 @@ export function startGame(room: GameRoom) {
   // }, 3000);
   // Game loop başlat
   room.gameLoop = setInterval(() => {
-    if (!gameRooms[room.id] || !room.owner || !room.guest) {
-      console.log(`[Server] Game loop stopped for room ${room.id}`);
+       if (!room.gameLoop) {
+      console.log(`[Server] Game loop already cleared for room ${room.id}`);
+      return; // ✅ Sofort raus!
+    }
+    if (!gameRooms[room.id] && !tournamentRooms[room.id]) {
+      console.log(`[Server] Room ${room.id} no longer exists - stopping game loop`);
       clearInterval(room.gameLoop);
       room.gameLoop = undefined;
       return;
     }
+    if (!room.owner || !room.guest) {
+      console.log(`[Server] Missing players in room ${room.id} - stopping game loop`);
+      clearInterval(room.gameLoop);
+      room.gameLoop = undefined;
+      return;
+    }
+    // ✅ KRITISCH: gameState Check BEVOR es verwendet wird!
+    if (!room.gameState) {
+      console.log(`[Server] No game state in room ${room.id} - stopping game loop`);
+      clearInterval(room.gameLoop);
+      room.gameLoop = undefined;
+      return;
+    }
+
     updateGameState(room);
     broadcastGameState(room);
   }, 1000 / 60);
-  // console.log(`[Server] Game loop started for room ${room.id}`);
+  console.log(`[Server] Game loop started for room ${room.id}`);
 }
 
 function updateGameState(room: GameRoom) {
@@ -140,11 +158,15 @@ function updateGameState(room: GameRoom) {
     broadcastGameState(room);
   }
 
-  // Oyun bitti mi kontrol et
   if (room.owner!.score >= 10 || room.guest!.score >= 10) {
-  endGame(room);
-  return; // Game loop'u durdur
-}
+    if (room.gameLoop) {
+      clearInterval(room.gameLoop);
+      room.gameLoop = undefined;
+      console.log(`[Server] Game loop cleared in updateGameState for room ${room.id}`);
+    }
+    endGame(room);
+    return; // Game loop'u durdur
+  }
 }
 
 function handleCollisions(room: GameRoom) {
@@ -199,31 +221,37 @@ export function abortGame(room: GameRoom) {
 }
 
 export function endGame(room: GameRoom) {
+
+  if (room.gameLoop) {
+    clearInterval(room.gameLoop);
+    room.gameLoop = undefined;
+    console.log(`[Server] Game loop stopped for room ${room.id}`);
+  }
+
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
-  if (room.gameType !== 'tournament' ) {
-    io.to(room.id).emit('game_over', {
-      winner,
-      finalScore: {
-        owner: room.owner!.score,
-        guest: room.guest!.score,
-      },
-      message: `Game over! ${winnerNickname} wins!`,
-    });
+  if ('players' in room) {
+    handleTournamentGameEnd(room, winner);
+    return;
   }
+  
+  io.to(room.id).emit('game_over', {
+    winner,
+    finalScore: {
+      owner: room.owner!.score,
+      guest: room.guest!.score,
+    },
+    message: `Game over! ${winnerNickname} wins!`,
+  });
 
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
   }
   
-  if (room.gameType === 'tournament' ) {
-    handleTournamentGameEnd(room, winner);
-    return;
-  }
 
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
 
@@ -243,6 +271,28 @@ export function endGame(room: GameRoom) {
 }
 
 function broadcastGameState(room: GameRoom) {
+
+  if (!room) {
+    console.warn(`[Server] No room in broadcastGameState`);
+    return;
+  }
+
+  if (!room.gameState) {
+    console.warn(`[Server] No gameState for room ${room.id} - skipping broadcast`);
+    return;
+  }
+
+  if (!room.owner || !room.guest) {
+    console.warn(`[Server] Missing players in room ${room.id} - skipping broadcast`);
+    return;
+  }
+
+  // ✅ Zusätzlicher Check: Ist Game Loop noch aktiv?
+  if (!room.gameLoop) {
+    console.warn(`[Server] Game loop not active for room ${room.id} - skipping broadcast`);
+    return;
+  }
+
   const gameState = {
     ballX: room.gameState.ballX,
     ballY: room.gameState.ballY,
