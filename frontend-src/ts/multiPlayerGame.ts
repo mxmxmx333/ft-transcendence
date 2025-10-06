@@ -197,13 +197,45 @@ export class PongGame {
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
+    console.log('Canvas element:', this.canvas);
     console.log('Is Owner:', message.isOwner);
     console.log('Owner info:', message.owner);
     console.log('Guest info:', message.guest);
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
 
+    // ✅ Test: Prüfe Socket Listener
+    const socket = this.socketManager?.getSocket();
+    console.log('Socket listeners:', socket?.listeners('game_state'));
+    console.log('Socket connected:', socket?.connected);
+
+    setTimeout(() => {
+      console.log('🧪 Testing manual game_state simulation...');
+      this.updateFromServer({
+        ballX: 400,
+        ballY: 300,
+        paddle1Y: 250,
+        paddle2Y: 250,
+        ownerScore: 0,
+        guestScore: 0,
+        ballVX: 0,
+        ballVY: 0
+      });
+    }, 1000);
+
     if (this.gameRunning) this.stop();
+    this.gameRunning = false;
+
+    if (!this.canvas || !this.ctx) {
+      console.error('❌ Canvas or context not available for game start');
+      return;
+    }
+    
+    // ✅ Ensure canvas is visible
+    this.canvas.style.display = 'block';
+    this.canvas.style.visibility = 'visible';
+    
+    console.log('✅ Canvas visibility set to visible');
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
@@ -280,7 +312,7 @@ export class PongGame {
     this.drawGameOver(winner);
   }
 
-  public matchEnd(message: any) {
+public matchEnd(message: any) {
     this.gameRunning = false;
     console.log('Match end message:', message);
     let winner =
@@ -469,11 +501,12 @@ export class PongGame {
   );
 
   // 5 saniye sonra lobby'e dön
-  setTimeout(() => {
-    this.resetGame();
-    document.querySelector('.game-page')?.classList.add('hidden');
-    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  }, 5000);
+  // DELETED: isn't needed!
+  // setTimeout(() => {
+  //   this.resetGame();
+  //   document.querySelector('.game-page')?.classList.add('hidden');
+  //   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+  // }, 5000);
 }
 
   private resetGame() {

@@ -1215,68 +1215,60 @@ async function showTournamentPage(): Promise<void> {
   }
 }
 
-// =============================================================================
-// TOURNAMENT EVENT HANDLERS
-// =============================================================================
-
-/**
- * Behandelt Tournament Match Start Events
- */
 function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
+
+  hideAllPages();
+  document.querySelector('.game-page')?.classList.remove('hidden');
+
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-  if (!canvas) return;
+  if (!canvas) {
+    console.error('❌ Canvas not found!');
+    return;
+  }
+  canvas.classList.remove('hidden', 'invisible', 'opacity-0');
+  canvas.style.display = 'block !important';
+  canvas.style.visibility = 'visible !important';
+
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
 
-  // const status = document.getElementById('tournament-status');
-  // if (status) {
-  //   status.textContent = `Round ${data.round}, Match ${data.match}: ${data.player1} vs ${data.player2}`;
-  // }
+  console.log('✅ Tournament game setup complete, canvas visible');
 
   socketManager.onGameStart = () => {
-    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-    document.querySelector('.game-page')?.classList.remove('hidden');
+    console.log('🎮 Tournament game starting!');
     startMultiplayerGame(game);
   };
-
-  // // Tournament-Info temporär ausblenden, Game-Page anzeigen
-  // setTimeout(() => {
-  //   hideAllPages();
-  //   document.querySelector('.game-page')?.classList.remove('hidden');
-  // }, 3000);
 }
 
-/**
- * Behandelt Tournament Match End Events
- */
 function handleTournamentMatchEnd(data: any): void {
+  console.log('Tournament match ended:', data);
+  
+  // ✅ Nur Message zeigen, NICHT navigieren
   const status = document.getElementById('tournament-status');
   if (status) {
-    status.textContent = `Match ended! Winner: ${data.winner}`;
+    status.textContent = `Match ended! Winner: ${data.winnerName || data.winner}`;
   }
   
-  // Zurück zur Tournament-Lobby
-  setTimeout(() => {
-    hideAllPages();
-    document.querySelector('.tournament-lobby')?.classList.remove('hidden');
-  }, 2000);
+  // ✅ Auf Game-Page bleiben für nächstes Match
+  console.log('✅ Match end handled, waiting for next match or tournament end');
 }
 
-/**
- * Behandelt Tournament End Events
- */
 function handleTournamentEnd(data: any): void {
+  console.log('Tournament completely finished:', data);
+  
   const status = document.getElementById('tournament-status');
   if (status) {
     status.textContent = `🏆 Tournament finished! Winner: ${data.message}`;
   }
   
-  // Tournament beenden
+  // ✅ NUR hier zur Tournament-Lobby zurück
   setTimeout(() => {
+    hideAllPages();
+    document.querySelector('.tournament-lobby')?.classList.remove('hidden');
     resetTournamentUI();
     document.getElementById('tournament-status')!.textContent = 'Tournament completed';
-  }, 5000);
+  }, 3000);
 }
 
 // To-Do: das gescheit aufräumen und nur importieren

@@ -271,7 +271,6 @@ export function endGame(room: GameRoom) {
 }
 
 function broadcastGameState(room: GameRoom) {
-
   if (!room) {
     console.warn(`[Server] No room in broadcastGameState`);
     return;

@@ -136,6 +136,10 @@ export class SocketManager {
     });
 
     this.socket.on('game_state', (state: ServerToClientEvents['game_state']) => {
+      // console.log('Game state update:', state);
+      // console.log('Current game instance:', this.gameInstance);
+      // console.log('Is gameInstance null?', this.gameInstance === null);
+      // console.log('Socket ID:', this.socket?.id);
       this.gameInstance?.updateFromServer(state);
     });
   }
@@ -199,8 +203,23 @@ export class SocketManager {
   });
 
   this.socket.on('tournament_match_start', () => {
-    console.log('Tournament match starting:');
-    //in router
+    console.log('Current game instance:', this.gameInstance);
+    
+    // ✅ Reset game instance for new match
+    if (this.gameInstance) {
+        console.log('🔄 Stopping previous game instance');
+        this.gameInstance.stop();
+        this.gameInstance = null;
+    }
+    
+    // ✅ Navigate to game page if not already there
+    const currentPath = window.location.hash;
+    if (!currentPath.includes('#/pong')) {
+        console.log('🔄 Navigating to game page for tournament match');
+        window.location.hash = '#/pong';
+    }
+    
+    // ✅ Call window function like the other tournament events
     if ((window as any).handleTournamentMatchStart) {
       (window as any).handleTournamentMatchStart();
     }
@@ -209,6 +228,7 @@ export class SocketManager {
   this.socket.on('tournament_match_end', (data: any) => {
     console.log('Tournament match ended:', data);
     // in multiplayer
+    // if (this.gameInstance && !data.isTournament)
     this.gameInstance?.matchEnd(data);
     //in router
     if ((window as any).handleTournamentMatchEnd) {
