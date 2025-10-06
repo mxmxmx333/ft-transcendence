@@ -17,3 +17,16 @@ bei match-ende schicken tournament_match_end --> nicht game_over!!
 --> im backend anpassen
 --> im frontend richtig anpassen (richtige message, canvas anpassen und evtl neues erstellen??)
 
+
+error:
+router.ts:1288 
+ Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'owner')
+    at handleTournamentMatchStart (router.ts:1288:12)
+    at Socket2.<anonymous> (socketManager.ts:235:23)
+    at Emitter.emit (index.js:136:20)
+    at Socket2.emitEvent (socket.js:538:20)
+    at Socket2.onevent (socket.js:525:18)
+    at Socket2.onpacket (socket.js:495:22)
+    at Emitter.emit (index.js:136:20)
+    at manager.js:209:18
+
