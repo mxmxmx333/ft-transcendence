@@ -1,7 +1,7 @@
 import { GameRoom, gameRooms, tournamentRooms } from './types/types';
 import { io } from './server';
 import { handleLeaveRoom } from './room';
-import type { GameStartPayload } from './types/types';
+import type { GameStartPayload, Player } from './types/types';
 import { setMaxIdleHTTPParsers } from 'http';
 import { handleTournamentGameEnd } from './tournament';
 
@@ -54,11 +54,31 @@ export function startGame(room: GameRoom) {
       });
     }
 
-    if (room.gameType === 'tournament') {
-      io.to(room.id).emit('game_start', {
-        ...gameStartPayload,
-        isOwner: false,
-      });
+    if ('players' in room && 'gameState' in room) {
+      // loope durch die players durch und sende ihnen game_start
+      console.debug('GAME STATE exists in room:', room.id);
+      let players = (room as any).players as Player[];
+      if (Array.isArray(players)) {
+        players.forEach((player: Player) => {
+          if (player.conn) {
+            player.conn.emit('game_start', {
+              ...gameStartPayload,
+              isOwner: player.id === room.owner?.id,
+            });
+          }
+        });
+      }
+      players = (room as any).lostPlayers as Player[];
+      if (Array.isArray(players)) {
+        players.forEach((player: Player) => {
+          if (player.conn) {
+            player.conn.emit('game_start', {
+              ...gameStartPayload,
+              isOwner: player.id === room.owner?.id,
+            });
+          }
+        });
+      }
     }
 
     // Owner'a gönder (Player 1)

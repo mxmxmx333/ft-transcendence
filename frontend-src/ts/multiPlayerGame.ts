@@ -204,38 +204,24 @@ export class PongGame {
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
 
-    // ✅ Test: Prüfe Socket Listener
+    // Test: Prüfe Socket Listener
     const socket = this.socketManager?.getSocket();
-    console.log('Socket listeners:', socket?.listeners('game_state'));
-    console.log('Socket connected:', socket?.connected);
-
-    setTimeout(() => {
-      console.log('🧪 Testing manual game_state simulation...');
-      this.updateFromServer({
-        ballX: 400,
-        ballY: 300,
-        paddle1Y: 250,
-        paddle2Y: 250,
-        ownerScore: 0,
-        guestScore: 0,
-        ballVX: 0,
-        ballVY: 0
-      });
-    }, 1000);
+    console.debug('Socket listeners:', socket?.listeners('game_state'));
+    console.debug('Socket connected:', socket?.connected);
 
     if (this.gameRunning) this.stop();
     this.gameRunning = false;
 
     if (!this.canvas || !this.ctx) {
-      console.error('❌ Canvas or context not available for game start');
+      console.error('Canvas or context not available for game start');
       return;
     }
     
-    // ✅ Ensure canvas is visible
+    // Ensure canvas is visible
     this.canvas.style.display = 'block';
     this.canvas.style.visibility = 'visible';
     
-    console.log('✅ Canvas visibility set to visible');
+    console.log('Canvas visibility set to visible');
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
