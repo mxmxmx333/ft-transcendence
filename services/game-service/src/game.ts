@@ -46,28 +46,28 @@ export function startGame(room: GameRoom) {
       success: true,
     };
 
-    // Owner'a gönder (Player 1)
-    room.owner.conn.emit('game_start', {
-      ...gameStartPayload,
-      isOwner: true,
-    });
-
     if (room.gameType !== 'local') {
       // Guest'e gönder (Player 2)
       room.guest.conn.emit('game_start', {
         ...gameStartPayload,
         isOwner: false,
       });
-
-      if (room.gameType === 'tournament') {
-        io.to(room.id).emit('game_start', {
-          ...gameStartPayload,
-          isOwner: false,
-        });
-      }
     }
 
-    console.log(`[Server] Game start messages sent to both players`);
+    if (room.gameType === 'tournament') {
+      io.to(room.id).emit('game_start', {
+        ...gameStartPayload,
+        isOwner: false,
+      });
+    }
+
+    // Owner'a gönder (Player 1)
+    room.owner.conn.emit('game_start', {
+      ...gameStartPayload,
+      isOwner: true,
+    });
+
+    console.log(`[Server] Game start messages sent to both players, payload: ${gameStartPayload}`);
   } catch (err) {
     console.error(`[Server] Error sending game start messages:`, err);
     throw new Error(`[startGame] Failed to send game start message: ${err}`);
@@ -79,7 +79,7 @@ export function startGame(room: GameRoom) {
   // }, 3000);
   // Game loop başlat
   room.gameLoop = setInterval(() => {
-    if (!(gameRooms[room.id] || tournamentRooms[room.id]) || !room.owner || !room.guest) {
+    if (!gameRooms[room.id] || !room.owner || !room.guest) {
       console.log(`[Server] Game loop stopped for room ${room.id}`);
       clearInterval(room.gameLoop);
       room.gameLoop = undefined;
@@ -255,6 +255,7 @@ function broadcastGameState(room: GameRoom) {
   };
 
   try {
+    // console.debug(`game_state sent: ${gameState}`)
     io.to(room.id).emit('game_state', gameState);
   } catch (error) {
     console.log(`[Server] Game state broadcasted for room ${room.id}`);

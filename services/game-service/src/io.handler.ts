@@ -1,7 +1,7 @@
 import { Player, activeConnections } from './types/types';
 import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom } from './room';
 import type { Server, Socket } from 'socket.io';
-import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
+import type { PaddleMovePayload, CreateRoomPayload, GameRoom } from './types/types';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -38,18 +38,40 @@ export function registerIoHandlers(io: Server) {
           return;
         }
 
-        const room = socket.room;
+        let gameRoom: GameRoom | null = null;
 
-        if (socket === room.owner?.conn) {
-          room.ownerMovement = payload.moveP1;
-          if (room.gameType === 'local') {
-            room.guestMovement = payload.moveP2;
-          }
-        } else if (socket === room.guest?.conn) {
-          room.guestMovement = payload.moveP2;
-        } else {
-          console.error(`[Socket] Socket ${socket.id} not found in room players`);
+        if (socket.room.gameRoom) {
+          gameRoom = socket.room.gameRoom;
+          console.log(`[Socket] Found gameRoom for socket ${socket.id} in tournamentRoom ${socket.room.id}`);
         }
+
+        else if ('gameState' in socket.room) {
+          gameRoom = socket.room as GameRoom;
+          console.log(`[Socket] Found gameRoom for socket ${socket.id} in regular room ${socket.room.id}`);
+        }
+        else {
+          console.error(`[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`);
+          return;
+        }
+
+        if (!gameRoom) {
+          console.error(`[Socket] No gameRoom found for socket ${socket.id}`);
+          return;
+        }
+
+        if (socket === gameRoom.owner?.conn) {
+          gameRoom.ownerMovement = payload.moveP1;
+          if (gameRoom.gameType === 'local') {
+            gameRoom.guestMovement = payload.moveP2;
+          }
+          console.debug(`[Socket] Owner paddle move: ${payload.moveP1}`);
+        } else if (socket === gameRoom.guest?.conn) {
+          gameRoom.guestMovement = payload.moveP2;
+          console.debug(`[Socket] Guest paddle move: ${payload.moveP2}`);
+        } else {
+          console.log(`[Socket] Socket ${socket.id} ${socket.player.nickname} is neither owner nor guest in game room ${gameRoom.id}`);
+        }
+
       } catch (error) {
         console.error('[Socket] Error in paddle_move handler:', error);
       }

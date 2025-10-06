@@ -47,50 +47,70 @@ function startMatch(room: TournamentRoom) {
     }
     console.debug(`[Server] players: ${room.players.map(p => p.nickname).join(', ')}`);
     console.log(`[Server] Starting match between ${owner.nickname} and ${guest.nickname} in tournament room ${room.id}`);
+    
+    room.owner = owner;        // ✅ Aktuelle Match-Teilnehmer
+    room.guest = guest;
+    room.ownerMovement = 'none';
+    room.guestMovement = 'none';
+    room.gameState = {
+        ballX: 400,
+        ballY: 300,
+        ballVX: 5 * (Math.random() > 0.5 ? 1 : -1),
+        ballVY: 3 * (Math.random() > 0.5 ? 1 : -1),
+        lastUpdate: Date.now(),
+    };
+    
+    gameRooms[room.id] = room as any;
+    
+    // try {
+    //     const gameroom: GameRoom = {
+    //         id: room.id,
+    //         gameType: 'tournament',
+    //         owner: owner,
+    //         guest: guest,
+    //         ownerMovement: 'none',
+    //         guestMovement: 'none',
+    //         gameState: {
+    //             ballX: 400,
+    //             ballY: 300,
+    //             ballVX: 5 * (Math.random() > 0.5 ? 1 : -1),
+    //             ballVY: 3 * (Math.random() > 0.5 ? 1 : -1),
+    //             lastUpdate: Date.now(),
+    //         },
+    //         isPrivate: true,
+    //     };
+    //     room.gameRoom = gameroom;    
+    //     gameRooms[gameroom.id] = gameroom;      
+    // }
+    // catch (error) {
+    //     console.error(`[Server] Error preparing game between ${owner.nickname} and ${guest.nickname}:`, error);
+    //     return;
+    //     // To-Do: error handling (disconnection)
+    // }
+    // if (!room.gameRoom) {
+    //     console.error(`[Server] GameRoom not created for players ${owner.nickname} and ${guest.nickname}`);
+    //     return;
+    // }
     try {
-        const gameroom: GameRoom = {
-            id: room.id,
-            gameType: 'tournament',
-            owner: owner,
-            guest: guest,
-            ownerMovement: 'none',
-            guestMovement: 'none',
-            gameState: {
-                ballX: 400,
-                ballY: 300,
-                ballVX: 5 * (Math.random() > 0.5 ? 1 : -1),
-                ballVY: 3 * (Math.random() > 0.5 ? 1 : -1),
-                lastUpdate: Date.now(),
-            },
-            isPrivate: true,
-        };
-        room.gameRoom = gameroom;    
-        gameRooms[gameroom.id] = gameroom;      
-    }
-    catch (error) {
-        console.error(`[Server] Error preparing game between ${owner.nickname} and ${guest.nickname}:`, error);
-        return;
-        // To-Do: error handling (disconnection)
-    }
-    if (!room.gameRoom) {
-        console.error(`[Server] GameRoom not created for players ${owner.nickname} and ${guest.nickname}`);
-        return;
-    }
-    try {
-        io.to(room.id).emit('tournament_match_start');
+        io.to(room.id).emit('tournament_match_start', {
+            player1: owner.nickname,
+            player2: guest.nickname,
+        });
         console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
     } catch (error) {
         console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);
     }
-    startGame(room.gameRoom);
+    startGame(room as any);
 }
 
 export function handleTournamentGameEnd(room: GameRoom, winner: string) {
-    if (room.gameType !== 'tournament' || !tournamentRooms[room.id]) {
-        console.error(`[Server] handleTournamentGameEnd called for non-tournament room ${room.id}`);
+    const tournamentRoom = tournamentRooms[room.id] as TournamentRoom;
+    
+    if (!tournamentRoom) {
+        console.error(`[Server] Tournament room ${room.id} not found`);
         return;
     }
-    const tournamentRoom = tournamentRooms[room.id];
+
     let winnerPlayer: Player | null = null;
     let loserPlayer: Player | null = null;
 
@@ -101,39 +121,44 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
         winnerPlayer = room.guest;
         loserPlayer = room.owner;
     } else {
-        console.error(`[Server] Invalid winner identifier ${winner} in room ${room.id}`);
+        console.error(`[Server] Invalid winner: ${winner}`);
         return;
     }
 
     if (!winnerPlayer || !loserPlayer) {
-        console.error(`[Server] Winner or loser player not found in room ${room.id}`);
+        console.error(`[Server] Players not found in room ${room.id}`);
         return;
     }
 
-    console.log(`[Server] Tournament match in room ${room.id} ended. Winner: ${winnerPlayer.nickname}, Loser: ${loserPlayer.nickname}`);
+    console.log(`[Server] Tournament match ended. Winner: ${winnerPlayer.nickname}`);
 
-    // Verlierer zur Liste der ausgeschiedenen Spieler hinzufügen
+    // ✅ Verlierer eliminieren
     tournamentRoom.lostPlayers.push(loserPlayer);
-
-    // Gewinner als letzten Gewinner setzen
+    
+    // ✅ Gewinner für nächste Runde setzen
     tournamentRoom.lastWinner = winnerPlayer;
-
-    // GameRoom zurücksetzen
-    tournamentRoom.gameRoom = null;
+    
+    // ✅ Game State zurücksetzen für nächstes Match
+    delete tournamentRoom.owner;
+    delete tournamentRoom.guest;
+    delete tournamentRoom.gameState;
+    delete tournamentRoom.ownerMovement;
+    delete tournamentRoom.guestMovement;
 
     try {
-        io.to(tournamentRoom.id).emit('tournament_match_end', {
+        io.to(room.id).emit('tournament_match_end', {
             winner: winnerPlayer.id,
+            winnerName: winnerPlayer.nickname,
             loser: loserPlayer.id,
-            message: `${winnerPlayer.nickname} won against ${loserPlayer.nickname}!`
+            loserName: loserPlayer.nickname,
+            message: `🎉 ${winnerPlayer.nickname} defeated ${loserPlayer.nickname}!`
         });
     } catch (error) {
-        console.log(`[Server] Tournament match ended broadcast failed for room ${tournamentRoom.id}:`, error);
+        console.log(`[Server] Tournament match end broadcast failed:`, error);
     }
-    // startMatch(tournamentRoom);
 
-    // ✅ Nächstes Match nach kurzer Pause starten
+    // ✅ Nächstes Match nach Pause
     setTimeout(() => {
-        startMatch(tournamentRoom!);
+        startMatch(tournamentRoom);
     }, 2000);
 }

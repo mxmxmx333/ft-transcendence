@@ -198,11 +198,11 @@ export class SocketManager {
     // Game start logic hier
   });
 
-  this.socket.on('tournament_match_start', (data: any) => {
-    console.log('Tournament match starting:', data);
+  this.socket.on('tournament_match_start', () => {
+    console.log('Tournament match starting:');
     //in router
     if ((window as any).handleTournamentMatchStart) {
-      (window as any).handleTournamentMatchStart(data);
+      (window as any).handleTournamentMatchStart();
     }
   });
 

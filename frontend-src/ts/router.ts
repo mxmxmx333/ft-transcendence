@@ -1229,10 +1229,10 @@ function handleTournamentMatchStart(data: any): void {
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
 
-  const status = document.getElementById('tournament-status');
-  if (status) {
-    status.textContent = `Round ${data.round}, Match ${data.match}: ${data.player1} vs ${data.player2}`;
-  }
+  // const status = document.getElementById('tournament-status');
+  // if (status) {
+  //   status.textContent = `Round ${data.round}, Match ${data.match}: ${data.player1} vs ${data.player2}`;
+  // }
 
   socketManager.onGameStart = () => {
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');

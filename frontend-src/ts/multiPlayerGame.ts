@@ -111,18 +111,6 @@ export class PongGame {
     else if (e.key === 's' || e.key === 'S') this.sPressed = true;
     if (e.key === 'ArrowUp') this.upPressed = true;
     else if (e.key === 'ArrowDown') this.downPressed = true;
-
-      // if (this.isPlayer1) {
-      //   console.log('Player 1 controls');
-      //   // Player 1 uses W/S
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-      //   else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   console.log('Player 2 controls');
-      //   // Player 2 uses Arrow Keys
-      //   if (e.key === 'ArrowUp') this.upPressed = true;
-      //   else if (e.key === 'ArrowDown') this.downPressed = true;
-      // }
     };
 
     const keyUpHandler = (e: KeyboardEvent) => {
@@ -130,13 +118,6 @@ export class PongGame {
       if (e.key === 's' || e.key === 'S') this.sPressed = false;
       if (e.key === 'ArrowUp') this.upPressed = false;
       if (e.key === 'ArrowDown') this.downPressed = false;
-      // if (this.isPlayer1) {
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = false;
-      //   if (e.key === 's' || e.key === 'S') this.sPressed = false;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   if (e.key === 'ArrowUp') this.upPressed = false;
-      //   if (e.key === 'ArrowDown') this.downPressed = false;
-      // }
     };
 
     document.addEventListener('keydown', keyDownHandler);
@@ -210,6 +191,7 @@ export class PongGame {
       this.playerScore = gameState.guestScore;
       this.opponentScore = gameState.ownerScore;
     }
+    console.debug(`game_state received: ${gameState}`)
     this.draw();
   }
 
@@ -221,10 +203,7 @@ export class PongGame {
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
 
-    console.debug('[Game] hiiiiier');
     if (this.gameRunning) this.stop();
-
-    console.debug('[Game] hiiiiier');
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;

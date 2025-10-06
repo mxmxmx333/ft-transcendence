@@ -155,7 +155,6 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
       players: [player],
       lostPlayers: [],
       lastWinner: null,
-      gameRoom: null,
     };
     tournamentRooms[roomId] = room;
     socket.room = room;
@@ -240,10 +239,6 @@ export function checkStartTournament(player: Player, roomId: string) {
   }
   if (room.players.length < 3) {
     player.conn.emit('join_error', {message: 'At least 3 players are required to start the tournament',});
-    return;
-  }
-  if (room.gameRoom) {
-    player.conn.emit('join_error', {message: 'Tournament already started',});
     return;
   }
   startTournament(roomId);

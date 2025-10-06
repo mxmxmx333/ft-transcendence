@@ -65,14 +65,25 @@ export interface GameRoom {
   gameLoop?: NodeJS.Timeout;
 }
 
-
 export interface TournamentRoom {
   id: string;
-  owner: Player | null;
-  players: Player[];
+  owner?: Player;     // Optional - nur während aktuellem Match
+  guest?: Player;     // Optional - nur während aktuellem Match
+  players: Player[];  // Wartende Spieler
   lostPlayers: Player[];
   lastWinner: Player | null;
-  gameRoom: GameRoom | null;
+
+  // Game State nur während Match
+  ownerMovement?: 'up' | 'down' | 'none';
+  guestMovement?: 'up' | 'down' | 'none';
+  gameState?: {
+    ballX: number;
+    ballY: number;
+    ballVX: number;
+    ballVY: number;
+    lastUpdate: number;
+  };
+  gameLoop?: NodeJS.Timeout;
 }
 
 export interface AuthPayload {
