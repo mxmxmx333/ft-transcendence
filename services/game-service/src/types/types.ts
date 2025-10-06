@@ -61,6 +61,7 @@ export interface GameRoom {
   };
   isPrivate: boolean;
   gameLoop?: NodeJS.Timeout;
+  isPaused?: boolean;
 }
 
 export interface AuthPayload {

@@ -59,6 +59,16 @@ export class SocketManager {
     }
   }
 
+  // Newly added start-pause methods down here
+  public async setGamePauseState(isPaused: boolean): Promise<void> {
+    if (this.hasActiveConnection()) {
+      this.socket!.emit('game_pause', isPaused);
+      console.log(`[Client] game_pause emitted: ${isPaused}`);
+    }
+  }
+
+  // till here
+
   private performConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       const token = localStorage.getItem('authToken');

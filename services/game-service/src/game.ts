@@ -80,6 +80,11 @@ export function startGame(room: GameRoom) {
 }
 
 function updateGameState(room: GameRoom) {
+  // Eğer oyun pause'lanmışsa hiçbir şey yapma
+  if (room.isPaused) {
+    return;
+  }
+
   const { gameState } = room;
   const now = Date.now();
   const deltaTime = (now - gameState.lastUpdate) / 1000;
@@ -115,12 +120,10 @@ function updateGameState(room: GameRoom) {
     room.guest!.score++;
     resetBall(room, false);
     scoreChanged = true;
-    // console.log(`[Server] Guest scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   } else if (gameState.ballX >= 800) {
     room.owner!.score++;
     resetBall(room, true);
     scoreChanged = true;
-    // console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   }
 
   // Skor değiştiyse hemen broadcast et

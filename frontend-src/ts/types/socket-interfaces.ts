@@ -57,6 +57,7 @@ export interface ServerToClientEvents {
     message: string;
     success: boolean;
   };
+  game_pause_state: (isPaused: boolean) => void;
 }
 
 export interface ClientToServerEvents {
@@ -72,5 +73,6 @@ export interface ClientToServerEvents {
     moveP1: 'up' | 'down' | 'none';
     moveP2: 'up' | 'down' | 'none';
   };
+  game_pause: (isPaused: boolean) => void;
   disconnect: {};
 }

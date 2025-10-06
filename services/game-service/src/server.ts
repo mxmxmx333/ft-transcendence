@@ -6,6 +6,7 @@ import { AuthPayload } from './types/types';
 import fs from 'fs';
 import path from 'path';
 
+
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
