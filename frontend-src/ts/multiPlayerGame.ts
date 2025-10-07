@@ -140,7 +140,6 @@ export class PongGame {
 
   }
 
-
   // New returning new game page
    private returnToNewGamePage() {
     document.querySelector('.game-page')?.classList.add('hidden');
@@ -209,7 +208,6 @@ export class PongGame {
       const response = await fetch('/api/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          // 'Content-Type': 'application/json',
         },
       });
 
@@ -223,8 +221,6 @@ export class PongGame {
       console.error('Failed to fetch user profile:', error);
       document.getElementById('game-nick')!.textContent = 'Player';
     }
-
-    // document.getElementById('game-nick2')!.textContent = 'Waiting...';
   }
 
   private updateStatus(message: string) {
@@ -309,12 +305,19 @@ export class PongGame {
   );
 
     // To-Do: set Countdown timer before starting
+    // write here that the game will start in 5 seconds
+    this.updateStatus('Game starting in 5 seconds...');
+    setTimeout(() => {
+      this.updateStatus('Game started! Good luck!');
+      this.gameRunning = true;
+      this.start();
+    }, 5000);
 
     // Sayfa geçişi
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     document.querySelector('.game-page')?.classList.remove('hidden');
 
-  this.start();
+  // this.start();
 }
 
   public handleRoomTerminated() {

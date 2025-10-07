@@ -94,10 +94,16 @@ export function startGame(room: GameRoom) {
   }
 
   // To-Do: implement Timer for game start countdown
-  // setTimeout(() => {
-  //   // Start the game loop after countdown
-  // }, 3000);
+  setTimeout(() => {
+    gameLoop(room);
+    // Start the game loop after countdown
+  }, 5000);
   // Game loop başlat
+  
+}
+
+function gameLoop(room: GameRoom) {
+  console.log(`[Server] Starting game loop for room ${room.id}`);
   room.gameLoop = setInterval(() => {
        if (!room.gameLoop) {
       console.log(`[Server] Game loop already cleared for room ${room.id}`);
@@ -115,7 +121,7 @@ export function startGame(room: GameRoom) {
       room.gameLoop = undefined;
       return;
     }
-    // ✅ KRITISCH: gameState Check BEVOR es verwendet wird!
+    // KRITISCH: gameState Check BEVOR es verwendet wird!
     if (!room.gameState) {
       console.log(`[Server] No game state in room ${room.id} - stopping game loop`);
       clearInterval(room.gameLoop);
