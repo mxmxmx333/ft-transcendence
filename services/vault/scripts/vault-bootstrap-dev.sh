@@ -224,8 +224,8 @@ issue_cert "auth-user-service"  "vault-clients-internal"  ""                    
 
 vault auth enable approle 2>/dev/null || true
 
-vault policy write api-gateway   policies/common/api-gateway.hcl
-vault policy write auth-user-service  policies/common/auth-user-service.hcl
+vault policy write api-gateway   policies/api-gateway.hcl
+vault policy write auth-user-service  policies/auth-user-service.hcl
 
 vault write auth/approle/role/api-gateway \
   token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0

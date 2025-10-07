@@ -27,12 +27,20 @@ ugrade to vault 1:20
 
 todo:
 tls reloader für die node module bauen. 
+
 ai-opponent als service
+-----
+DONE bootstrap fertigstellen:
 
-bootstrap fertigstellen:
-pki rollen hinterfragen, dann certs issuen
-policies und approles fertigstellen. 
+DONE pki rollen hinterfragen,
 
-ca bei den agents placen. 
+DONE dann certs issuen
 
-env. update:
+DONE policies und approles fertigstellen. 
+
+DONE: ca bei den agents placen. 
+-----
+
+env. update in den services. 
+PENDING!!! 
+chown all docker-volumes 1000:1000

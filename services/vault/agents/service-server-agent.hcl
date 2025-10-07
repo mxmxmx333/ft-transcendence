@@ -80,7 +80,7 @@ template {
 {{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
 {{- end -}}
 EOH
-  # command = "/bin/sh -c 'kill -HUP 1 || true'"
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 template {
@@ -94,11 +94,12 @@ template {
 {{ .Data.private_key }}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 # -------- Trust-Bundle (Agent) --------
 template {
-  destination = "/agent/certs/ca.crt"
+  destination = "/agent/ca/ca.crt"
   perms = "0644"
   contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
 }
@@ -108,4 +109,5 @@ template {
   destination = "/service/certs/ca.crt"
   perms = "0644"
   contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }

@@ -146,7 +146,7 @@ EOH
 
 # -------- Trust-Bundle (Agent) --------
 template {
-  destination = "/agent/certs/ca.crt"
+  destination = "/agent/ca/ca.crt"
   perms = "0644"
   contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
 }

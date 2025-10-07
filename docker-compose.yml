@@ -39,14 +39,16 @@ services:
       SERVICE_NAME: "web-application-firewall"
       SERVICE_DNS:  "localhost"
       SERVICE_ALT_NAMES: "ft-transcendence.at,localhost"
-      APPROLE_AGENT_NAME: "web-application-firewall-agent-rotator"
+      APPROLE_AGENT_NAME: "web-application-firewall-rotator"
       PKI_ROLE_SERVER: "ft-transcendence"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
+      - vault-agent-ca:/agent/ca:rw
       - web-application-firewall-agent-certs:/agent/certs:rw
       - web-application-firewall-certs:/service/certs:rw
       - web-application-firewall-agent-approle:/approle:rw
       - agent-server-config:/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
       - /run/vault:size=4m,mode=0700
       - /tmp:size=8m,mode=1777
@@ -103,16 +105,18 @@ services:
       SERVICE_NAME: "api-gateway"
       SERVICE_DNS:  "api-gateway"
       SERVICE_ALT_NAMES: "api-gateway"
-      APPROLE_AGENT_NAME:   "api-gateway-agent-rotator"
+      APPROLE_AGENT_NAME:   "api-gateway-rotator"
       APPROLE_SERVICE_NAME: "api-gateway"
       PKI_ROLE_SERVER: "api-gateway-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
+      - vault-agent-ca:/agent/ca:rw
       - api-gateway-agent-certs:/agent/certs:rw
       - api-gateway-service-certs:/service/certs:rw
       - api-gateway-agent-approle:/approle:rw
       - api-gateway-approle-service:/approle-service:rw
       - agent-server-client-config:/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
       - /run/vault:size=4m,mode=0700
       - /tmp:size=8m,mode=1777
@@ -160,14 +164,16 @@ services:
       SERVICE_NAME: "game-service"
       SERVICE_DNS:  "game-service"
       SERVICE_ALT_NAMES: "game-service"
-      APPROLE_AGENT_NAME: "game-service-agent-rotator"
+      APPROLE_AGENT_NAME: "game-service-rotator"
       PKI_ROLE_SERVER: "game-service-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
+      - vault-agent-ca:/agent/ca:rw
       - game-service-agent-certs:/agent/certs:rw
       - game-service-certs:/service/certs:rw
       - game-service-agent-approle:/approle:rw
       - agent-server-config:/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
       - /run/vault:size=4m,mode=0700
       - /tmp:size=8m,mode=1777
@@ -217,16 +223,18 @@ services:
       SERVICE_NAME: "auth-user-service"
       SERVICE_DNS:  "auth-user-service"
       SERVICE_ALT_NAMES: "auth-user-service"
-      APPROLE_AGENT_NAME:   "auth-user-service-agent-rotator"
+      APPROLE_AGENT_NAME:   "auth-user-service-rotator"
       APPROLE_SERVICE_NAME: "auth-user-service"
       PKI_ROLE_SERVER: "auth-user-service-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
+      - vault-agent-ca:/agent/ca:rw
       - auth-user-service-agent-certs:/agent/certs:rw
       - auth-user-service-certs:/service/certs:rw
       - auth-user-service-agent-approle:/approle:rw
       - auth-user-service-approle:/approle-service:rw
       - agent-server-client-config:/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
       - /run/vault:size=4m,mode=0700
       - /tmp:size=8m,mode=1777
@@ -252,6 +260,7 @@ services:
     volumes:
       - cli-certs:/app/certs:ro
 
+  # for all vault services (dev + prod)
   vault-seed-config:
     image: alpine:3.20
     profiles: [ "dev", "prod" ]
@@ -259,6 +268,8 @@ services:
       - ./services/vault/config/:/source:ro
       - ./services/vault/scripts/:/scripts:ro
       - ./services/vault/agents/:/source_agents:ro
+      - ./services/vault/scripts/debounce_hup.sh:/scripts/debounce_hup.sh:ro
+      - vault-agent-hup:/run/vault
       - vault-dev-config:/dest-dev
       - vault-1-config:/dest-1
       - vault-2-config:/dest-2
@@ -368,24 +379,30 @@ services:
     volumes:
       - ./services/vault/scripts:/scripts:ro
       - ./services/vault/policies:/policies:ro
-
+      - ./services/vault/config/:/src_config:ro
       # Node runtime cert volumes (initial seed)
       - vault-1-runtime-certs:/certs/vault-1:rw
       - vault-2-runtime-certs:/certs/vault-2:rw
       - vault-3-runtime-certs:/certs/vault-3:rw
 
+      - vault-1-agent-role:/approle/vault-1-agent:rw
+      - vault-2-agent-role:/approle/vault-2-agent:rw
+      - vault-3-agent-role:/approle/vault-3-agent:rw
+
       # Service Agents (initial seed)
-      - web-application-firewall-agent-certs:/certs/web-application-firewall:rw
+      - vault-agent-ca:/agent/ca:rw
+
       - web-application-firewall-agent-approle:/approle/web-application-firewall-agent:rw
 
-      - api-gateway-agent-certs:/certs/api-gateway:rw
       - api-gateway-agent-approle:/approle/api-gateway-agent:rw
 
-      - auth-user-service-agent-certs:/certs/auth-user-service:rw
       - auth-user-service-agent-approle:/approle/auth-user-service-agent:rw
 
-      - game-service-agent-certs:/certs/game-service:rw
       - game-service-agent-approle:/approle/game-service-agent:rw
+
+      - ai-opponent-agent-approle:/approle/ai-opponent-agent:rw
+
+      - cli-agent-approle:/approle/cli-agent:rw
 
       # Config volumes (seeded by vault-seed-config)
       - vault-1-config:/vault/config:rw
@@ -439,6 +456,7 @@ services:
       - vault-1-runtime-certs:/vault/certs:rw
       - vault-1-agent-role:/approle:rw
       - vault-1-agent-config:/vault/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
       - /run/vault:rw,size=4m,mode=0700
       - /tmp:rw,size=8m,mode=1777
@@ -479,6 +497,7 @@ services:
       - vault-2-runtime-certs:/vault/certs:rw
       - vault-2-agent-role:/approle:rw
       - vault-2-agent-config:/vault/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
      - /run/vault:rw,size=4m,mode=0700
      - /tmp:rw,size=8m,mode=1777
@@ -519,6 +538,7 @@ services:
       - vault-3-runtime-certs:/vault/certs:rw
       - vault-3-agent-role:/approle:rw
       - vault-3-agent-config:/vault/agents:ro
+      - vault-agent-hup:/agent/hup:ro
     tmpfs:
      - /run/vault:rw,size=4m,mode=0700
      - /tmp:rw,size=8m,mode=1777
@@ -551,6 +571,8 @@ volumes:
   auth-user-service-certs: {}
   auth-user-service-agent-approle: {}
   auth-user-service-approle: {}
+  ai-opponent-agent-approle: {}
+  cli-agent-approle: {}
 
 # VAULT
   vault-dev-config: {}
@@ -582,3 +604,6 @@ volumes:
   vault-keys: {}
   agent-server-config: {}
   agent-server-client-config: {}
+
+  vault-agent-hup: {}
+  vault-agent-ca: {}

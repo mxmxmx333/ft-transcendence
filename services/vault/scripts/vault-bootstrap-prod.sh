@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+set -o pipefail
 
 # ------- Tools prüfen -------
 command -v vault >/dev/null 2>&1 || { echo "vault CLI fehlt"; exit 1; }
@@ -15,30 +16,29 @@ export VAULT_SKIP_VERIFY="${VAULT_SKIP_VERIFY:-1}"   # solange self-signed
 VAULT_1_CERT_DIR="${VAULT_1_CERT_DIR:-/certs/vault-1}"
 VAULT_2_CERT_DIR="${VAULT_2_CERT_DIR:-/certs/vault-2}"
 VAULT_3_CERT_DIR="${VAULT_3_CERT_DIR:-/certs/vault-3}"
-VAULT_AGENT_1_CERT_DIR="${VAULT_AGENT_1_CERT_DIR:-/certs/vault-agent-1}"
-VAULT_AGENT_2_CERT_DIR="${VAULT_AGENT_2_CERT_DIR:-/certs/vault-agent-2}"
-VAULT_AGENT_3_CERT_DIR="${VAULT_AGENT_3_CERT_DIR:-/certs/vault-agent-3}"
+VAULT_AGENT_1_APPROLE_DIR="${VAULT_AGENT_1_APPROLE_DIR:-/approle/vault-1-agent}"
+VAULT_AGENT_2_APPROLE_DIR="${VAULT_AGENT_2_APPROLE_DIR:-/approle/vault-2-agent}"
+VAULT_AGENT_3_APPROLE_DIR="${VAULT_AGENT_3_APPROLE_DIR:-/approle/vault-3-agent}"
 
 # VAULT SERVICE AGENT CERT DIRS
-VAULT_AGENT_API_GATEWAY_CERT_DIR="${VAULT_AGENT_API_GATEWAY_CERT_DIR:-/certs/api-gateway/}"
-VAULT_AGENT_API_GATEWAY_APPROLE_DIR="${VAULT_AGENT_API_GATEWAY_APPROLE_DIR:-/approle/api-gateway/}"
+VAULT_AGENT_CA_DIR="${VAULT_AGENT_CA_DIR:-/agent/ca/}"
 
-VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR:-/certs/auth-user-service/}"
-VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR:-/approle/auth-user-service/}"
+VAULT_AGENT_API_GATEWAY_APPROLE_DIR="${VAULT_AGENT_API_GATEWAY_APPROLE_DIR:-/approle/api-gateway-agent/}"
 
-VAULT_AGENT_GAME_SERVICE_CERT_DIR="${VAULT_AGENT_GAME_SERVICE_CERT_DIR:-/certs/game-service/}"
-VAULT_AGENT_GAME_SERVICE_APPROLE_DIR="${VAULT_AGENT_GAME_SERVICE_APPROLE_DIR:-/approle/game-service/}"
+VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR:-/approle/auth-user-service-agent/}"
 
-VAULT_AGENT_AI_OPPONENT_CERT_DIR="${VAULT_AGENT_AI_OPPONENT_CERT_DIR:-/certs/ai-opponent/}"
-VAULT_AGENT_AI_OPPONENT_APPROLE_DIR="${VAULT_AGENT_AI_OPPONENT_APPROLE_DIR:-/approle/ai-opponent/}"
+VAULT_AGENT_GAME_SERVICE_APPROLE_DIR="${VAULT_AGENT_GAME_SERVICE_APPROLE_DIR:-/approle/game-service-agent/}"
 
-VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR:-/certs/web-application-firewall/}"
-VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR:-/approle/web-application-firewall/}"
+VAULT_AGENT_AI_OPPONENT_APPROLE_DIR="${VAULT_AGENT_AI_OPPONENT_APPROLE_DIR:-/approle/ai-opponent-agent/}"
 
-VAULT_AGENT_CLI_CERT_DIR="${VAULT_AGENT_CLI_CERT_DIR:-/certs/cli/}"
-VAULT_AGENT_CLI_APPROLE_DIR="${VAULT_AGENT_CLI_APPROLE_DIR:-/approle/cli/}"
+VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR:-/approle/web-application-firewall-agent/}"
 
-# VAULT_CONFIG_DIR
+VAULT_AGENT_CLI_APPROLE_DIR="${VAULT_AGENT_CLI_APPROLE_DIR:-/approle/cli-agent/}"
+
+# VAULT CONFIG SRC AND DEST DIR
+VAULT_CONFIG_SRC_NAME="${VAULT_CONFIG_SRC_NAME:-vault-1.hcl.replace}"
+VAULT_CONFIG_SRC_DIR="${VAULT_CONFIG_SRC_DIR:-/src_config}"
+VAULT_CONFIG_FILE_NAME="${VAULT_CONFIG_FILE_NAME:-vault-1.hcl}"
 VAULT_1_CONFIG_DIR="${VAULT_1_CONFIG_DIR:-/vault/config}"
 
 # VAULT LOGS DIR
@@ -292,91 +292,176 @@ issue_cert() {
 
 issue_vault_certs(){
   issue_cert "vault-1"                        "vault-node-internal"     "vault-1,localhost"                    "127.0.0.1"   "$VAULT_1_CERT_DIR"                                "server"
-  # issue_cert "vault-1-agent"                  "vault-node-internal"     "vault-1-agent"                        ""            "$VAULT_AGENT_1_CERT_DIR"                          "server"
   issue_cert "vault-2"                        "vault-node-internal"     "vault-2,localhost"                    "127.0.0.1"   "$VAULT_2_CERT_DIR"                                "server"
-  # issue_cert "vault-2-agent"                  "vault-node-internal"     "vault-2-agent"                        ""            "$VAULT_AGENT_2_CERT_DIR"                          "server"
   issue_cert "vault-3"                        "vault-node-internal"     "vault-3,localhost"                    "127.0.0.1"   "$VAULT_3_CERT_DIR"                                "server"
-  # issue_cert "vault-3-agent"                  "vault-node-internal"     "vault-3-agent"                        ""            "$VAULT_AGENT_3_CERT_DIR"                          "server"
   # issue_cert "api-gateway-agent"              "vault-clients-internal"  "api-gateway-agent"                    ""            "$VAULT_AGENT_API_GATEWAY_CERT_DIR"                "client"
   # issue_cert "auth-user-service-agent"        "vault-clients-internal"  "auth-user-service-agent"              ""            "$VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR"          "client"
   # issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
   # issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
+
 }
 
+generate_ca_service_agents_cert() {
+  echo ">> generate CA cert for service agents"
+  mkdir -p "$VAULT_AGENT_CA_DIR"
+  chmod 755 "$VAULT_AGENT_CA_DIR" && chown "$VAULT_UID:$VAULT_GID" "$VAULT_AGENT_CA_DIR" 2>/dev/null || true
+  vault read -format=json pki/ca/pem | jq -r '.data.certificate' > "$VAULT_AGENT_CA_DIR/ca.crt"
+  chmod 644 "$VAULT_AGENT_CA_DIR/ca.crt"
+  chown "$VAULT_UID:$VAULT_GID" "$VAULT_AGENT_CA_DIR/ca.crt" 2>/dev/null || true
+}
 # ------- Phase 8: Policies & App-Roles -------
+
+render_approle_id_and_secret() {
+  role="$1"; outdir="$2"; uid="${3:-$VAULT_UID}"; gid="${4:-$VAULT_GID}"
+  [ -n "$role" ] && [ -n "$outdir" ] || { echo "!! missing param"; return 1; }
+
+  echo ">> render approle role_id + secret_id for $role -> $outdir"
+  umask 077
+  mkdir -p "$outdir" || return 1
+  chown "$uid:$gid" "$outdir" 2>/dev/null || true
+  chmod 700 "$outdir" || true
+
+  local rid_tmp="$outdir/role_id.tmp" sid_tmp="$outdir/secret_id.tmp"
+
+  # role_id
+  if ! vault read -field=role_id "auth/approle/role/$role/role-id" > "$rid_tmp"; then
+    echo "!! failed to read role_id for $role"; rm -f "$rid_tmp"; return 1
+  fi
+  if [ ! -s "$rid_tmp" ]; then
+    echo "!! empty role_id for $role"; rm -f "$rid_tmp"; return 1
+  fi
+  mv -f "$rid_tmp" "$outdir/role_id"
+  # secret_id unwrapped
+  if ! vault write -f -format=json "auth/approle/role/$role/secret-id" \
+      | jq -er '.data.secret_id' > "$sid_tmp"; then
+    echo "!! failed to create secret_id for $role"; rm -f "$sid_tmp"; return 1
+  fi
+  if [ ! -s "$sid_tmp" ]; then
+    echo "!! empty secret_id for $role"; rm -f "$sid_tmp"; return 1
+  fi
+  mv -f "$sid_tmp" "$outdir/secret_id"
+
+  chmod 600 "$outdir/role_id" "$outdir/secret_id"
+  chown "$uid:$gid" "$outdir/role_id" "$outdir/secret_id" 2>/dev/null || true
+}
 
 enable_policies_and_approles() {
   echo ">> enable policies and approles"
   
-  vault auth enable approle 2>/dev/null || true
+  vault auth list -format=json | jq -e 'has("approle/")' >/dev/null || vault auth enable approle
 
-  vault policy write api-gateway        policies/common/api-gateway.hcl
-  vault policy write auth-user-service  policies/common/auth-user-service.hcl
-  vault policy write 
-
+  vault policy write api-gateway                        policies/common/api-gateway.hcl
+  vault policy write auth-user-service                  policies/common/auth-user-service.hcl
+  vault policy write ai-opponent-rotator                policies/pki-rotate-ai-opponent.hcl
+  vault policy write api-gateway-rotator                policies/pki-rotate-api-gateway.hcl
+  vault policy write auth-user-service-rotator          policies/pki-rotate-auth-user-service.hcl
+  vault policy write game-service-rotator               policies/pki-rotate-game-service.hcl
+  vault policy write web-application-firewall-rotator   policies/pki-rotate-web-application-firewall.hcl
+  vault policy write pki-rotate-node-1                  policies/pki-rotate-node-1.hcl
+  vault policy write pki-rotate-node-2                  policies/pki-rotate-node-2.hcl
+  vault policy write pki-rotate-node-3                  policies/pki-rotate-node-3.hcl
 
 
   vault write auth/approle/role/api-gateway \
-    token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
+    token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
 
   vault write auth/approle/role/auth-user-service \
-    token_policies="auth-user-service" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
+    token_policies="auth-user-service" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
 
-  mkdir -p /certs/api-gateway/approle /certs/auth-user-service/approle
-  chown 
-  umask 077
+  vault write auth/approle/role/ai-opponent-rotator \
+    token_policies="ai-opponent-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
 
-  vault read  -field=role_id  auth/approle/role/api-gateway/role-id            > /certs/api-gateway/approle/role_id
-  vault write -f -format=json auth/approle/role/api-gateway/secret-id | jq -r '.data.secret_id' > /certs/api-gateway/approle/secret_id
-  chmod 600 /certs/api-gateway/approle/role_id /certs/api-gateway/approle/secret_id
-  chown "${VAULT_UID:-0}:${VAULT_GID:-0}" /certs/api-gateway/approle/* 2>/dev/null || true
+  vault write auth/approle/role/api-gateway-rotator \
+    token_policies="api-gateway-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
 
-  vault read  -field=role_id  auth/approle/role/auth-user-service/role-id      > /certs/auth-user-service/approle/role_id
-  vault write -f -format=json auth/approle/role/auth-user-service/secret-id | jq -r '.data.secret_id' > /certs/auth-user-service/approle/secret_id
-  chmod 600 /certs/auth-user-service/approle/role_id /certs/auth-user-service/approle/secret_id
-  chown "${VAULT_UID:-0}:${VAULT_GID:-0}" /certs/auth-user-service/approle/* 2>/dev/null || true
+  vault write auth/approle/role/auth-user-service-rotator \
+    token_policies="auth-user-service-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/game-service-rotator \
+    token_policies="game-service-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/web-application-firewall-rotator \
+    token_policies="web-application-firewall-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/vault-node-1-rotator \
+    token_policies="pki-rotate-node-1" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/vault-node-2-rotator \
+    token_policies="pki-rotate-node-2" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/vault-node-3-rotator \
+    token_policies="pki-rotate-node-3" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  render_approle_id_and_secret "vault-node-1-rotator"                 "$VAULT_AGENT_1_APPROLE_DIR"                           "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "vault-node-2-rotator"                 "$VAULT_AGENT_2_APPROLE_DIR"                           "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "vault-node-3-rotator"                 "$VAULT_AGENT_3_APPROLE_DIR"                           "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "api-gateway-rotator"                  "$VAULT_AGENT_API_GATEWAY_APPROLE_DIR"                 "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "auth-user-service-rotator"            "$VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR"           "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "game-service-rotator"                 "$VAULT_AGENT_GAME_SERVICE_APPROLE_DIR"                "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "web-application-firewall-rotator"     "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR"    "$VAULT_UID" "$VAULT_GID"
+  # render_approle_id_and_secret "ai-opponent-rotator"                  "$VAULT_AGENT_AI_OPPONENT_APPROLE_DIR"                 "$VAULT_UID" "$VAULT_GID"
+  # render_approle_id_and_secret "cli"                                  "$VAULT_AGENT_CLI_APPROLE_DIR"                         "$VAULT_UID" "$VAULT_GID"
 }
 
-# ------- Phase 9: (optional) mTLS per Zusatz-HCL aktivieren -------
-if [ "$ENABLE_MTLS_AT_END" = "true" ]; then
-  echo ">> enable mTLS via extra HCL"
-  cat > "$VAULT_CONFIG_DIR/10-mtls.hcl" <<'HCL'
-listener "tcp" {
-  tls_client_ca_file                 = "/vault/certs/ca.crt"
-  tls_require_and_verify_client_cert = true
+enable_node_mtls() {
+  local src="${1:?need src HCL}"
+  local dst="${2:?need dst HCL}"
+
+  [ -f "$src" ] || { echo "!! missing config src: $src"; return 1; }
+
+  mkdir -p "$(dirname "$dst")"
+
+  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
+    echo ">> destination already matches src — nothing to do"
+    return 0
+  fi
+
+  if [ -f "$dst" ]; then
+    local bak="${dst}.bak.$(date +%Y%m%d-%H%M%S)"
+    echo ">> backup existing config to $bak"
+    cp -f "$dst" "$bak" || { echo "!! failed to backup existing config"; return 1; }
+  fi
+
+  local tmp="${dst}.tmp"
+  echo ">> staging new config"
+  cp -f "$src" "$tmp" || { echo "!! failed to copy to tmp"; rm -f "$tmp"; return 1; }
+  chmod 0644 "$tmp" || true
+  chown "${VAULT_UID:-1000}:${VAULT_GID:-1000}" "$tmp" 2>/dev/null || true
+
+  echo ">> activating new config"
+  mv -f "$tmp" "$dst"
+
+  echo "Success: mTLS config deployed to: $dst"
 }
-HCL
-  chmod 0644 "$VAULT_CONFIG_DIR/10-mtls.hcl"
-  echo ">> send SIGHUP to vault-dev to reload certs/configs"
-fi
 
 
 wait_for_vault || { echo "!! vault not reachable"; exit 1; }
 
-# CALL 1
 if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
  init_vault || { echo "!! vault init failed"; exit 1; }
 fi
 
-# CALL 2
 if ! vault status -format=json | jq -e '.sealed == false' >/dev/null; then
   unseal_vault || exit 1
 fi
 
-# CALL 3
+if [ -f "$MARKER_FILE" ]; then
+  echo ">> bootstrap already done (marker found at $MARKER_FILE). Exiting."
+  exit 0
+fi
 export_vault_token
-
-# CALL 5
 enable_jwt_transit
-
-# CALL 6
 enable_pki_engine
 define_pki_roles
 issue_vault_certs
-
-# CALL 7
+generate_ca_service_agents_cert
 enable_policies_and_approles
+if [ "${ENABLE_MTLS_AT_END:-false}" = "true" ]; then
+  enable_node_mtls "$VAULT_CONFIG_SRC_DIR/$VAULT_CONFIG_SRC_NAME" \
+                   "$VAULT_1_CONFIG_DIR/$VAULT_CONFIG_FILE_NAME"
+fi
 
 # MARKER setzen
+mkdir -p "$VAULT_BOOTSTRAP_STATE_DIR"
 date -Iseconds > "$MARKER_FILE"
 echo ">> bootstrap done."
