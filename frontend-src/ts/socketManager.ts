@@ -92,7 +92,7 @@ export class SocketManager {
     return io({
       path: '/socket.io',
       auth: { token },
-      query: { token },
+      query: { "token": token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,

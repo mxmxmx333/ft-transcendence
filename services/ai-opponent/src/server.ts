@@ -249,7 +249,7 @@ async function start() {
     await server.listen({ port: SERVER_PORT, host: SERVER_HOST });
     server.log.info(`AI Opponent Service running at https://localhost:${SERVER_PORT}`);
   } catch (error) {
-    server.log.error('Failed to start server:', error);
+    server.log.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 }
