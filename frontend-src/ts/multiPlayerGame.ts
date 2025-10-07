@@ -149,13 +149,6 @@ export class PongGame {
       if (e.key === 's' || e.key === 'S') this.sPressed = false;
       if (e.key === 'ArrowUp') this.upPressed = false;
       if (e.key === 'ArrowDown') this.downPressed = false;
-      // if (this.isPlayer1) {
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = false;
-      //   if (e.key === 's' || e.key === 'S') this.sPressed = false;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   if (e.key === 'ArrowUp') this.upPressed = false;
-      //   if (e.key === 'ArrowDown') this.downPressed = false;
-      // }
     };
 
     document.addEventListener('keydown', keyDownHandler);
@@ -296,17 +289,46 @@ export class PongGame {
     this.playerScore = gameState.guestScore;
     this.opponentScore = gameState.ownerScore;
   }
-  
+  console.debug(`game_state received: ${gameState}`)
   this.draw();
 }
 
- public handleGameStart(message: any) {
-  console.log('Game start received:', message);
-  console.log('Is Owner:', message.isOwner);
-  console.log('Owner info:', message.owner);
-  console.log('Guest info:', message.guest);
-  
-  if (this.gameRunning) this.stop();
+  public handleGameStart(message: any) {
+    console.log('Game start received:', message);
+    console.log('Canvas element:', this.canvas);
+    console.log('Is Owner:', message.isOwner);
+    console.log('Owner info:', message.owner);
+    console.log('Guest info:', message.guest);
+    console.log('Message.owner.nickname:', message.owner.nickname);
+    console.log('Message.guest.nickname:', message.guest.nickname);
+
+    // Test: Prüfe Socket Listener
+    const socket = this.socketManager?.getSocket();
+    console.debug('Socket listeners:', socket?.listeners('game_state'));
+    console.debug('Socket connected:', socket?.connected);
+
+    if (this.gameRunning) this.stop();
+    this.gameRunning = false;
+
+    if (!this.canvas || !this.ctx) {
+      console.error('Canvas or context not available for game start');
+      return;
+    }
+    
+    // Ensure canvas is visible
+    this.canvas.style.display = 'block';
+    this.canvas.style.visibility = 'visible';
+    
+    console.log('Canvas visibility set to visible');
+
+    this.isPlayer1 = message.isOwner;
+    this.roomId = message.roomId;
+    if (message.isOwner) {
+      this.opponentNickname = message.guest.nickname;
+    } else {
+      this.opponentNickname = message.owner.nickname;
+    }
+    document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
   this.isPlayer1 = message.isOwner;
   this.roomId = message.roomId;
@@ -344,9 +366,11 @@ export class PongGame {
     `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
   );
 
-  // Sayfa geçişi
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.remove('hidden');
+    // To-Do: set Countdown timer before starting
+
+    // Sayfa geçişi
+    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+    document.querySelector('.game-page')?.classList.remove('hidden');
 
   this.start();
 }
@@ -379,6 +403,29 @@ export class PongGame {
     console.log('Game over. Winner:', winner);
     console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
     this.drawGameOver(winner);
+  }
+
+public matchEnd(message: any) {
+    this.gameRunning = false;
+    console.log('Match end message:', message);
+    let winner =
+      message.winner === 'owner'
+        ? this.isPlayer1
+          ? 'YOU'
+          : this.opponentNickname
+        : this.isPlayer1
+          ? this.opponentNickname
+          : 'YOU';
+    if (!this.isRemote && !this.isSinglePlayer) {
+      if (winner === 'YOU') {
+        winner = 'Player1';
+      } else {
+        winner = 'Player2';
+      }
+    }
+    console.log('Match ended. Winner:', winner);
+    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
+    this.drawMatchOver(winner);
   }
 
   public handleOpponentDisconnected() {
@@ -528,6 +575,34 @@ export class PongGame {
         this.returnToNewGamePage();
     }, 5000);
   }
+
+  private drawMatchOver(winner: string) {
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+  this.ctx.fillStyle = '#ffffff';
+  this.ctx.font = 'bold 48px Arial';
+  this.ctx.textAlign = 'center';
+  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+  this.ctx.font = 'bold 36px Arial';
+  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+
+  this.ctx.font = '24px Arial';
+  this.ctx.fillText(
+    'Next Match will start in 5 seconds',
+    this.canvas.width / 2,
+    this.canvas.height / 2 + 80
+  );
+
+  // 5 saniye sonra lobby'e dön
+  // DELETED: isn't needed!
+  // setTimeout(() => {
+  //   this.resetGame();
+  //   document.querySelector('.game-page')?.classList.add('hidden');
+  //   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+  // }, 5000);
+}
 
   private resetGame() {
     this.playerScore = 0;
