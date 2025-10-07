@@ -1,7 +1,7 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect } from './room';
+import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom } from './room';
 import type { Server, Socket } from 'socket.io';
-import type { PaddleMovePayload, CreateRoomPayload } from './types/types';
+import type { PaddleMovePayload, CreateRoomPayload, GameRoom, TournamentRoom } from './types/types';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -38,21 +38,87 @@ export function registerIoHandlers(io: Server) {
           return;
         }
 
-        const room = socket.room;
+        let gameRoom: GameRoom | null = null;
 
-        if (socket === room.owner?.conn) {
-          room.ownerMovement = payload.moveP1;
-          if (room.gameType === 'local') {
-            room.guestMovement = payload.moveP2;
+        // ✅ Tournament Room Check
+        if ('players' in socket.room) {
+          const tournamentRoom = socket.room as TournamentRoom;
+          
+          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) {
+            console.log(`[Socket] No active match in tournament room ${tournamentRoom.id}`);
+            return;
           }
-        } else if (socket === room.guest?.conn) {
-          room.guestMovement = payload.moveP2;
-        } else {
-          console.error(`[Socket] Socket ${socket.id} not found in room players`);
+          
+          gameRoom = tournamentRoom as any;
+          console.log(`[Socket] TOURNAMENT: Processing paddle move for ${socket.player?.nickname}`);
+        } 
+        // ✅ Regular GameRoom
+        else if ('gameState' in socket.room) {
+          gameRoom = socket.room as GameRoom;
+          console.log(`[Socket] REGULAR: Processing paddle move for ${socket.player?.nickname} in room ${gameRoom.id}`);
         }
+        else {
+          console.error(`[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`);
+          return;
+        }
+
+        if (!gameRoom) {
+          console.error(`[Socket] No gameRoom found for socket ${socket.id}`);
+          return;
+        }
+
+        // ✅ Paddle Movement verarbeiten
+        if (socket === gameRoom.owner?.conn) {
+          gameRoom.ownerMovement = payload.moveP1;
+          if (gameRoom.gameType === 'local') {
+            gameRoom.guestMovement = payload.moveP2;
+          }
+          console.debug(`[Socket] Owner ${socket.player?.nickname} paddle move: ${payload.moveP1}`);
+        } else if (socket === gameRoom.guest?.conn) {
+          gameRoom.guestMovement = payload.moveP2;
+          console.debug(`[Socket] Guest ${socket.player?.nickname} paddle move: ${payload.moveP2}`);
+        } else {
+          console.log(`[Socket] Socket ${socket.id} ${socket.player?.nickname} is neither owner nor guest in game room ${gameRoom.id}`);
+        }
+
       } catch (error) {
         console.error('[Socket] Error in paddle_move handler:', error);
       }
+    });
+
+    socket.on('create_tournament_room', (payload: CreateRoomPayload['create_tournament_room']) => {
+      console.log(`[Socket] Player ${player.id} creating tournament room`);
+      handleCreateTournamentRoom(player, payload);
+    });
+
+    socket.on('join_tournament_room', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid join_tournament_room data from ${player.id}`);
+        socket.emit('join_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} joining tournament room ${data.roomId}`);
+      joinTournamentRoom(player, data.roomId);
+    });
+
+    socket.on('start_tournament', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid start_tournament data from ${player.id}`);
+        socket.emit('join_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} starting tournament in room ${data.roomId}`);
+      checkStartTournament(player, data.roomId);
+    });
+
+    socket.on('leave_tournament', (data: { roomId: string }) => {
+      if (!data || !data.roomId) {
+        console.error(`[Socket] Invalid leave_tournament data from ${player.id}`);
+        socket.emit('tournament_error', { message: 'Invalid room ID' });
+        return;
+      }
+      console.log(`[Socket] Player ${player.id} leaving tournament ${data.roomId}`);
+      leaveTournamentRoom(player, data.roomId);
     });
 
     socket.on('create_room', (payload: CreateRoomPayload['create_room']) => {

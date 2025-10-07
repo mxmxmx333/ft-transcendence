@@ -744,23 +744,6 @@ function showStatistics() {
   document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
-function showTournamentPage() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
-  manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-}
 function showAuthPage() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');
@@ -934,19 +917,57 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.body.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.matches('[data-link]')) {
+            e.preventDefault();
+            const href = target.getAttribute('href');
+            const dataLink = target.getAttribute('data-link');
+            
+            // Href veya data-link'ten birini kullan
+            const link = href || dataLink;
+            
+            if (link === '/logout') {
+                handleLogout();
+            } else if (link) {
+                navigateTo(link);
+            }
+        }
+    });
+  
+  document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    if (target.matches('[data-link]')) {
+    
+    // Create Tournament
+    if (target.closest('#create-tournament-btn')) {
       e.preventDefault();
-      const href = target.getAttribute('href');
-      const dataLink = target.getAttribute('data-link');
+      createTournament();
+    }
+    
+    // Join Tournament
+    if (target.closest('#join-tournament-btn')) {
+      e.preventDefault();
+      joinTournament();
+    }
+    
+    // Start Tournament
+    if (target.closest('#start-tournament-btn')) {
+      e.preventDefault();
+      startTournament();
+    }
+    
+    // Leave Tournament
+    if (target.closest('#leave-tournament-btn')) {
+      e.preventDefault();
+      leaveTournament();
+    }
+  });
 
-      // Href veya data-link'ten birini kullan
-      const link = href || dataLink;
-
-      if (link === '/logout') {
-        handleLogout();
-      } else if (link) {
-        navigateTo(link);
+  // Tournament ID Input - Enter key support
+  document.addEventListener('keypress', (e) => {
+    if (e.target instanceof HTMLInputElement && e.target.id === 'tournament-id-input') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinTournament();
       }
     }
   });
@@ -1151,3 +1172,318 @@ function startMultiplayerGame(game: PongGame) {
   (window as any).currentGame = game;
   // game.start();
 }
+
+
+// TOURNAMENT
+function showTournamentLobby(): void {
+  hideAllPages();
+  document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+  resetTournamentUI();
+}
+
+function hideAllPages(): void {
+  document.querySelector('.login-page')?.classList.add('hidden');
+  document.querySelector('.profile-page')?.classList.add('hidden');
+  document.querySelector('.game-page')?.classList.add('hidden');
+  document.querySelector('.newgame-page')?.classList.add('hidden');
+  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  document.querySelector('.options-page')?.classList.add('hidden');
+  document.querySelector('.user-search-page')?.classList.add('hidden');
+  document.querySelector('.user-profile-page')?.classList.add('hidden');
+}
+
+function resetTournamentUI(): void {
+  document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
+  const tournamentInput = document.getElementById('tournament-id-input') as HTMLInputElement;
+  if (tournamentInput) tournamentInput.value = '';
+  document.getElementById('tournament-info')?.classList.add('hidden');
+  document.getElementById('tournament-owner-controls')?.classList.add('hidden');
+}
+
+async function createTournament(): Promise<void> {
+  try {
+    document.getElementById('tournament-status')!.textContent = 'Creating tournament...';
+    
+    const tournamentData = await socketManager.createTournament();
+    console.log('Tournament created with data:', tournamentData);
+
+    const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
+    
+    showTournamentInfo(roomId, true, tournamentData); // ✅ tournamentData hinzufügen
+    document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
+    
+  } catch (error) {
+    console.error('Failed to create tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to create tournament. Please try again.';
+  }
+}
+
+async function joinTournament(): Promise<void> {
+  const tournamentIdInput = document.getElementById('tournament-id-input') as HTMLInputElement;
+  const tournamentId = tournamentIdInput.value.trim().toUpperCase();
+  
+  if (!tournamentId) {
+    alert('Please enter a tournament ID');
+    return;
+  }
+  
+  if (tournamentId.length < 3) {
+    alert('Tournament ID must be at least 3 characters');
+    return;
+  }
+  
+  try {
+    document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
+
+    const tournamentData = await socketManager.joinTournament(tournamentId);
+
+    console.log('Tournament data received:', tournamentData);
+
+    showTournamentInfo(tournamentId, false, tournamentData); // false = not owner
+    document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
+
+  } catch (error) {
+    console.error('Failed to join tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
+  }
+}
+
+function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentData?: any): void {
+  document.getElementById('current-tournament-id')!.textContent = tournamentId;
+  document.getElementById('tournament-info')?.classList.remove('hidden');
+  
+  if (isOwner) {
+    document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
+  }
+
+  if (tournamentData && tournamentData.players) {
+    console.log('Using real player data:', tournamentData.players);
+    updateTournamentPlayers(tournamentData.players);
+  } else if (tournamentData && tournamentData.room && tournamentData.room.players) {
+    console.log('Using nested player data:', tournamentData.room.players);
+    updateTournamentPlayers(tournamentData.room.players);
+  } else {
+    console.log('No player data found, using mock data');
+    // ✅ Fallback zu Mock Daten
+    const mockPlayers = [
+      { nickname: 'You', isOwner: isOwner },
+      { nickname: 'Player2', isOwner: false }
+    ];
+  
+  }
+  updateTournamentPlayers(tournamentData.players || [{ nickname: 'You', isOwner: isOwner },
+      { nickname: 'Player2', isOwner: false }]);
+}
+
+function updateTournamentPlayers(playersData: any): void {
+  console.log('Live update - Tournament players changed:', playersData);
+  
+  // ✅ Verschiedene Server-Datenstrukturen handhaben
+  let players = playersData;
+  if (playersData && !Array.isArray(playersData)) {
+    players = playersData.players || playersData.room?.players || [];
+  }
+  
+  if (!Array.isArray(players)) {
+    console.warn('Invalid players data received:', playersData);
+    return;
+  }
+  
+  const playersList = document.getElementById('tournament-players-list')!;
+  const playerCount = document.getElementById('tournament-player-count')!;
+  const startBtn = document.getElementById('start-tournament-btn') as HTMLButtonElement;
+  
+  playersList.innerHTML = '';
+  console.log('Updating tournament players:', players);
+  
+  players.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'flex justify-between items-center p-2 bg-gray-800 rounded';
+
+    const nickname = player.nickname ;
+    const isPlayerOwner = player.isOwner || false;
+
+    playerDiv.innerHTML = `
+      <span class="text-white">${nickname}</span>
+      <span class="text-xs ${isPlayerOwner ? 'neon-text-yellow' : 'text-gray-400'}">
+        ${isPlayerOwner ? '👑 Owner' : 'Player'}
+      </span>
+    `;
+    playersList.appendChild(playerDiv);
+  });
+  
+  playerCount.textContent = `${players.length}/5`;
+  
+  // Enable start button if enough players and user is owner
+  if (startBtn) {
+   const currentUser = getCurrentUserNickname(); // Helper function needed
+    const isCurrentUserOwner = players.some(p => 
+      (p.nickname === currentUser || p.nickname === 'You') && (p.isOwner)
+    );
+    
+    startBtn.disabled = players.length < 3 || !isCurrentUserOwner;
+    startBtn.textContent = players.length < 3 
+      ? `Start Tournament (Min. 3 players)` 
+      : `Start Tournament (${players.length} players)`;
+    
+    const statusElement = document.getElementById('tournament-status');
+    if (statusElement && players.length >= 3 && isCurrentUserOwner) {
+      statusElement.textContent = `Ready to start with ${players.length} players!`;
+    }
+  }
+}
+
+function getCurrentUserNickname(): string {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.nickname || payload.name || 'You';
+    }
+  } catch (e) {
+    console.error('Could not decode token for nickname');
+  }
+  return 'You';
+}
+
+async function startTournament(): Promise<void> {
+  try {
+    document.getElementById('tournament-status')!.textContent = 'Starting tournament...';
+    
+    const tournamentId = document.getElementById('current-tournament-id')!.textContent;
+    
+    if (!tournamentId || tournamentId === '-') {
+      throw new Error('No tournament ID found');
+    }
+    
+    await socketManager.startTournament(tournamentId);
+    
+  } catch (error) {
+    console.error('Failed to start tournament:', error);
+    document.getElementById('tournament-status')!.textContent = 'Failed to start tournament. Please try again.';
+  }
+}
+
+async function leaveTournament(): Promise<void> {
+  if (!confirm('Are you sure you want to leave the tournament?')) {
+    return;
+  }
+  
+  try {
+    // Echte Socket-Implementierung
+    await socketManager.leaveTournament();
+    
+    resetTournamentUI();
+    document.getElementById('tournament-status')!.textContent = 'Left tournament';
+    
+  } catch (error) {
+    console.error('Failed to leave tournament:', error);
+  }
+}
+
+// Update showTournamentPage function
+async function showTournamentPage(): Promise<void> {
+  if (!isAuthenticated()) {
+    navigateTo('/');
+    return;
+  }
+  showTournamentLobby();
+  
+  try {
+    await socketManager.ensureConnection();
+    document.getElementById('tournament-status')!.textContent = 'Connected to server - Ready for tournament';
+  } catch (error) {
+    console.error('Tournament connection failed:', error);
+    document.getElementById('tournament-status')!.textContent = 'Connection failed - tournament unavailable';
+  }
+}
+
+function handleTournamentMatchStart(data: any): void {
+  console.log('[Frontend] Tournament Match Start'); // Debug
+
+  hideAllPages();
+  document.querySelector('.game-page')?.classList.remove('hidden');
+
+  const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+  if (!canvas) {
+    console.error('Canvas not found!');
+    return;
+  }
+  canvas.classList.remove('hidden', 'invisible', 'opacity-0');
+  canvas.style.display = 'block !important';
+  canvas.style.visibility = 'visible !important';
+
+  const game = new PongGame(canvas, socketManager);
+  socketManager.setGameInstance(game);
+
+  if (data.owner && data.guest) {
+    const statusElement = document.getElementById('tournament-status');
+    if (statusElement) {
+      statusElement.textContent = `Match: ${data.owner.nickname} vs ${data.guest.nickname}`;
+    }
+  }
+
+  console.log('Tournament game setup complete, canvas visible');
+
+  socketManager.onGameStart = () => {
+    console.log('Tournament game starting!');
+    startMultiplayerGame(game);
+  };
+}
+
+function handleTournamentMatchEnd(data: any): void {
+  console.log('Tournament match ended:', data);
+  
+  // Nur Message zeigen, NICHT navigieren
+  const status = document.getElementById('tournament-status');
+  if (status) {
+    const winnerName = data.winnerName || data.winner;
+    const loserName = data.loserName || data.loser;
+    const message = data.message || `${winnerName} wins!`;
+    
+    status.textContent = `Match Result: ${message}`;
+  }
+  
+  setTimeout(() => {
+    const status = document.getElementById('tournament-status');
+    if (status) {
+      status.textContent = 'Waiting for next match...';
+    }
+  }, 2000);
+
+  // Auf Game-Page bleiben für nächstes Match
+  console.log('Match end handled, waiting for next match or tournament end');
+}
+
+function handleTournamentEnd(data: any): void {
+  console.log('Tournament completely finished:', data);
+  
+  const status = document.getElementById('tournament-status');
+  if (status) {
+    const winnerMessage = data.message || `Tournament finished!`;
+    const winnerName = data.winnerName || data.winner;
+    
+    status.textContent = `🏆 ${winnerMessage}`;
+    
+    // Zusätzliche Winner-Info falls verfügbar
+    if (winnerName && typeof winnerName === 'string') {
+      status.textContent = `🏆 Tournament Winner: ${winnerName}!`;
+    }
+  }
+  
+  // NUR hier zur Tournament-Lobby zurück
+  setTimeout(() => {
+    hideAllPages();
+    document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+    resetTournamentUI();
+    document.getElementById('tournament-status')!.textContent = 'Tournament completed';
+  }, 3000);
+}
+
+// To-Do: das gescheit aufräumen und nur importieren
+// Globale Funktionen für Socket Events registrieren
+(window as any).updateTournamentPlayers = updateTournamentPlayers;
+(window as any).handleTournamentMatchStart = handleTournamentMatchStart;
+(window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
+(window as any).handleTournamentEnd = handleTournamentEnd;

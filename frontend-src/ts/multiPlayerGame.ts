@@ -16,8 +16,6 @@ export class PongGame {
   private myNickname = 'Player';
   private socketManager?: SocketManager;
 
-
-
   // TODO: Fix Lobby message (w/s, up/down )
 
   // TODO: fix Game Over (on reset game)
@@ -68,9 +66,7 @@ export class PongGame {
     this.setupControls();
     this.setupMobileControls(); // newly added for mobile controls.
     this.setupSocketListeners();
-    this.setupUI();
     this.setupGameControls(); // newly added for start-pause functionality
-
   }
 
   private setupSocketListeners() {
@@ -130,18 +126,6 @@ export class PongGame {
       else if (e.key === 's' || e.key === 'S') this.sPressed = true;
       if (e.key === 'ArrowUp') this.upPressed = true;
       else if (e.key === 'ArrowDown') this.downPressed = true;
-
-      // if (this.isPlayer1) {
-      //   console.log('Player 1 controls');
-      //   // Player 1 uses W/S
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-      //   else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   console.log('Player 2 controls');
-      //   // Player 2 uses Arrow Keys
-      //   if (e.key === 'ArrowUp') this.upPressed = true;
-      //   else if (e.key === 'ArrowDown') this.downPressed = true;
-      // }
     };
 
     const keyUpHandler = (e: KeyboardEvent) => {
@@ -149,40 +133,11 @@ export class PongGame {
       if (e.key === 's' || e.key === 'S') this.sPressed = false;
       if (e.key === 'ArrowUp') this.upPressed = false;
       if (e.key === 'ArrowDown') this.downPressed = false;
-      // if (this.isPlayer1) {
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = false;
-      //   if (e.key === 's' || e.key === 'S') this.sPressed = false;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   if (e.key === 'ArrowUp') this.upPressed = false;
-      //   if (e.key === 'ArrowDown') this.downPressed = false;
-      // }
     };
 
     document.addEventListener('keydown', keyDownHandler);
     document.addEventListener('keyup', keyUpHandler);
 
-    // Mobile controls - sadece kendi oyuncusu için
-    // const upBtn = document.getElementById('up-btn');
-    // const downBtn = document.getElementById('down-btn');
-
-    // if (upBtn && downBtn) {
-    //   upBtn.addEventListener('touchstart', () => {
-    //     if (this.isPlayer1) this.wPressed = true;
-    //     else this.upPressed = true;
-    //   });
-    //   upBtn.addEventListener('touchend', () => {
-    //     if (this.isPlayer1) this.wPressed = false;
-    //     else this.upPressed = false;
-    //   });
-    //   downBtn.addEventListener('touchstart', () => {
-    //     if (this.isPlayer1) this.sPressed = true;
-    //     else this.downPressed = true;
-    //   });
-    //   downBtn.addEventListener('touchend', () => {
-    //     if (this.isPlayer1) this.sPressed = false;
-    //     else this.downPressed = false;
-    //   });
-    // }
   }
 
 
@@ -296,57 +251,68 @@ export class PongGame {
     this.playerScore = gameState.guestScore;
     this.opponentScore = gameState.ownerScore;
   }
-  
+  console.debug(`game_state received: ${gameState}`)
   this.draw();
 }
 
- public handleGameStart(message: any) {
-  console.log('Game start received:', message);
-  console.log('Is Owner:', message.isOwner);
-  console.log('Owner info:', message.owner);
-  console.log('Guest info:', message.guest);
-  
-  if (this.gameRunning) this.stop();
+  public handleGameStart(message: any) {
+    console.log('Game start received:', message);
+    console.log('Canvas element:', this.canvas);
+    console.log('Is Owner:', message.isOwner);
+    console.log('Owner info:', message.owner);
+    console.log('Guest info:', message.guest);
+    console.log('Message.owner.nickname:', message.owner.nickname);
+    console.log('Message.guest.nickname:', message.guest.nickname);
 
-  this.isPlayer1 = message.isOwner;
-  this.roomId = message.roomId;
-  
-  if (message.isOwner) {
-    this.opponentNickname = message.guest.nickname;
-  } else {
-    this.opponentNickname = message.owner.nickname;
-  }
+    // Test: Prüfe Socket Listener
+    const socket = this.socketManager?.getSocket();
+    console.debug('Socket listeners:', socket?.listeners('game_state'));
+    console.debug('Socket connected:', socket?.connected);
+
+    if (this.gameRunning) this.stop();
+    this.gameRunning = false;
+
+    if (!this.canvas || !this.ctx) {
+      console.error('Canvas or context not available for game start');
+      return;
+    }
+    
+    // Ensure canvas is visible
+    this.canvas.style.display = 'block';
+    this.canvas.style.visibility = 'visible';
+    
+    console.log('Canvas visibility set to visible');
+
+    this.isPlayer1 = message.isOwner;
+    this.roomId = message.roomId;
+
+    if (message.isOwner) {
+      this.myNickname = message.owner.nickname;
+      this.opponentNickname = message.guest.nickname;
+    } else {
+      this.myNickname = message.guest.nickname;
+      this.opponentNickname = message.owner.nickname;
+    }
+    document.getElementById('game-nick')!.textContent = message.owner.nickname;
+    document.getElementById('game-nick2')!.textContent = message.guest.nickname;
+
 
   console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
   console.log(`My nickname: ${this.myNickname}`);
   console.log(`Opponent nickname: ${this.opponentNickname}`);
-  console.log('Message.owner.nickname:', message.owner.nickname);
-  console.log('Message.guest.nickname:', message.guest.nickname);
-
-  const gameNick1 = document.getElementById('game-nick');
-  const gameNick2 = document.getElementById('game-nick2');
-
-  if (gameNick1 && gameNick2) {
-  if (this.isPlayer1) {
-    // Owner: kendi nickname solda
-    gameNick1.textContent = this.myNickname;
-    gameNick2.textContent = this.opponentNickname;
-  } else {
-    // Guest: kendi nickname sağda
-    gameNick1.textContent = this.opponentNickname; // sol: rakip
-    gameNick2.textContent = this.myNickname;       // sağ: ben
-  }
-}
-
+  console.log('Owner nickname (left):', message.owner.nickname);
+  console.log('Guest nickname (right):', message.guest.nickname);
 
   // Kontrol bilgisini göster
   this.updateStatus(
-    `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
+    `You are playing on the ${this.isPlayer1 ? 'left with W/S keys' : 'right with arrow keys'}. Game starting!`
   );
 
-  // Sayfa geçişi
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.remove('hidden');
+    // To-Do: set Countdown timer before starting
+
+    // Sayfa geçişi
+    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+    document.querySelector('.game-page')?.classList.remove('hidden');
 
   this.start();
 }
@@ -379,6 +345,29 @@ export class PongGame {
     console.log('Game over. Winner:', winner);
     console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
     this.drawGameOver(winner);
+  }
+
+public matchEnd(message: any) {
+    this.gameRunning = false;
+    console.log('Match end message:', message);
+    let winner =
+      message.winner === 'owner'
+        ? this.isPlayer1
+          ? 'YOU'
+          : this.opponentNickname
+        : this.isPlayer1
+          ? this.opponentNickname
+          : 'YOU';
+    if (!this.isRemote && !this.isSinglePlayer) {
+      if (winner === 'YOU') {
+        winner = 'Player1';
+      } else {
+        winner = 'Player2';
+      }
+    }
+    console.log('Match ended. Winner:', winner);
+    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
+    this.drawMatchOver(winner);
   }
 
   public handleOpponentDisconnected() {
@@ -528,6 +517,26 @@ export class PongGame {
         this.returnToNewGamePage();
     }, 5000);
   }
+
+  private drawMatchOver(winner: string) {
+  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+  this.ctx.fillStyle = '#ffffff';
+  this.ctx.font = 'bold 48px Arial';
+  this.ctx.textAlign = 'center';
+  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+  this.ctx.font = 'bold 36px Arial';
+  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+
+  this.ctx.font = '24px Arial';
+  this.ctx.fillText(
+    'Next Match will start in 5 seconds',
+    this.canvas.width / 2,
+    this.canvas.height / 2 + 80
+  );
+}
 
   private resetGame() {
     this.playerScore = 0;
