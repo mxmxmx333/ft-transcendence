@@ -2,6 +2,7 @@ import { isAuthenticated, isPreAuthenticated } from './auth.js';
 import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
+import { setupMobileMenu } from './mobilMenu';
 
 const socketManager = SocketManager.getInstance();
 // socketManager.connect();
@@ -952,7 +953,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   handleRouting();
 });
+setupMobileMenu(); // For mobile toggle issues.
+document.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  if (target.matches('a[data-link]')) {
+    e.preventDefault();
+    const href = target.getAttribute('href');
+    if (href) navigateTo(href);
 
+    // menüyü kapat
+    const navMenu = document.querySelector('.main-nav') as HTMLElement;
+    const closeMenu = document.getElementById('close-menu') as HTMLImageElement;
+    const hamburgerMenu = document.getElementById('hamburger') as HTMLImageElement;
+    if (navMenu && closeMenu && hamburgerMenu) {
+      navMenu.classList.add('hidden', 'md:flex');
+      closeMenu.classList.add('hidden');
+      hamburgerMenu.classList.remove('hidden');
+    }
+  }
+});
 async function loadProfileData() {
   try {
     const token = localStorage.getItem('authToken');
