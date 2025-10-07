@@ -41,5 +41,5 @@ client.key
 .envrc
 
 
-# == ai model
-services/ai-opponent/ai_model/global_ai_model.json
+# === ai model ===
+global_ai_model.json
