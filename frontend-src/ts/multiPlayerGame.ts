@@ -66,9 +66,7 @@ export class PongGame {
     this.setupControls();
     this.setupMobileControls(); // newly added for mobile controls.
     this.setupSocketListeners();
-    // this.setupUI();
     this.setupGameControls(); // newly added for start-pause functionality
-
   }
 
   private setupSocketListeners() {
