@@ -26,7 +26,7 @@ const RL_OVERRIDE_CHANCE = 0.3;
 export class HybridAISystem {
   private readonly rlAI: ImprovedReinforcementLearningAI;
   private readonly baselineAI: StrongBaselineAI;
-  
+
   // Performance tracking
   private rlWeight = DEFAULT_RL_WEIGHT;
   private performanceHistory: number[] = [];
@@ -99,7 +99,7 @@ export class HybridAISystem {
   private applyLongTermAdaptation(): void {
     const experienceBonus = (this.gameCount - ADAPTATION_THRESHOLD) * 0.002;
     const targetWeight = Math.min(MAX_RL_WEIGHT, 0.6 + experienceBonus);
-    
+
     if (this.rlWeight < targetWeight) {
       this.rlWeight = Math.min(targetWeight, this.rlWeight + 0.01);
     }
@@ -126,31 +126,31 @@ export class HybridAISystem {
 
   public async onGameEnd(won: boolean): Promise<void> {
     console.log(`[HybridAI] Game ended - AI ${won ? 'WON' : 'LOST'}`);
-    
+
     // Aktualisiere Performance-Tracking
     this.performanceHistory.push(won ? 1 : 0);
     this.gameCount++;
-    
+
     if (won) {
       this.recentWins++;
     }
-    
+
     // Trimme History
     if (this.performanceHistory.length > PERFORMANCE_WINDOW) {
       this.performanceHistory.shift();
     }
-    
+
     // Adaptiere RL-Weight basierend auf Performance alle 3 Spiele
     if (this.gameCount % 3 === 0) {
       this.adaptRLWeight();
     }
-    
+
     // Reset performance tracking periodically
     if (this.gameCount % PERFORMANCE_WINDOW === 0) {
       this.recentWins = 0;
     }
-    
-    this.rlAI.onGameEnd(won); 
+
+    this.rlAI.onGameEnd(won);
   }
 
   /**
@@ -184,9 +184,8 @@ class StrongBaselineAI {
    * Calculates optimal paddle position based on ball trajectory prediction
    */
   getAction(gameState: GameStateNN): number {
-    if (gameState.ballVX <= 0) 
-      return gameState.aiY; // Ball moving away
-    
+    if (gameState.ballVX <= 0) return gameState.aiY; // Ball moving away
+
     const ballDist = this.constants.canvasWidth - this.constants.paddleWidth - gameState.ballX;
     let timeToImpact = ballDist / gameState.ballVX;
 
@@ -199,6 +198,6 @@ class StrongBaselineAI {
       futureY = period - futureY;
     }
 
-    return futureY - (this.constants.paddleHeight / 2);
+    return futureY - this.constants.paddleHeight / 2;
   }
 }

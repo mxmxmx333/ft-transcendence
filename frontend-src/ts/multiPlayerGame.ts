@@ -16,10 +16,12 @@ export class PongGame {
   private myNickname = 'Player';
   private socketManager?: SocketManager;
 
+
+
   // TODO: Fix Lobby message (w/s, up/down )
 
   // TODO: fix Game Over (on reset game)
-  
+
   // Constants - normalized for 800x600
   private paddleHeight = 100;
   private paddleWidth = 15;
@@ -40,6 +42,11 @@ export class PongGame {
   private downPressed = false;
   private wPressed = false;
   private sPressed = false;
+ // I added mobile drag controls pls dont remove.
+  private isDragging = false;
+  private touchStartY = 0;
+  private touchCurrentY = 0;
+
 
   private canvasSizeRatio = 1;
   private canvasSizeRatioX = 1;
@@ -59,13 +66,25 @@ export class PongGame {
   public async init() {
     this.setupCanvas();
     this.setupControls();
+    this.setupMobileControls(); // newly added for mobile controls.
     this.setupSocketListeners();
-    // this.setupUI();
+    this.setupUI();
+    this.setupGameControls(); // newly added for start-pause functionality
+
   }
 
   private setupSocketListeners() {
-    const socket = this.socketManager;
+    const socket = this.socketManager?.getSocket();
+    if (!socket) return;
     console.log('Setting up socket listeners');
+    socket.on('game_pause_state', (isPaused: boolean) => {
+      console.log('Game pause state:', isPaused);
+      if (isPaused) {
+        this.pauseGame();
+      } else {
+        this.resume();
+      }
+    });
   }
 
   private setupCanvas() {
@@ -107,10 +126,22 @@ export class PongGame {
   private setupControls() {
     // Keyboard
     const keyDownHandler = (e: KeyboardEvent) => {
-    if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-    else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-    if (e.key === 'ArrowUp') this.upPressed = true;
-    else if (e.key === 'ArrowDown') this.downPressed = true;
+      if (e.key === 'w' || e.key === 'W') this.wPressed = true;
+      else if (e.key === 's' || e.key === 'S') this.sPressed = true;
+      if (e.key === 'ArrowUp') this.upPressed = true;
+      else if (e.key === 'ArrowDown') this.downPressed = true;
+
+      // if (this.isPlayer1) {
+      //   console.log('Player 1 controls');
+      //   // Player 1 uses W/S
+      //   if (e.key === 'w' || e.key === 'W') this.wPressed = true;
+      //   else if (e.key === 's' || e.key === 'S') this.sPressed = true;
+      // } else if (!this.isPlayer1 || !this.isRemote) {
+      //   console.log('Player 2 controls');
+      //   // Player 2 uses Arrow Keys
+      //   if (e.key === 'ArrowUp') this.upPressed = true;
+      //   else if (e.key === 'ArrowDown') this.downPressed = true;
+      // }
     };
 
     const keyUpHandler = (e: KeyboardEvent) => {
@@ -124,29 +155,93 @@ export class PongGame {
     document.addEventListener('keyup', keyUpHandler);
 
     // Mobile controls - sadece kendi oyuncusu için
-    const upBtn = document.getElementById('up-btn');
-    const downBtn = document.getElementById('down-btn');
+    // const upBtn = document.getElementById('up-btn');
+    // const downBtn = document.getElementById('down-btn');
 
-    if (upBtn && downBtn) {
-      upBtn.addEventListener('touchstart', () => {
-        if (this.isPlayer1) this.wPressed = true;
-        else this.upPressed = true;
-      });
-      upBtn.addEventListener('touchend', () => {
-        if (this.isPlayer1) this.wPressed = false;
-        else this.upPressed = false;
-      });
-      downBtn.addEventListener('touchstart', () => {
-        if (this.isPlayer1) this.sPressed = true;
-        else this.downPressed = true;
-      });
-      downBtn.addEventListener('touchend', () => {
-        if (this.isPlayer1) this.sPressed = false;
-        else this.downPressed = false;
-      });
-    }
+    // if (upBtn && downBtn) {
+    //   upBtn.addEventListener('touchstart', () => {
+    //     if (this.isPlayer1) this.wPressed = true;
+    //     else this.upPressed = true;
+    //   });
+    //   upBtn.addEventListener('touchend', () => {
+    //     if (this.isPlayer1) this.wPressed = false;
+    //     else this.upPressed = false;
+    //   });
+    //   downBtn.addEventListener('touchstart', () => {
+    //     if (this.isPlayer1) this.sPressed = true;
+    //     else this.downPressed = true;
+    //   });
+    //   downBtn.addEventListener('touchend', () => {
+    //     if (this.isPlayer1) this.sPressed = false;
+    //     else this.downPressed = false;
+    //   });
+    // }
   }
 
+
+  // New returning new game page
+   private returnToNewGamePage() {
+    document.querySelector('.game-page')?.classList.add('hidden');
+    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+    document.querySelector('.newgame-page')?.classList.remove('hidden');
+  }
+  // till here
+
+  // Mobile controls
+  private setupMobileControls() {
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.isDragging = true;
+      this.touchStartY = e.touches[0].clientY;
+      this.touchCurrentY = this.touchStartY;
+    });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!this.isDragging) return;
+      this.touchCurrentY = e.touches[0].clientY;
+      
+      const deltaY = this.touchCurrentY - this.touchStartY;
+      const sensitivity = 2;
+      
+      if (Math.abs(deltaY) > 5) {
+        if (deltaY < 0) {
+          // Up
+          if (this.isPlayer1) this.wPressed = true;
+          else this.upPressed = true;
+        } else {
+          // Down
+          if (this.isPlayer1) this.sPressed = true;
+          else this.downPressed = true;
+        }
+      }
+    });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.isDragging = false;
+      this.wPressed = false;
+      this.sPressed = false;
+      this.upPressed = false;
+      this.downPressed = false;
+    });
+  }
+// till here mobile controls.
+
+// Start-Pause Button controls 
+  private setupGameControls() {
+    const startBtn = document.getElementById('start-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+
+    if (startBtn) {
+      startBtn.addEventListener('click', () => this.startGame());
+    }
+
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', () => this.pauseGame());
+    }
+  }
+  // till here start-pause btns
   private async setupUI() {
     try {
       const response = await fetch('/api/profile', {
@@ -178,22 +273,25 @@ export class PongGame {
   }
 
   public updateFromServer(gameState: ServerToClientEvents['game_state']) {
-    this.ballX = gameState.ballX * this.canvasSizeRatioX;
-    this.ballY = gameState.ballY * this.canvasSizeRatioY;
-    if (this.isPlayer1) {
-      this.playerY = gameState.paddle1Y * this.canvasSizeRatioY;
-      this.opponentY = gameState.paddle2Y * this.canvasSizeRatioY;
-      this.playerScore = gameState.ownerScore;
-      this.opponentScore = gameState.guestScore;
-    } else {
-      this.playerY = gameState.paddle2Y * this.canvasSizeRatioY;
-      this.opponentY = gameState.paddle1Y * this.canvasSizeRatioY;
-      this.playerScore = gameState.guestScore;
-      this.opponentScore = gameState.ownerScore;
-    }
-    console.debug(`game_state received: ${gameState}`)
-    this.draw();
+  this.ballX = gameState.ballX * this.canvasSizeRatioX;
+  this.ballY = gameState.ballY * this.canvasSizeRatioY;
+  
+  if (this.isPlayer1) {
+    // Owner (Player 1)
+    this.playerY = gameState.paddle1Y * this.canvasSizeRatioY;
+    this.opponentY = gameState.paddle2Y * this.canvasSizeRatioY;
+    this.playerScore = gameState.ownerScore;
+    this.opponentScore = gameState.guestScore;
+  } else {
+    // Guest (Player 2)
+    this.playerY = gameState.paddle2Y * this.canvasSizeRatioY;
+    this.opponentY = gameState.paddle1Y * this.canvasSizeRatioY;
+    this.playerScore = gameState.guestScore;
+    this.opponentScore = gameState.ownerScore;
   }
+  console.debug(`game_state received: ${gameState}`)
+  this.draw();
+}
 
   public handleGameStart(message: any) {
     console.log('Game start received:', message);
@@ -232,31 +330,41 @@ export class PongGame {
     }
     document.getElementById('game-nick2')!.textContent = this.opponentNickname;
 
-    console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
-    console.log(`My opponent is: ${this.opponentNickname}`);
+  this.isPlayer1 = message.isOwner;
+  this.roomId = message.roomId;
+  
+  if (message.isOwner) {
+    this.opponentNickname = message.guest.nickname;
+  } else {
+    this.opponentNickname = message.owner.nickname;
+  }
 
-    const gameNick1 = document.getElementById('game-nick');
-    const gameNick2 = document.getElementById('game-nick2');
+  console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
+  console.log(`My nickname: ${this.myNickname}`);
+  console.log(`Opponent nickname: ${this.opponentNickname}`);
+  console.log('Message.owner.nickname:', message.owner.nickname);
+  console.log('Message.guest.nickname:', message.guest.nickname);
 
-    if (gameNick1 && gameNick2) {
-      if (this.isPlayer1) {
-        gameNick1.textContent = this.myNickname; // myNickname left
-        gameNick2.textContent = this.opponentNickname; // Opponent right
-      } else {
-        gameNick1.textContent = this.opponentNickname; // Opponent left
-        gameNick2.textContent = this.myNickname; // myNickname right
-      }
-      
-      console.log(`UI updated: ${gameNick1.textContent} vs ${gameNick2.textContent}`);
-      console.log(`I am: ${this.myNickname}, Opponent: ${this.opponentNickname}`);
-    } else {
-      console.error('Could not find game-nick elements!');
-    }
+  const gameNick1 = document.getElementById('game-nick');
+  const gameNick2 = document.getElementById('game-nick2');
 
-    // Kontrol bilgisini göster
-    this.updateStatus(
-      `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
-    );
+  if (gameNick1 && gameNick2) {
+  if (this.isPlayer1) {
+    // Owner: kendi nickname solda
+    gameNick1.textContent = this.myNickname;
+    gameNick2.textContent = this.opponentNickname;
+  } else {
+    // Guest: kendi nickname sağda
+    gameNick1.textContent = this.opponentNickname; // sol: rakip
+    gameNick2.textContent = this.myNickname;       // sağ: ben
+  }
+}
+
+
+  // Kontrol bilgisini göster
+  this.updateStatus(
+    `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
+  );
 
     // To-Do: set Countdown timer before starting
 
@@ -264,14 +372,13 @@ export class PongGame {
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     document.querySelector('.game-page')?.classList.remove('hidden');
 
-    this.start();
-  }
+  this.start();
+}
 
   public handleRoomTerminated() {
     console.warn('Room terminated, returning to lobby');
     this.stop();
-    document.querySelector('.game-page')?.classList.add('hidden');
-    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
+    this.returnToNewGamePage();
     alert('Room was terminated by server');
   }
 
@@ -282,9 +389,9 @@ export class PongGame {
       message.winner === 'owner'
         ? this.isPlayer1
           ? 'YOU'
-          : this.opponentNickname
+          : 'YOUR OPPONENT'
         : this.isPlayer1
-          ? this.opponentNickname
+          ? 'YOUR OPPONENT'
           : 'YOU';
     if (!this.isRemote && !this.isSinglePlayer) {
       if (winner === 'YOU') {
@@ -326,6 +433,7 @@ public matchEnd(message: any) {
     setTimeout(() => {
       this.gameRunning = false;
       this.updateStatus('Game ended due to opponent disconnect');
+      this.returnToNewGamePage();
     }, 2000);
   }
 
@@ -335,70 +443,72 @@ public matchEnd(message: any) {
   }
 
   private draw() {
-    if (!this.gameRunning) return;
+  if (!this.gameRunning) return;
 
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = 'black';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  this.ctx.fillStyle = 'black';
+  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Center line
-    this.ctx.strokeStyle = '#ffff00';
-    this.ctx.setLineDash([10, 10]);
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.canvas.width / 2, 0);
-    this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
-    this.ctx.stroke();
-    this.ctx.setLineDash([]);
+  // Center line
+  this.ctx.strokeStyle = '#ffff00';
+  this.ctx.setLineDash([10, 10]);
+  this.ctx.beginPath();
+  this.ctx.moveTo(this.canvas.width / 2, 0);
+  this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+  this.ctx.stroke();
+  this.ctx.setLineDash([]);
 
-    // Paddle pozisyonları - ekran boyutuna göre ölçeklendir
-    // const scaleX = this.canvas.width / 800;
-    // const scaleY = this.canvas.height / 600;
+  const paddleRadius = 8 * this.canvasSizeRatio;
 
-    // Paddles
-    const paddleRadius = 8 * this.canvasSizeRatio;
+  // Kendi paddle'ımız
+  this.ctx.fillStyle = this.isPlayer1 ? '#ff00ff' : '#00ffff';
+  const myPaddleX = this.isPlayer1
+    ? 10 * this.canvasSizeRatioX
+    : this.canvas.width - 25 * this.canvasSizeRatioX;
+  this.drawRoundedRect(
+    myPaddleX,
+    this.playerY,
+    this.paddleWidth,
+    this.paddleHeight,
+    paddleRadius
+  );
 
-    // Kendi paddle'ımız (sol tarafta player1, sağ tarafta player2)
-    this.ctx.fillStyle = this.isPlayer1 ? '#ff00ff' : '#00ffff';
-    const myPaddleX = this.isPlayer1 ? 10 * this.canvasSizeRatioX : this.canvas.width - 25 * this.canvasSizeRatioX;
-    this.drawRoundedRect(
-      myPaddleX,
-      this.playerY,
-      this.paddleWidth,
-      this.paddleHeight,
-      paddleRadius
-    );
+  // Rakip paddle'ı
+  this.ctx.fillStyle = this.isPlayer1 ? '#00ffff' : '#ff00ff';
+  const opponentPaddleX = this.isPlayer1
+    ? this.canvas.width - 25 * this.canvasSizeRatioX
+    : 10 * this.canvasSizeRatioX;
+  this.drawRoundedRect(
+    opponentPaddleX,
+    this.opponentY,
+    this.paddleWidth,
+    this.paddleHeight,
+    paddleRadius
+  );
 
-    // Rakip paddle'ı
-    this.ctx.fillStyle = this.isPlayer1 ? '#00ffff' : '#ff00ff';
-    const opponentPaddleX = this.isPlayer1 ? this.canvas.width - 25 * this.canvasSizeRatioX : 10 * this.canvasSizeRatioX;
-    this.drawRoundedRect(
-      opponentPaddleX,
-      this.opponentY,
-      this.paddleWidth,
-      this.paddleHeight,
-      paddleRadius
-    );
+  // Top
+  this.ctx.fillStyle = '#ffff00';
+  this.ctx.beginPath();
+  this.ctx.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
+  this.ctx.fill();
 
-    // Top
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.beginPath();
-    this.ctx.arc(
-      this.ballX,
-      this.ballY,
-      this.ballRadius,
-      0,
-      Math.PI * 2
-    );
-    this.ctx.fill();
+  // SKORLARI GÜNCELLE - Sol: Ben, Sağ: Rakip
+  if (this.isPlayer1) {
+  // Owner: kendi skor solda, rakip sağda
+  document.getElementById('score')!.textContent = this.playerScore.toString();
+  document.getElementById('score2')!.textContent = this.opponentScore.toString();
+} else {
+  // Guest: kendi skor sağda, rakip solda
+  document.getElementById('score')!.textContent = this.opponentScore.toString();
+  document.getElementById('score2')!.textContent = this.playerScore.toString();
+}
 
-    // Skorları güncelle
-    document.getElementById('score')!.textContent = this.playerScore.toString();
-    document.getElementById('score2')!.textContent = this.opponentScore.toString();
-
-    // this.animationId = requestAnimationFrame(() => this.draw());
-  }
+}
 
   private handlePaddleMovement() {
+    if (this.isPaused) {
+     return;
+   }
     let moveP1: 'up' | 'down' | 'none' = 'none';
     let moveP2: 'up' | 'down' | 'none' = 'none';
     if (this.wPressed && !this.sPressed) {
@@ -441,31 +551,30 @@ public matchEnd(message: any) {
   }
 
   private drawGameOver(winner: string) {
-  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-  this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-  this.ctx.fillStyle = '#ffffff';
-  this.ctx.font = 'bold 48px Arial';
-  this.ctx.textAlign = 'center';
-  this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 48px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
 
-  this.ctx.font = 'bold 36px Arial';
-  this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+    this.ctx.font = 'bold 36px Arial';
+    this.ctx.fillText(`${winner} WON!`, this.canvas.width / 2, this.canvas.height / 2 + 20);
 
-  this.ctx.font = '24px Arial';
-  this.ctx.fillText(
-    'Game will return to lobby in 5 seconds',
-    this.canvas.width / 2,
-    this.canvas.height / 2 + 80
-  );
+    this.ctx.font = '24px Arial';
+    this.ctx.fillText(
+      'Game will return to lobby in 5 seconds',
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 80
+    );
 
-  // 5 saniye sonra lobby'e dön
-  setTimeout(() => {
-    this.resetGame();
-    document.querySelector('.game-page')?.classList.add('hidden');
-    document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  }, 5000);
-}
+    // 5 saniye sonra lobby'e dön
+    setTimeout(() => {
+      this.resetGame();
+        this.returnToNewGamePage();
+    }, 5000);
+  }
 
   private drawMatchOver(winner: string) {
   this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
@@ -516,12 +625,12 @@ public matchEnd(message: any) {
     this.animationId = requestAnimationFrame(this.gameLoop);
   }
 
-public startGame() {
+  public startGame() {
     if (this.gameRunning && !this.isPaused) {
       console.warn('Game is already running');
       return;
     }
-    
+
     if (this.isPaused) {
       this.resume();
     } else {
@@ -531,23 +640,25 @@ public startGame() {
 
   public pauseGame() {
     if (!this.gameRunning || this.isPaused) return;
-    
+
     this.isPaused = true;
     this.gameRunning = false;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
     this.updateStatus('Game paused');
+    this.socketManager?.setGamePauseState(true);
   }
 
   public resume() {
     if (!this.isPaused) return;
-    
+
     this.isPaused = false;
     this.gameRunning = true;
     this.lastTimeStamp = performance.now();
     this.animationId = requestAnimationFrame(this.gameLoop);
     this.updateStatus('Game resumed');
+    this.socketManager?.setGamePauseState(false);
   }
 
   private gameLoop = (timestamp: number) => {
@@ -557,6 +668,13 @@ public startGame() {
 
       this.handlePaddleMovement();
     }
+    if (!this.isPaused) {
+     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
+       this.lastPaddleUpdate = timestamp;
+       this.handlePaddleMovement();
+     }
+   }
+
     if (this.gameRunning) {
       requestAnimationFrame(this.gameLoop);
     }

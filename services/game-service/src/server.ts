@@ -2,15 +2,14 @@ import fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { registerIoHandlers } from './io.handler';
 import dotenv from 'dotenv';
-import jwt from '@fastify/jwt';
 import { AuthPayload } from './types/types';
 import fs from 'fs';
 import path from 'path';
 
+
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
-const JWT_TOKEN_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3000';
 const certDir = process.env.CERT_DIR || '../certs';
 
@@ -18,7 +17,10 @@ export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM;
 if (!apiGatewayUpstream) {
   throw new Error('API_GATEWAY_UPSTREAM environment variable is not set');
 }
-
+export const aiUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
+if (!aiUpstream) {
+  throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
+}
 let httpsOptions;
 
 const keyPath = path.join(__dirname, certDir, 'server.key');
@@ -59,53 +61,51 @@ export const io = new SocketIOServer(server.server, {
     credentials: true,
   },
   transports: ['websocket', 'polling'],
-  allowEIO3: true, 
+  allowEIO3: true,
 });
-
-server.register(jwt, {
-  secret: JWT_TOKEN_SECRET!,
-});
-// TODO: Production: Nur bestimmte Origins erlauben
 
 io.use((socket, next) => {
-try {
-  const token = socket.handshake.auth.token;
+  try {
+    const token = socket.handshake.auth.token;
 
-  if (!token) {
-    const isAIService = socket.handshake.query.serviceType === 'AI';
-    if (isAIService) {
-      const roomId = socket.handshake.query.roomId as string;
-      if (!roomId) {
-        return next(new Error('AI service missing room ID'));
+    if (!token) {
+      const isAIService = socket.handshake.query.serviceType === 'AI';
+      if (isAIService) {
+        const roomId = socket.handshake.query.roomId as string;
+        if (!roomId) {
+          return next(new Error('AI service missing room ID'));
+        }
+        socket.user = {
+          id: `AI-${roomId}`,
+          nickname: 'AI',
+          isService: true,
+          isAI: true,
+        };
+        console.log(`[Auth] AI service authenticated for room: ${roomId}`);
+        return next();
       }
-      socket.user = {
-        id: `AI-${roomId}`,
-        nickname: 'AI',
-        isService: true,
-        isAI: true
-      };
-      console.log(`[Auth] AI service authenticated for room: ${roomId}`);
-      return next();
+      console.log('[Auth] No token provided');
+      return next(new Error('Authentication error: No token provided'));
     }
-    console.log('[Auth] No token provided');
-    return next(new Error('Authentication error: No token provided'));
-  }
-   
-  const decoded = server.jwt.verify(token) as any;
-  console.log('[Auth] Decoded token:', decoded);
 
-  socket.user = {
-    id: decoded.id,
-    nickname: decoded.nickname,
-    isService: false,
-    isAI: false
-  };
-  console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
-  next();
-} catch (err) {
-  console.error('[Auth] JWT verification error:', err);
-  next(new Error('Authentication error: Invalid token'));
-}
+    let decoded: AuthPayload = {
+      id: socket.handshake.headers['x-user-id'] as string,
+      nickname: socket.handshake.headers['x-user-nickname'] as string,
+    };
+    console.log('[Auth] Decoded token:', decoded);
+
+    socket.user = {
+      id: decoded.id,
+      nickname: decoded.nickname,
+      isService: false,
+      isAI: false,
+    };
+    console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
+    next();
+  } catch (err) {
+    console.error('[Auth] JWT verification error:', err);
+    next(new Error('Authentication error: Invalid token'));
+  }
 });
 
 registerIoHandlers(io);

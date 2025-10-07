@@ -77,12 +77,60 @@ export async function handleLogin(formData: { email: string; password: string })
   }
 }
 
+
+export async function handleSetNickname(formData: { nickname: string }) {
+  try {
+    const preAuthToken = localStorage.getItem('preAuthToken');
+
+    if (!preAuthToken) {
+      throw new Error('Missing preAuthToken');
+    }
+
+    const response = await fetch('/api/profile/set-nickname', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + preAuthToken,
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const errorMessage = errorData.message || errorData.error || 'Setting nickname failed';
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    if (!data.token) {
+      throw new Error('Authentication token not received');
+    }
+
+    localStorage.setItem('authToken', data.token);
+    localStorage.removeItem('preAuthToken');
+
+    navigateTo('/profile');
+  } catch (error) {
+    console.error('SetNickname error:', error);
+    document.querySelector('.main-nav')?.classList.add('hidden');
+    throw error;
+  }
+}
+
 export function isAuthenticated(): boolean {
   return !!localStorage.getItem('authToken');
+}
+
+export function isPreAuthenticated(): boolean {
+  return !!localStorage.getItem('preAuthToken');
 }
 
 export function logout(): void {
   localStorage.removeItem('authToken');
   document.querySelector('.main-nav')?.classList.add('hidden');
-
 }

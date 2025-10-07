@@ -1,6 +1,6 @@
 .PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
 		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev
+		setup-env start-vault-dev vault-deps-dev cli
 
 ################################################################################
 # VARIABLES
@@ -42,10 +42,14 @@ build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
 	@$(COMPOSE) build web-application-firewall
+	@$(COMPOSE) --profile cli build cli-client
 
 run:
 	@echo "🚀 Starting services..."
 	@$(COMPOSE) up -d web-application-firewall
+
+cli:
+	@$(COMPOSE) run --rm cli-client
 
 # ---- /etc/hosts Helpers (unverändert) ----
 assert-ip:
@@ -107,7 +111,7 @@ start-vault-dev: vault-deps-dev
 	$(COMPOSE) --profile "dev" kill -s HUP vault-dev
 
 clean-vault-dev: stop-vault-dev
-	Docker volume rm transcendence_vault-dev-runtime-certs transcendence_vault-dev-config transcendence_vault-dev-logs transcendence_vault-dev-data || true
+	docker volume rm transcendence_vault-dev-runtime-certs transcendence_vault-dev-config transcendence_vault-dev-logs transcendence_vault-dev-data || true
 	rm -rf ./services/api-gateway/certs/server.* ./services/api-gateway/certs/ca.* ./services/api-gateway/certs/vault ./services/api-gateway/certs/approle
 	rm -rf ./services/auth-user-service/certs/server.* ./services/auth-user-service/certs/ca.* ./services/auth-user-service/certs/vault ./services/auth-user-service/certs/approle
 	rm -rf ./services/game-service/certs/server.* ./services/game-service/certs/ca.*

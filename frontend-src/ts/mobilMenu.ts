@@ -70,7 +70,7 @@ export function setupMobileMenu() {
       // Desktop'ta navbar görünür olmalı
       navMenu.classList.remove('hidden');
       navMenu.classList.add('md:flex');
-      
+
       closeMenu.classList.add('hidden');
       hamburgerMenu.classList.remove('hidden');
     } else {

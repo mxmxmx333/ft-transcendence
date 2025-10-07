@@ -17,7 +17,7 @@ export class AIFilePersistenceManager {
     try {
       // Create directories if they don't exist
       await fs.mkdir(this.MODEL_DIR, { recursive: true });
-      
+
       this.initialized = true;
       console.log('[AIFilePersistence] Directories initialized');
     } catch (error) {
@@ -25,7 +25,10 @@ export class AIFilePersistenceManager {
     }
   }
 
-  async saveAIModel(weightsData: SerializedWeights, performanceStats: PerformanceStats): Promise<void> {
+  async saveAIModel(
+    weightsData: SerializedWeights,
+    performanceStats: PerformanceStats
+  ): Promise<void> {
     try {
       await this.initialize();
 
@@ -37,8 +40,10 @@ export class AIFilePersistenceManager {
 
       const filePath = path.join(this.MODEL_DIR, this.GLOBAL_MODEL_FILE);
       await fs.writeFile(filePath, JSON.stringify(modelData, null, 2));
-      
-      console.log(`[AIFilePersistence] Model saved - Games: ${weightsData.gameCount}, Win Rate: ${(performanceStats.winRate * 100).toFixed(1)}%`);
+
+      console.log(
+        `[AIFilePersistence] Model saved - Games: ${weightsData.gameCount}, Win Rate: ${(performanceStats.winRate * 100).toFixed(1)}%`
+      );
     } catch (error) {
       console.error('[AIFilePersistence] Failed to save AI model:', error);
       throw error;
@@ -53,7 +58,7 @@ export class AIFilePersistenceManager {
       await this.initialize();
 
       const filePath = path.join(this.MODEL_DIR, this.GLOBAL_MODEL_FILE);
-      
+
       // Check if file exists
       try {
         await fs.access(filePath);
@@ -71,8 +76,10 @@ export class AIFilePersistenceManager {
         return { weightsData: null, performanceStats: null };
       }
 
-      console.log(`[AIFilePersistence] Model loaded - Games: ${modelData.weightsData.gameCount}, Win Rate: ${(modelData.performanceStats.winRate * 100).toFixed(1)}%`);
-      
+      console.log(
+        `[AIFilePersistence] Model loaded - Games: ${modelData.weightsData.gameCount}, Win Rate: ${(modelData.performanceStats.winRate * 100).toFixed(1)}%`
+      );
+
       return {
         weightsData: modelData.weightsData,
         performanceStats: modelData.performanceStats,

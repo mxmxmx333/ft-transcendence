@@ -1,12 +1,16 @@
 import { PongGame } from './multiPlayerGame';
-import type { GameStartPayload, ServerToClientEvents, ClientToServerEvents } from './types/socket-interfaces';
+import type {
+  GameStartPayload,
+  ServerToClientEvents,
+  ClientToServerEvents,
+} from './types/socket-interfaces';
 import { io, Socket } from 'socket.io-client';
 
 export class SocketManager {
   private static instance: SocketManager;
   private socket?: Socket;
   private gameInstance: PongGame | null = null;
-  
+
   private isConnecting = false;
   private connectionPromise: Promise<void> | null = null;
 
@@ -15,7 +19,7 @@ export class SocketManager {
   private readonly maxReconnectAttempts = 5;
   private readonly reconnectDelay = 1000;
   private readonly roomOperationTimeout = 10000;
-  
+
   // Room operation handling
   private pendingResolve: ((roomId: string) => void) | null = null;
 
@@ -44,7 +48,7 @@ export class SocketManager {
       console.log('Connection already in progress');
       return this.connectionPromise;
     }
-    
+
     this.isConnecting = true;
     this.connectionPromise = this.performConnection();
     try {
@@ -54,6 +58,16 @@ export class SocketManager {
       this.connectionPromise = null;
     }
   }
+
+  // Newly added start-pause methods down here
+  public async setGamePauseState(isPaused: boolean): Promise<void> {
+    if (this.hasActiveConnection()) {
+      this.socket!.emit('game_pause', isPaused);
+      console.log(`[Client] game_pause emitted: ${isPaused}`);
+    }
+  }
+
+  // till here
 
   private performConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -78,6 +92,7 @@ export class SocketManager {
     return io({
       path: '/socket.io',
       auth: { token },
+      query: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
@@ -353,7 +368,7 @@ export class SocketManager {
 
       const roomConfig = {
         isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
-        isRemote: this.gameInstance?.isRemote ?? false
+        isRemote: this.gameInstance?.isRemote ?? false,
       };
 
       this.socket!.emit('create_room', roomConfig);
@@ -380,7 +395,10 @@ export class SocketManager {
     });
   }
 
-  private setupRoomOperationTimeout(reject: (error: Error) => void, errorMessage: string): NodeJS.Timeout {
+  private setupRoomOperationTimeout(
+    reject: (error: Error) => void,
+    errorMessage: string
+  ): NodeJS.Timeout {
     return setTimeout(() => {
       this.pendingResolve = null;
       reject(new Error(errorMessage));

@@ -1,4 +1,4 @@
-import { handleSignup, handleLogin } from './auth.js';
+import { handleSignup, handleLogin, handleSetNickname } from './auth.js';
 import { navigateTo } from './router.js';
 
 // For input security issues I'll use these as I got errors for now it's hashed.
@@ -78,6 +78,28 @@ const setupSignupValidation = () => {
   });
 };
 
+const setupSetNicknameValidation = () => {
+  const form = document.getElementById('nicknameForm') as HTMLFormElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nickname = (document.getElementById('nickname-field') as HTMLInputElement).value;
+
+    if (nickname.length < 3) {
+      alert('Nickname should be at least 3 characters!');
+      return;
+    }
+
+    try {
+      await handleSetNickname({ nickname });
+      navigateTo('/profile');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Setting nickname failed');
+    }
+  });
+};
+
 // Function to handle the toggle between login and signup forms
 export function setupAuthToggle() {
   const loginForm = document.getElementById('loginForm');
@@ -85,7 +107,6 @@ export function setupAuthToggle() {
   const switchToSignup = document.getElementById('switchToSignup');
   const switchToLogin = document.getElementById('switchToLogin');
   document.querySelector('.main-nav')?.classList.add('hidden');
-
 
   if (!loginForm || !signupForm || !switchToSignup || !switchToLogin) {
     console.warn('Auth toggle elements not found');
@@ -108,4 +129,5 @@ export function setupAuthToggle() {
 
   setupLoginValidation();
   setupSignupValidation();
+  setupSetNicknameValidation();
 }

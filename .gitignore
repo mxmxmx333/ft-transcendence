@@ -35,3 +35,7 @@ ca.crt
 approle/
 client.crt
 client.key
+
+# === nix-shell Setup ===
+.direnv/
+.envrc

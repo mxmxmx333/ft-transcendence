@@ -21,9 +21,12 @@ export default class AuthService {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nickname TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
+        auth_method TEXT NOT NULL,
+        nickname TEXT UNIQUE,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        external_id INTEGER UNIQUE,
+        totp_secret TEXT,
         avatar TEXT DEFAULT 'default',
         status TEXT DEFAULT 'online',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -64,7 +67,7 @@ export default class AuthService {
 
     // Add trigger to update updated_at timestamp
     this.db.exec(`
-      CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
+      CREATE TRIGGER IF NOT EXISTS update_users_timestamp
       AFTER UPDATE ON users
       BEGIN
         UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
@@ -72,7 +75,7 @@ export default class AuthService {
     `);
 
     this.db.exec(`
-      CREATE TRIGGER IF NOT EXISTS update_friendships_timestamp 
+      CREATE TRIGGER IF NOT EXISTS update_friendships_timestamp
       AFTER UPDATE ON friendships
       BEGIN
         UPDATE friendships SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
@@ -82,16 +85,14 @@ export default class AuthService {
 
   // ======= EXISTING USER METHODS =======
   createUser(user: Omit<User, 'id' | 'created_at' | 'updated_at'>): User {
-    const { nickname, email, password_hash, avatar = 'default', status = 'online' } = user;
+    const { nickname, auth_method, email, password_hash, external_id, totp_secret, avatar = 'default', status = 'online' } = user;
     const stmt = this.db.prepare(
-      'INSERT INTO users (nickname, email, password_hash, avatar, status) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO users (nickname, auth_method, email, password_hash, external_id, totp_secret, avatar, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    const info = stmt.run(nickname, email, password_hash, avatar, status);
+    const info = stmt.run(nickname, auth_method, email, password_hash, external_id, totp_secret, avatar, status);
 
     // Create initial game statistics for the user
-    const gameStatsStmt = this.db.prepare(
-      'INSERT INTO game_statistics (user_id) VALUES (?)'
-    );
+    const gameStatsStmt = this.db.prepare('INSERT INTO game_statistics (user_id) VALUES (?)');
     gameStatsStmt.run(info.lastInsertRowid);
 
     const newUser = this.getUserById(info.lastInsertRowid);
@@ -101,62 +102,76 @@ export default class AuthService {
     return newUser;
   }
 
+  setNickname(id: number, nickname: string) {
+    const stmt = this.db.prepare('UPDATE users SET nickname = ? WHERE id = ?');
+    const info = stmt.run(nickname, id);
+
+    const user = this.getUserById(id);
+    if (!user) {
+      throw new Error('Pretty sure this can never happen');
+    }
+
+    return user;
+  }
+
   getUserByEmail(email: string): User | null {
     const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
     return stmt.get(email);
   }
 
   getUserProfile(userId: number, currentUserId: number): any {
-  try {
-    const userStmt = this.db.prepare('SELECT id, nickname, email, avatar, status, created_at FROM users WHERE id = ?');
-    const user = userStmt.get(userId);
-    
-    if (!user) {
-      return null;
-    }
+    try {
+      const userStmt = this.db.prepare(
+        'SELECT id, nickname, email, avatar, status, created_at FROM users WHERE id = ?'
+      );
+      const user = userStmt.get(userId);
 
-    // Friend durumunu kontrol et
-    const friendshipStmt = this.db.prepare(`
-      SELECT status as friendship_status 
-      FROM friendships 
-      WHERE (requester_id = ? AND addressee_id = ?) 
+      if (!user) {
+        return null;
+      }
+
+      // Friend durumunu kontrol et
+      const friendshipStmt = this.db.prepare(`
+      SELECT status as friendship_status
+      FROM friendships
+      WHERE (requester_id = ? AND addressee_id = ?)
          OR (requester_id = ? AND addressee_id = ?)
     `);
-    const friendship = friendshipStmt.get(currentUserId, userId, userId, currentUserId);
-    
-    // Game istatistiklerini getir
-    const statsStmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
-    const stats = statsStmt.get(userId);
+      const friendship = friendshipStmt.get(currentUserId, userId, userId, currentUserId);
 
-    return {
-      ...user,
-      friendship_status: friendship ? friendship.friendship_status : 'none',
-      game_stats: stats || {
-        games_played: 0,
-        games_won: 0,
-        games_lost: 0,
-        total_score: 0
-      }
-    };
-  } catch (error) {
-    console.error('Error getting user profile:', error);
-    return null;
+      // Game istatistiklerini getir
+      const statsStmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
+      const stats = statsStmt.get(userId);
+
+      return {
+        ...user,
+        friendship_status: friendship ? friendship.friendship_status : 'none',
+        game_stats: stats || {
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          total_score: 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
   }
-}
 
-getUserByIdPublic(userId: number): any {
-  try {
-    const stmt = this.db.prepare(`
-      SELECT id, nickname, avatar, status, created_at 
-      FROM users 
+  getUserByIdPublic(userId: number): any {
+    try {
+      const stmt = this.db.prepare(`
+      SELECT id, nickname, avatar, status, created_at
+      FROM users
       WHERE id = ?
     `);
-    return stmt.get(userId);
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
-    return null;
+      return stmt.get(userId);
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
+      return null;
+    }
   }
-}
 
   getUserByNickname(nickname: string): User | null {
     const stmt = this.db.prepare('SELECT * FROM users WHERE nickname = ?');
@@ -165,6 +180,11 @@ getUserByIdPublic(userId: number): any {
 
   getUserById(id: number): User | null {
     const stmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
+    return stmt.get(id);
+  }
+
+  getUserByExternalId(id: number): User | null {
+    const stmt = this.db.prepare('SELECT * FROM users WHERE auth_method = \'remote\' AND external_id = ?');
     return stmt.get(id);
   }
 
@@ -203,7 +223,7 @@ getUserByIdPublic(userId: number): any {
         'SELECT * FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)'
       );
       const existing = existingStmt.get(requesterId, addresseeId, addresseeId, requesterId);
-      
+
       if (existing) {
         throw new Error('Friendship relationship already exists');
       }
@@ -222,42 +242,42 @@ getUserByIdPublic(userId: number): any {
   }
 
   respondToFriendRequest(friendshipId: number, response: 'accepted' | 'declined'): boolean {
-  try {
-    // Önce friendship'in var olduğunu kontrol et
-    const checkStmt = this.db.prepare('SELECT * FROM friendships WHERE id = ?');
-    const friendship = checkStmt.get(friendshipId);
-    
-    if (!friendship) {
-      throw new Error('Friendship not found');
-    }
+    try {
+      // Önce friendship'in var olduğunu kontrol et
+      const checkStmt = this.db.prepare('SELECT * FROM friendships WHERE id = ?');
+      const friendship = checkStmt.get(friendshipId);
 
-    const stmt = this.db.prepare('UPDATE friendships SET status = ? WHERE id = ?');
-    const info = stmt.run(response, friendshipId);
-    
-    if (info.changes === 0) {
-      throw new Error('No friendship found to update');
+      if (!friendship) {
+        throw new Error('Friendship not found');
+      }
+
+      const stmt = this.db.prepare('UPDATE friendships SET status = ? WHERE id = ?');
+      const info = stmt.run(response, friendshipId);
+
+      if (info.changes === 0) {
+        throw new Error('No friendship found to update');
+      }
+
+      return info.changes > 0;
+    } catch (error: any) {
+      console.error('Error responding to friend request:', error);
+      throw new Error(`Failed to respond to friend request: ${error.message}`);
     }
-    
-    return info.changes > 0;
-  } catch (error: any) {
-    console.error('Error responding to friend request:', error);
-    throw new Error(`Failed to respond to friend request: ${error.message}`);
   }
-}
 
   getFriends(userId: number): any[] {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         u.id, u.nickname, u.avatar, u.status,
         f.status as friendship_status, f.created_at as friends_since
       FROM friendships f
       JOIN users u ON (
-        CASE 
+        CASE
           WHEN f.requester_id = ? THEN u.id = f.addressee_id
           ELSE u.id = f.requester_id
         END
       )
-      WHERE (f.requester_id = ? OR f.addressee_id = ?) 
+      WHERE (f.requester_id = ? OR f.addressee_id = ?)
       AND f.status = 'accepted'
       ORDER BY f.created_at DESC
     `);
@@ -266,7 +286,7 @@ getUserByIdPublic(userId: number): any {
 
   getFriendRequests(userId: number): any[] {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         f.id as friendship_id,
         u.id, u.nickname, u.avatar,
         f.created_at as request_date,
@@ -281,9 +301,9 @@ getUserByIdPublic(userId: number): any {
 
   searchUsers(searchTerm: string, currentUserId: number): any[] {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         u.id, u.nickname, u.avatar, u.status,
-        CASE 
+        CASE
           WHEN f.id IS NOT NULL THEN f.status
           ELSE 'none'
         END as friendship_status
@@ -301,7 +321,7 @@ getUserByIdPublic(userId: number): any {
 
   removeFriend(userId: number, friendId: number): boolean {
     const stmt = this.db.prepare(`
-      DELETE FROM friendships 
+      DELETE FROM friendships
       WHERE ((requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?))
       AND status = 'accepted'
     `);
@@ -317,7 +337,7 @@ getUserByIdPublic(userId: number): any {
 
   updateGameStats(userId: number, won: boolean, score: number): boolean {
     const stmt = this.db.prepare(`
-      UPDATE game_statistics 
+      UPDATE game_statistics
       SET games_played = games_played + 1,
           games_won = games_won + ?,
           games_lost = games_lost + ?,
@@ -343,8 +363,7 @@ getUserByIdPublic(userId: number): any {
       'viking',
       'samurai',
       'cyberpunk',
-      'steampunk'
+      'steampunk',
     ];
   }
-  
 }
