@@ -1246,7 +1246,7 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentDa
     updateTournamentPlayers(tournamentData.room.players);
   } else {
     console.log('No player data found, using mock data');
-    // ✅ Fallback zu Mock Daten
+    // Fallback zu Mock Daten
     const mockPlayers = [
       { nickname: 'You', isOwner: isOwner },
       { nickname: 'Player2', isOwner: false }
@@ -1260,7 +1260,7 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentDa
 function updateTournamentPlayers(playersData: any): void {
   console.log('Live update - Tournament players changed:', playersData);
   
-  // ✅ Verschiedene Server-Datenstrukturen handhaben
+  // Verschiedene Server-Datenstrukturen handhaben
   let players = playersData;
   if (playersData && !Array.isArray(playersData)) {
     players = playersData.players || playersData.room?.players || [];

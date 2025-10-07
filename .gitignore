@@ -39,3 +39,6 @@ client.key
 # === nix-shell Setup ===
 .direnv/
 .envrc
+
+# === AI ===
+global_ai_model.json
