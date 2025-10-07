@@ -16,8 +16,6 @@ export class PongGame {
   private myNickname = 'Player';
   private socketManager?: SocketManager;
 
-
-
   // TODO: Fix Lobby message (w/s, up/down )
 
   // TODO: fix Game Over (on reset game)
@@ -68,7 +66,7 @@ export class PongGame {
     this.setupControls();
     this.setupMobileControls(); // newly added for mobile controls.
     this.setupSocketListeners();
-    this.setupUI();
+    // this.setupUI();
     this.setupGameControls(); // newly added for start-pause functionality
 
   }
@@ -130,18 +128,6 @@ export class PongGame {
       else if (e.key === 's' || e.key === 'S') this.sPressed = true;
       if (e.key === 'ArrowUp') this.upPressed = true;
       else if (e.key === 'ArrowDown') this.downPressed = true;
-
-      // if (this.isPlayer1) {
-      //   console.log('Player 1 controls');
-      //   // Player 1 uses W/S
-      //   if (e.key === 'w' || e.key === 'W') this.wPressed = true;
-      //   else if (e.key === 's' || e.key === 'S') this.sPressed = true;
-      // } else if (!this.isPlayer1 || !this.isRemote) {
-      //   console.log('Player 2 controls');
-      //   // Player 2 uses Arrow Keys
-      //   if (e.key === 'ArrowUp') this.upPressed = true;
-      //   else if (e.key === 'ArrowDown') this.downPressed = true;
-      // }
     };
 
     const keyUpHandler = (e: KeyboardEvent) => {
@@ -154,28 +140,6 @@ export class PongGame {
     document.addEventListener('keydown', keyDownHandler);
     document.addEventListener('keyup', keyUpHandler);
 
-    // Mobile controls - sadece kendi oyuncusu için
-    // const upBtn = document.getElementById('up-btn');
-    // const downBtn = document.getElementById('down-btn');
-
-    // if (upBtn && downBtn) {
-    //   upBtn.addEventListener('touchstart', () => {
-    //     if (this.isPlayer1) this.wPressed = true;
-    //     else this.upPressed = true;
-    //   });
-    //   upBtn.addEventListener('touchend', () => {
-    //     if (this.isPlayer1) this.wPressed = false;
-    //     else this.upPressed = false;
-    //   });
-    //   downBtn.addEventListener('touchstart', () => {
-    //     if (this.isPlayer1) this.sPressed = true;
-    //     else this.downPressed = true;
-    //   });
-    //   downBtn.addEventListener('touchend', () => {
-    //     if (this.isPlayer1) this.sPressed = false;
-    //     else this.downPressed = false;
-    //   });
-    // }
   }
 
 
@@ -323,47 +287,27 @@ export class PongGame {
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
+
     if (message.isOwner) {
+      this.myNickname = message.owner.nickname;
       this.opponentNickname = message.guest.nickname;
     } else {
+      this.myNickname = message.guest.nickname;
       this.opponentNickname = message.owner.nickname;
     }
-    document.getElementById('game-nick2')!.textContent = this.opponentNickname;
+    document.getElementById('game-nick')!.textContent = message.owner.nickname;
+    document.getElementById('game-nick2')!.textContent = message.guest.nickname;
 
-  this.isPlayer1 = message.isOwner;
-  this.roomId = message.roomId;
-  
-  if (message.isOwner) {
-    this.opponentNickname = message.guest.nickname;
-  } else {
-    this.opponentNickname = message.owner.nickname;
-  }
 
   console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
   console.log(`My nickname: ${this.myNickname}`);
   console.log(`Opponent nickname: ${this.opponentNickname}`);
-  console.log('Message.owner.nickname:', message.owner.nickname);
-  console.log('Message.guest.nickname:', message.guest.nickname);
-
-  const gameNick1 = document.getElementById('game-nick');
-  const gameNick2 = document.getElementById('game-nick2');
-
-  if (gameNick1 && gameNick2) {
-  if (this.isPlayer1) {
-    // Owner: kendi nickname solda
-    gameNick1.textContent = this.myNickname;
-    gameNick2.textContent = this.opponentNickname;
-  } else {
-    // Guest: kendi nickname sağda
-    gameNick1.textContent = this.opponentNickname; // sol: rakip
-    gameNick2.textContent = this.myNickname;       // sağ: ben
-  }
-}
-
+  console.log('Owner nickname (left):', message.owner.nickname);
+  console.log('Guest nickname (right):', message.guest.nickname);
 
   // Kontrol bilgisini göster
   this.updateStatus(
-    `You are Player ${this.isPlayer1 ? '1 (W/S keys)' : '2 (Arrow keys)'}. Game starting!`
+    `You are playing on the ${this.isPlayer1 ? 'left with W/S keys' : 'right with arrow keys'}. Game starting!`
   );
 
     // To-Do: set Countdown timer before starting
@@ -594,14 +538,6 @@ public matchEnd(message: any) {
     this.canvas.width / 2,
     this.canvas.height / 2 + 80
   );
-
-  // 5 saniye sonra lobby'e dön
-  // DELETED: isn't needed!
-  // setTimeout(() => {
-  //   this.resetGame();
-  //   document.querySelector('.game-page')?.classList.add('hidden');
-  //   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  // }, 5000);
 }
 
   private resetGame() {

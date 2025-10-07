@@ -743,22 +743,6 @@ function showStatistics() {
   document.querySelector('.nickname-page')?.classList.add('hidden');
 }
 
-// function showTournamentPage() {
-//   const loginPage = document.querySelector('.login-page');
-//   const profilePage = document.querySelector('.profile-page');
-//   const gamePage = document.querySelector('.game-page');
-//   const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
-//   manageNavbar();
-//   loginPage?.classList.add('hidden');
-//   profilePage?.classList.add('hidden');
-//   gamePage?.classList.add('hidden');
-//   multiPGamePage?.classList.add('hidden');
-//   document.querySelector(".options-page")?.classList.add('hidden');
-//   document.querySelector('.user-search-page')?.classList.add('hidden');
-//   document.querySelector('.user-profile-page')?.classList.add('hidden');
-// }
-
 function showAuthPage() {
   const loginPage = document.querySelector('.login-page');
   const profilePage = document.querySelector('.profile-page');

@@ -50,7 +50,7 @@ export function registerIoHandlers(io: Server) {
           }
           
           gameRoom = tournamentRoom as any;
-          console.log(`[Socket] TOURNAMENT: Processing paddle move for ${socket.player?.nickname} in room ${gameRoom.id}`);
+          console.log(`[Socket] TOURNAMENT: Processing paddle move for ${socket.player?.nickname}`);
         } 
         // ✅ Regular GameRoom
         else if ('gameState' in socket.room) {
