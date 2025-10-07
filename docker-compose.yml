@@ -30,6 +30,9 @@ services:
     image: hashicorp/vault:1.20.2
     user: "1000:1000"
     command: ["agent","-config=/agents/service-server-agent.hcl"]
+    depends_on:
+      web-application-firewall:
+        condition: service_started
     pid: "service:web-application-firewall"
     environment:
       VAULT_ADDR: "https://vault-1:8200"
@@ -37,7 +40,7 @@ services:
       SERVICE_DNS:  "localhost"
       SERVICE_ALT_NAMES: "ft-transcendence.at,localhost"
       APPROLE_AGENT_NAME: "web-application-firewall-agent-rotator"
-      PKI_ROLE_SERVER: "web-application-firewall"
+      PKI_ROLE_SERVER: "ft-transcendence"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
       - web-application-firewall-agent-certs:/agent/certs:rw
@@ -91,12 +94,15 @@ services:
     image: hashicorp/vault:1.20.2
     user: "1000:1000"
     command: ["agent","-config=/agents/service-server-client-agent.hcl"]
+    depends_on:
+      api-gateway:
+        condition: service_started
     pid: "service:api-gateway"
     environment:
       VAULT_ADDR: "https://vault-1:8200"
       SERVICE_NAME: "api-gateway"
       SERVICE_DNS:  "api-gateway"
-      SERVICE_ALT_NAMES: "api-gateway,localhost"
+      SERVICE_ALT_NAMES: "api-gateway"
       APPROLE_AGENT_NAME:   "api-gateway-agent-rotator"
       APPROLE_SERVICE_NAME: "api-gateway"
       PKI_ROLE_SERVER: "api-gateway-internal"
@@ -145,14 +151,17 @@ services:
     image: hashicorp/vault:1.20.2
     user: "1000:1000"
     command: ["agent","-config=/agents/service-server-agent.hcl"]
+    depends_on:
+      game-service:
+        condition: service_started
     pid: "service:game-service"
     environment:
       VAULT_ADDR: "https://vault-1:8200"
       SERVICE_NAME: "game-service"
-      SERVICE_DNS:  "localhost"
-      SERVICE_ALT_NAMES: "ft-transcendence.at,localhost"
+      SERVICE_DNS:  "game-service"
+      SERVICE_ALT_NAMES: "game-service"
       APPROLE_AGENT_NAME: "game-service-agent-rotator"
-      PKI_ROLE_SERVER: "game-service"
+      PKI_ROLE_SERVER: "game-service-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
     volumes:
       - game-service-agent-certs:/agent/certs:rw
@@ -199,12 +208,15 @@ services:
     image: hashicorp/vault:1.20.2
     user: "1000:1000"
     command: ["agent","-config=/agents/service-server-client-agent.hcl"]
+    depends_on:
+      auth-user-service:
+        condition: service_started
     pid: "service:auth-user-service"
     environment:
       VAULT_ADDR: "https://vault-1:8200"
       SERVICE_NAME: "auth-user-service"
       SERVICE_DNS:  "auth-user-service"
-      SERVICE_ALT_NAMES: "auth-user-service,localhost"
+      SERVICE_ALT_NAMES: "auth-user-service"
       APPROLE_AGENT_NAME:   "auth-user-service-agent-rotator"
       APPROLE_SERVICE_NAME: "auth-user-service"
       PKI_ROLE_SERVER: "auth-user-service-internal"

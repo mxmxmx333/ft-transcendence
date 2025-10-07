@@ -21,11 +21,22 @@ VAULT_AGENT_3_CERT_DIR="${VAULT_AGENT_3_CERT_DIR:-/certs/vault-agent-3}"
 
 # VAULT SERVICE AGENT CERT DIRS
 VAULT_AGENT_API_GATEWAY_CERT_DIR="${VAULT_AGENT_API_GATEWAY_CERT_DIR:-/certs/api-gateway/}"
+VAULT_AGENT_API_GATEWAY_APPROLE_DIR="${VAULT_AGENT_API_GATEWAY_APPROLE_DIR:-/approle/api-gateway/}"
+
 VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR:-/certs/auth-user-service/}"
+VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR:-/approle/auth-user-service/}"
+
 VAULT_AGENT_GAME_SERVICE_CERT_DIR="${VAULT_AGENT_GAME_SERVICE_CERT_DIR:-/certs/game-service/}"
+VAULT_AGENT_GAME_SERVICE_APPROLE_DIR="${VAULT_AGENT_GAME_SERVICE_APPROLE_DIR:-/approle/game-service/}"
+
 VAULT_AGENT_AI_OPPONENT_CERT_DIR="${VAULT_AGENT_AI_OPPONENT_CERT_DIR:-/certs/ai-opponent/}"
+VAULT_AGENT_AI_OPPONENT_APPROLE_DIR="${VAULT_AGENT_AI_OPPONENT_APPROLE_DIR:-/approle/ai-opponent/}"
+
 VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR:-/certs/web-application-firewall/}"
-VAULT_AGENT_CLI_CLIENT_CERT_DIR="${VAULT_AGENT_CLI_CLIENT_CERT_DIR:-/certs/cli/}"
+VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR:-/approle/web-application-firewall/}"
+
+VAULT_AGENT_CLI_CERT_DIR="${VAULT_AGENT_CLI_CERT_DIR:-/certs/cli/}"
+VAULT_AGENT_CLI_APPROLE_DIR="${VAULT_AGENT_CLI_APPROLE_DIR:-/approle/cli/}"
 
 # VAULT_CONFIG_DIR
 VAULT_1_CONFIG_DIR="${VAULT_1_CONFIG_DIR:-/vault/config}"
@@ -139,8 +150,6 @@ unseal_vault() {
   return 1
 }
 
-
-
 export_vault_token() {
   if [ -n "${VAULT_TOKEN:-}" ] && [ "$VAULT_TOKEN" != "null" ]; then
     echo ">> using VAULT_TOKEN from environment"
@@ -205,9 +214,9 @@ define_pki_roles() {
     server_flag=true client_flag=true \
     max_ttl="2160h"
 
-  echo ">> write pki role web-application-firewall (server)"
-  vault write pki/roles/web-application-firewall \
-    allowed_domains="web-application-firewall,ft-transcendence.at,localhost" \
+  echo ">> write pki role ft-transcendence (server)"
+  vault write pki/roles/ft-transcendence \
+    allowed_domains="ft-transcendence.at,localhost" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
@@ -216,7 +225,7 @@ define_pki_roles() {
 
   echo ">> write pki role api-gateway-internal (server)"
   vault write pki/roles/api-gateway-internal \
-    allowed_domains="api-gateway,localhost" \
+    allowed_domains="api-gateway" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
@@ -225,16 +234,16 @@ define_pki_roles() {
 
   echo ">> write pki role auth-user-service-internal (server)"
   vault write pki/roles/auth-user-service-internal \
-    allowed_domains="auth-user-service,localhost" \
+    allowed_domains="auth-user-service" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
     server_flag=true client_flag=false \
     max_ttl="72h"
 
-  echo ">> write pki role game-service (server)"
-  vault write pki/roles/game-service \
-    allowed_domains="game-service,localhost" \
+  echo ">> write pki role game-service-internal (server)"
+  vault write pki/roles/game-service-internal \
+    allowed_domains="game-service" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
@@ -244,7 +253,7 @@ define_pki_roles() {
   # Optional: falls du ai-opponent in Prod nutzt, lass die Rolle aktiv
   echo ">> write pki role ai-opponent-internal (server)"
   vault write pki/roles/ai-opponent-internal \
-    allowed_domains="ai-opponent-service,localhost" \
+    allowed_domains="ai-opponent-service" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
@@ -282,14 +291,16 @@ issue_cert() {
 }
 
 issue_vault_certs(){
-  issue_cert "vault-dev"          "vault-node-internal"     "vault-dev,localhost" "127.0.0.1"   "$VAULT_CERT_DIR"                "server"
-  issue_cert "localhost"          "api-gateway-internal"    "localhost"           "127.0.0.1"   "/certs/api-gateway"             "server"
-  issue_cert "localhost"          "auth-user-internal"      "localhost"           "127.0.0.1"   "/certs/auth-user-service"       "server"
-  issue_cert "localhost"          "game-service-internal"   "localhost"           "127.0.0.1"   "/certs/game-service"            "server"
-  issue_cert "localhost"          "ai-opponent-internal"    "localhost"           "127.0.0.1"   "/certs/ai-opponent"             "server"
-  issue_cert "localhost"          "vite-internal"           "localhost"           "127.0.0.1"   "/certs/vite"                    "server"
-  issue_cert "api-gateway"        "vault-clients-internal"  ""                    ""            "/certs/api-gateway/vault"       "client"
-  issue_cert "auth-user-service"  "vault-clients-internal"  ""                    ""            "/certs/auth-user-service/vault" "client"
+  issue_cert "vault-1"                        "vault-node-internal"     "vault-1,localhost"                    "127.0.0.1"   "$VAULT_1_CERT_DIR"                                "server"
+  # issue_cert "vault-1-agent"                  "vault-node-internal"     "vault-1-agent"                        ""            "$VAULT_AGENT_1_CERT_DIR"                          "server"
+  issue_cert "vault-2"                        "vault-node-internal"     "vault-2,localhost"                    "127.0.0.1"   "$VAULT_2_CERT_DIR"                                "server"
+  # issue_cert "vault-2-agent"                  "vault-node-internal"     "vault-2-agent"                        ""            "$VAULT_AGENT_2_CERT_DIR"                          "server"
+  issue_cert "vault-3"                        "vault-node-internal"     "vault-3,localhost"                    "127.0.0.1"   "$VAULT_3_CERT_DIR"                                "server"
+  # issue_cert "vault-3-agent"                  "vault-node-internal"     "vault-3-agent"                        ""            "$VAULT_AGENT_3_CERT_DIR"                          "server"
+  # issue_cert "api-gateway-agent"              "vault-clients-internal"  "api-gateway-agent"                    ""            "$VAULT_AGENT_API_GATEWAY_CERT_DIR"                "client"
+  # issue_cert "auth-user-service-agent"        "vault-clients-internal"  "auth-user-service-agent"              ""            "$VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR"          "client"
+  # issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
+  # issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
 }
 
 # ------- Phase 8: Policies & App-Roles -------
@@ -299,8 +310,11 @@ enable_policies_and_approles() {
   
   vault auth enable approle 2>/dev/null || true
 
-  vault policy write api-gateway   policies/common/api-gateway.hcl
+  vault policy write api-gateway        policies/common/api-gateway.hcl
   vault policy write auth-user-service  policies/common/auth-user-service.hcl
+  vault policy write 
+
+
 
   vault write auth/approle/role/api-gateway \
     token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0

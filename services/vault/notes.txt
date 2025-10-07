@@ -31,7 +31,8 @@ ai-opponent als service
 
 bootstrap fertigstellen:
 pki rollen hinterfragen, dann certs issuen
-policies und approles fertigstellen. (Möglicherweise sollten die jwt policies teil des jwt teils sein?)
-und alles zusammenfügen
+policies und approles fertigstellen. 
+
+ca bei den agents placen. 
 
 env. update:
