@@ -1,5 +1,5 @@
 # Stage 1: nur die vault-CLI holen (keine Pakete anfassen)
-FROM hashicorp/vault:1.17 as vaultbin
+FROM hashicorp/vault:1.20 as vaultbin
 
 # Stage 2: leichtes Tool-Image mit jq, curl, etc.
 FROM alpine:3.20

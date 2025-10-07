@@ -37,6 +37,23 @@ for i in $(seq 1 60); do
 done
 [ "${ok:-0}" = "1" ] || { echo "!! DNS for vault-dev not found"; exit 2; }
 
+wait_for_vault_api() {
+  # Akzeptiere Health-Codes, die bedeuten „Vault läuft, Zustand egal“
+  local ok_codes="200 429 501 503"
+  echo ">> wait for Vault API at $VAULT_ADDR ..."
+  for i in $(seq 1 60); do
+    code="$(curl -sk -o /dev/null -w '%{http_code}' "$VAULT_ADDR/v1/sys/health" || true)"
+    for c in $ok_codes; do
+      [ "$code" = "$c" ] && echo ">> API up (HTTP $code)" && return 0
+    done
+    sleep 1
+  done
+  echo "!! Vault API not reachable at $VAULT_ADDR"
+  return 3
+}
+
+wait_for_vault_api || exit 3
+
 # ------- Phase 1: init (einmalig) -------
 if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
   echo ">> init (shares=$INIT_SHARES threshold=$INIT_THRESHOLD)"

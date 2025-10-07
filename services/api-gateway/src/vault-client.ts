@@ -39,14 +39,15 @@ declare module 'fastify' {
   }
 }
 
+const certDir = process.env.CERT_DIR || path.resolve(__dirname, '../certs/vault');
+const appRoleDir = process.env.APPROLE_DIR || path.resolve(__dirname, '../certs/approle');
+
 const vaultClient: FastifyPluginAsync = async (fastify) => {
   const { VAULT_ADDR, VAULT_TOKEN_MARGIN_SEC = '30' } = process.env;
 
-  const certDir = path.resolve(__dirname, '../certs/vault');
   const caPath = path.join(certDir, 'ca.crt');
   const crtPath = path.join(certDir, 'client.crt');
   const keyPath = path.join(certDir, 'client.key');
-  const appRoleDir = path.resolve(__dirname, '../certs/approle');
   const roleIdPath = path.join(appRoleDir, 'role_id');
   const secretIdPath = path.join(appRoleDir, 'secret_id');
 

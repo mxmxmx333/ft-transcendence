@@ -1,0 +1,159 @@
+# -------- Agent-Login (für den Agent selbst) --------
+exit_after_auth = false
+
+auto_auth {
+  method {
+    type = "approle"
+    mount_path = "auth/approle"
+    config {
+      role_id_file_path                 = "/approle/role_id"            # Agent-RoleID (Sidecar)
+      secret_id_file_path               = "/approle/secret_id"          # Agent-SecretID (wird unten rotiert)
+      secret_id_response_wrapping_path  = "/approle/secret_id_wrapped"  # 1st-run secure intro (optional)
+      remove_secret_id_file_after_reading = false
+    }
+  }
+  sink { type = "file" config = { path = "/run/vault/token" } }
+}
+
+template_config {
+  static_secret_render_interval = "12h"
+  exit_on_retry_failure = false
+}
+
+vault {
+  address         = "{{ env `VAULT_ADDR` }}"
+  tls_ca_cert     = "/agent/certs/ca.crt"
+  tls_client_cert = "/agent/certs/client.crt"   # mTLS des Agents
+  tls_client_key  = "/agent/certs/client.key"
+}
+
+# AGENT SELF ROTATION
+template {
+  destination = "/approle/secret_id"
+  perms = "0600"
+  contents = <<EOH
+{{- with secret (printf "auth/approle/role/%s/secret-id" (env "APPROLE_AGENT_NAME"))
+               (printf "metadata=%s-agent" (env "SERVICE_NAME")) -}}
+{{ .Data.secret_id }}
+{{- end -}}
+EOH
+}
+
+template {
+  destination = "/agent/certs/client.crt"
+  perms = "0644"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
+               (printf "common_name=%s-agent" (env "SERVICE_NAME"))
+               "ttl=720h" -}}
+{{ .Data.certificate }}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- end -}}
+EOH
+}
+
+template {
+  destination = "/agent/certs/client.key"
+  perms = "0600"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
+               (printf "common_name=%s-agent" (env "SERVICE_NAME"))
+               "ttl=720h" -}}
+{{ .Data.private_key }}
+{{- end -}}
+EOH
+}
+
+# SERVICE ROTATIONS
+template {
+  destination = "/service/certs/server.crt"
+  perms = "0644"
+  contents = <<EOH
+{{- $role := env "PKI_ROLE_SERVER" -}}
+{{- $cn   := env "SERVICE_DNS" -}}
+{{- $alt  := env "SERVICE_ALT_NAMES" -}}
+{{- with secret (printf "pki/issue/%s" $role)
+               (printf "common_name=%s" $cn)
+               (printf "alt_names=%s"   $alt)
+               "ttl=720h" -}}
+{{ .Data.certificate }}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- end -}}
+EOH
+  # command = "/bin/sh -c 'kill -HUP 1 || true'"
+}
+
+template {
+  destination = "/service/certs/server.key"
+  perms = "0600"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_SERVER"))
+               (printf "common_name=%s" (env "SERVICE_DNS"))
+               (printf "alt_names=%s"   (env "SERVICE_ALT_NAMES"))
+               "ttl=720h" -}}
+{{ .Data.private_key }}
+{{- end -}}
+EOH
+}
+
+# -------- 4) Service: SecretID (für den Service-Prozess) --------
+template {
+  destination = "/approle-service/secret_id"
+  perms = "0600"
+  contents = <<EOH
+{{- with secret (printf "auth/approle/role/%s/secret-id" (env "APPROLE_SERVICE_NAME"))
+               (printf "metadata=%s-service" (env "SERVICE_NAME")) -}}
+{{ .Data.secret_id }}
+{{- end -}}
+EOH
+}
+
+template {
+  destination = "/approle-service/role_id"
+  perms = "0640"
+  contents = <<EOH
+{{- with secret (printf "auth/approle/role/%s/role-id" (env "APPROLE_SERVICE_NAME")) -}}
+{{ .Data.role_id }}
+{{- end -}}
+EOH
+}
+
+# -------- 5) Service: Client mTLS (zu Vault) --------
+template {
+  destination = "/service/certs/client.crt"
+  perms = "0644"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
+               (printf "common_name=%s" (env "SERVICE_NAME"))
+               "ttl=720h" -}}
+{{ .Data.certificate }}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- end -}}
+EOH
+}
+
+template {
+  destination = "/service/certs/client.key"
+  perms = "0600"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
+               (printf "common_name=%s" (env "SERVICE_NAME"))
+               "ttl=720h" -}}
+{{ .Data.private_key }}
+{{- end -}}
+EOH
+}
+
+# -------- Trust-Bundle (Agent) --------
+template {
+  destination = "/agent/certs/ca.crt"
+  perms = "0644"
+  contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
+}
+
+# -------- Trust-Bundle (Service) --------
+template {
+  destination = "/service/certs/ca.crt"
+  perms = "0644"
+  contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
+}
