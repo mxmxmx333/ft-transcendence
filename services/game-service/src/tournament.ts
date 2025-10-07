@@ -149,7 +149,7 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
         console.log(`[Server] Tournament match end broadcast failed:`, error);
     }
 
-    // ✅ Nächstes Match nach Pause
+    // Nächstes Match nach Pause
     setTimeout(() => {
         startMatch(tournamentRoom);
     }, 2000);

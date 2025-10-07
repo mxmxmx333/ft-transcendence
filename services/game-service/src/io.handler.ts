@@ -40,7 +40,7 @@ export function registerIoHandlers(io: Server) {
 
         let gameRoom: GameRoom | null = null;
 
-        // ✅ Tournament Room Check
+        // Tournament Room Check
         if ('players' in socket.room) {
           const tournamentRoom = socket.room as TournamentRoom;
           
@@ -52,7 +52,7 @@ export function registerIoHandlers(io: Server) {
           gameRoom = tournamentRoom as any;
           console.log(`[Socket] TOURNAMENT: Processing paddle move for ${socket.player?.nickname}`);
         } 
-        // ✅ Regular GameRoom
+        // Regular GameRoom
         else if ('gameState' in socket.room) {
           gameRoom = socket.room as GameRoom;
           console.log(`[Socket] REGULAR: Processing paddle move for ${socket.player?.nickname} in room ${gameRoom.id}`);
@@ -67,7 +67,7 @@ export function registerIoHandlers(io: Server) {
           return;
         }
 
-        // ✅ Paddle Movement verarbeiten
+        // Paddle Movement verarbeiten
         if (socket === gameRoom.owner?.conn) {
           gameRoom.ownerMovement = payload.moveP1;
           if (gameRoom.gameType === 'local') {

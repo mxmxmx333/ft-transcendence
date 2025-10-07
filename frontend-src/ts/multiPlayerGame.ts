@@ -140,7 +140,6 @@ export class PongGame {
 
   }
 
-
   // New returning new game page
    private returnToNewGamePage() {
     document.querySelector('.game-page')?.classList.add('hidden');
@@ -209,7 +208,6 @@ export class PongGame {
       const response = await fetch('/api/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          // 'Content-Type': 'application/json',
         },
       });
 
@@ -223,15 +221,45 @@ export class PongGame {
       console.error('Failed to fetch user profile:', error);
       document.getElementById('game-nick')!.textContent = 'Player';
     }
-
-    // document.getElementById('game-nick2')!.textContent = 'Waiting...';
   }
 
   private updateStatus(message: string) {
-    const statusElement = document.getElementById('lobby-status');
-    if (statusElement) {
-      statusElement.textContent = message;
+    console.log(`[Status] ${message}`);
+    
+    let statusElement = document.getElementById('game-status');
+    
+    if (!statusElement) {
+      // ERSTELLE STATUS ELEMENT FALLS NICHT VORHANDEN
+      const gameArea = document.querySelector('.game-page');
+      if (gameArea) {
+        statusElement = document.createElement('div');
+        statusElement.id = 'game-status';
+        statusElement.style.cssText = `
+          position: absolute; 
+          top: 10px; 
+          left: 50%; 
+          transform: translateX(-50%); 
+          color: white; 
+          font-size: 18px; 
+          font-weight: bold; 
+          z-index: 100;
+          background: rgba(0,0,0,0.7);
+          padding: 10px 20px;
+          border-radius: 5px;
+        `;
+        gameArea.appendChild(statusElement);
+        console.log('Status element created');
+      } else {
+        console.warn('No game area found to create status element');
+        return;
+      }
     }
+    
+    statusElement.textContent = message;
+      // const statusElement = document.getElementById('lobby-status');
+      // if (statusElement) {
+      //   statusElement.textContent = message;
+      // }
   }
 
   public updateFromServer(gameState: ServerToClientEvents['game_state']) {
@@ -263,6 +291,16 @@ export class PongGame {
     console.log('Guest info:', message.guest);
     console.log('Message.owner.nickname:', message.owner.nickname);
     console.log('Message.guest.nickname:', message.guest.nickname);
+
+    if (this.countdownInterval) {
+      console.log('Countdown already running, ignoring duplicate game start');
+      return;
+    }
+    
+    if (this.gameRunning) {
+      console.log('Game already running, stopping first');
+      this.stop();
+    }
 
     // Test: Prüfe Socket Listener
     const socket = this.socketManager?.getSocket();
@@ -304,18 +342,48 @@ export class PongGame {
   console.log('Guest nickname (right):', message.guest.nickname);
 
   // Kontrol bilgisini göster
-  this.updateStatus(
-    `You are playing on the ${this.isPlayer1 ? 'left with W/S keys' : 'right with arrow keys'}. Game starting!`
-  );
+  this.updateStatus(`You are playing on the ${this.isPlayer1 ? 'left with W/S keys' : 'right with arrow keys'}. Game starting!`);
 
-    // To-Do: set Countdown timer before starting
+  // Sayfa geçişi
+  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  document.querySelector('.game-page')?.classList.remove('hidden');
 
-    // Sayfa geçişi
-    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-    document.querySelector('.game-page')?.classList.remove('hidden');
+  this.startCountdown();
+  }
 
-  this.start();
-}
+  private countdownInterval?: NodeJS.Timeout;
+
+  private startCountdown() {
+    if (this.countdownInterval) {
+      console.log('Countdown already active');
+      return;
+    }
+    let countdown = 3;
+    
+    // Clear any existing countdown
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+
+    this.countdownInterval = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        this.updateStatus(`Game starting in ${countdown} seconds...`);
+      } else {
+        this.updateStatus('Game started! Good luck!');
+        clearInterval(this.countdownInterval!);
+        this.countdownInterval = undefined;
+        
+        if (!this.gameRunning) {
+          console.log('Starting game after countdown');
+          // this.gameRunning = true;
+          this.start();
+        } else {
+          console.log('Game already running, skipping start');
+        }
+      }
+    }, 1000);
+  }
 
   public handleRoomTerminated() {
     console.warn('Room terminated, returning to lobby');
@@ -448,6 +516,7 @@ public matchEnd(message: any) {
 }
 
   private handlePaddleMovement() {
+    console.debug('Handling paddle movement');
     if (this.isPaused) {
      return;
    }
@@ -556,7 +625,9 @@ public matchEnd(message: any) {
     }
     this.gameRunning = true;
     this.lastTimeStamp = performance.now();
+    this.lastPaddleUpdate = performance.now();
     this.animationId = requestAnimationFrame(this.gameLoop);
+    console.log('Game started');
   }
 
   public startGame() {
@@ -596,6 +667,7 @@ public matchEnd(message: any) {
   }
 
   private gameLoop = (timestamp: number) => {
+    console.debug(`Game loop running: ${this.gameRunning}`);
     if (!this.gameRunning) return;
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;
@@ -608,7 +680,6 @@ public matchEnd(message: any) {
        this.handlePaddleMovement();
      }
    }
-
     if (this.gameRunning) {
       requestAnimationFrame(this.gameLoop);
     }
@@ -616,6 +687,11 @@ public matchEnd(message: any) {
 
   public stop() {
     this.gameRunning = false;
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = undefined;
+      console.log('Countdown stopped');
+    }
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }

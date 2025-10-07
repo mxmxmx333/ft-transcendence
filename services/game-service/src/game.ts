@@ -93,15 +93,17 @@ export function startGame(room: GameRoom) {
     throw new Error(`[startGame] Failed to send game start message: ${err}`);
   }
 
-  // To-Do: implement Timer for game start countdown
-  // setTimeout(() => {
-  //   // Start the game loop after countdown
-  // }, 3000);
-  // Game loop başlat
+  setTimeout(() => {
+    gameLoop(room);
+  }, 3000);
+}
+
+function gameLoop(room: GameRoom) {
+  console.log(`[Server] Starting game loop for room ${room.id}`);
   room.gameLoop = setInterval(() => {
-       if (!room.gameLoop) {
+    if (!room.gameLoop) {
       console.log(`[Server] Game loop already cleared for room ${room.id}`);
-      return; // ✅ Sofort raus!
+      return; 
     }
     if (!gameRooms[room.id] && !tournamentRooms[room.id]) {
       console.log(`[Server] Room ${room.id} no longer exists - stopping game loop`);
@@ -115,7 +117,6 @@ export function startGame(room: GameRoom) {
       room.gameLoop = undefined;
       return;
     }
-    // ✅ KRITISCH: gameState Check BEVOR es verwendet wird!
     if (!room.gameState) {
       console.log(`[Server] No game state in room ${room.id} - stopping game loop`);
       clearInterval(room.gameLoop);
@@ -309,7 +310,7 @@ function broadcastGameState(room: GameRoom) {
     return;
   }
 
-  // ✅ Zusätzlicher Check: Ist Game Loop noch aktiv?
+  // Zusätzlicher Check: Ist Game Loop noch aktiv?
   if (!room.gameLoop) {
     console.warn(`[Server] Game loop not active for room ${room.id} - skipping broadcast`);
     return;
