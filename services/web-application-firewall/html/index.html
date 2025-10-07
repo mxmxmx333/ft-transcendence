@@ -6,7 +6,7 @@
     <title>Transcendence</title>
     <!-- Production-ready Tailwind CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script type="module" crossorigin src="/js/index-DoFBZpgy.js"></script>
+  <script type="module" crossorigin src="/js/index-wojdlehL.js"></script>
   <link rel="stylesheet" crossorigin href="/css/style.css">
 </head>
 <body class="bg-dark text-gray-100 font-sans min-h-screen flex flex-col">
@@ -332,6 +332,74 @@
       </section>
 
     </main>
+
+<!-- Tournament Lobby -->
+<section class="tournament-lobby hidden w-full max-w-6xl px-4">
+  <div class="flex flex-col items-center gap-6">
+    <h2 class="neon-text-yellow text-2xl mb-4">Tournament Lobby</h2>
+    
+    <!-- Tournament Status -->
+    <div id="tournament-status" class="text-gray-300 text-center mb-4">
+      Ready to create or join a tournament
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      <!-- Create Tournament -->
+      <div class="bg-dark p-6 rounded-lg neon-border-blue">
+        <h3 class="neon-text-yellow mb-4">Create New Tournament</h3>
+        <button id="create-tournament-btn" class="w-full px-4 py-2 neon-bg-pink rounded-lg">
+          Create Tournament
+        </button>
+      </div>
+      
+      <!-- Join Tournament -->
+      <div class="bg-dark p-6 rounded-lg neon-border-green">
+        <h3 class="neon-text-yellow mb-4">Join Existing Tournament</h3>
+        <input type="text" id="tournament-id-input" placeholder="Tournament ID" 
+               class="w-full px-4 py-2 mb-3 text-black rounded" maxlength="10">
+        <button id="join-tournament-btn" class="w-full px-4 py-2 neon-bg-pink rounded-lg">
+          Join Tournament
+        </button>
+      </div>
+    </div>
+    
+    <!-- Tournament Info (erscheint nach Create/Join) -->
+    <div id="tournament-info" class="hidden w-full max-w-2xl bg-dark p-6 rounded-lg neon-border-yellow">
+      <h3 class="neon-text-yellow text-xl mb-4">Tournament Information</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="text-center">
+          <p class="text-gray-300">Tournament ID:</p>
+          <p id="current-tournament-id" class="neon-text-blue font-bold text-xl">-</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-300">Players:</p>
+          <p id="tournament-player-count" class="neon-text-yellow font-bold text-xl">0/5</p>
+        </div>
+      </div>
+      
+      <!-- Players List -->
+      <div class="mb-4">
+        <h4 class="neon-text-pink mb-2">Participants:</h4>
+        <div id="tournament-players-list" class="space-y-2">
+          <!-- Wird dynamisch gefüllt -->
+        </div>
+      </div>
+      
+      <!-- Owner Controls -->
+      <div id="tournament-owner-controls" class="hidden mb-4">
+        <button id="start-tournament-btn" class="w-full px-4 py-2 neon-bg-green rounded-lg" disabled>
+          Start Tournament (Min. 3 players)
+        </button>
+      </div>
+      
+      <!-- Leave Tournament -->
+      <button id="leave-tournament-btn" class="w-full px-4 py-2 neon-bg-red rounded-lg">
+        Leave Tournament
+      </button>
+    </div>
+  </div>
+</section>
 
     <!-- Footer -->
     <footer class="bg-gray-900 py-8 px-4 sm:px-8 border-t border-gray-800">
