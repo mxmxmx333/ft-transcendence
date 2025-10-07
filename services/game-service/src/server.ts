@@ -88,11 +88,10 @@ io.use((socket, next) => {
       return next(new Error('Authentication error: No token provided'));
     }
 
-    let decoded: AuthPayload = {
-      id: socket.handshake.headers['x-user-id'] as string,
-      nickname: socket.handshake.headers['x-user-nickname'] as string,
-    };
-    console.log('[Auth] Decoded token:', decoded);
+    let decoded: AuthPayload= {} as AuthPayload;
+    decoded.id = socket.request.headers['x-user-id']?.toString() as string;
+    decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
+    console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
 
     socket.user = {
       id: decoded.id,
