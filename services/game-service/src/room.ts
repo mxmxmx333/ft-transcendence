@@ -189,6 +189,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   player.conn.emit('tournament_room_created', {
     roomId: player.roomId,
     players: [{id: player.id, nickname: player.nickname}],
+    owner: tournamentRooms[roomId].owner?.nickname,
     success: true,
   });
 }
@@ -221,32 +222,7 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   const cleanPlayers = room.players.map(player => ({
     id: player.id,
     nickname: player.nickname,
-    isOwner: player.id === room.owner?.id
   }));
-
-  if (!room.owner) {
-    console.log(`Player ${player.nickname} joining TournamentRoom ${roomId} as owner`);
-    room.owner = player;
-    player.roomId = roomId;
-    
-    ////emit
-    io.to(roomId).emit('joined_tournament_room', {
-      roomId: room.id,
-      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
-      players: cleanPlayers,
-      totalPlayers: cleanPlayers.length,
-      success: true,
-    });
-    io.to(roomId).emit('tournament_player_joined', {
-      roomId: room.id,
-      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
-      players: cleanPlayers,
-      totalPlayers: cleanPlayers.length,
-      success: true,
-    });
-    console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id} as owner`);
-    return;
-  }
 
   player.roomId = roomId;
   player.conn.join(roomId);
@@ -276,16 +252,12 @@ export function checkStartTournament(player: Player, roomId: string) {
     });
     return;
   }
-  if (room.owner?.id !== player.id) {
-    player.conn.emit('room_error', {message: 'Only the owner can start the tournament',});
-    return;
-  }
   if (room.players.length < 3) {
     player.conn.emit('room_error', {message: 'At least 3 players are required to start the tournament',});
     return;
   }
   startTournament(roomId);
-  // Owner vs Player2 starten
+  // Player1 vs Player2 starten
 }
 
 export function leaveTournamentRoom(player: Player, roomId: string) {
@@ -296,16 +268,7 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
   }
   
   // Player aus der Liste entfernen
-  room.players = room.players.filter(p => p.id !== player.id);
-  
-  // Wenn Owner verlässt, neuen Owner bestimmen
-  if (room.owner?.id === player.id && room.players.length > 0) {
-    room.owner = room.players[0];
-    io.to(roomId).emit('tournament_owner_changed', {
-      newOwner: room.owner.nickname
-    });
-  }
-  
+  room.players = room.players.filter(p => p.id !== player.id);  
   player.roomId = undefined;
   player.conn.leave(roomId);
   
@@ -326,12 +289,11 @@ function broadcastTournamentUpdate(room: TournamentRoom) {
   const playerData = room.players.map(p => ({
     id: p.id,
     nickname: p.nickname,
-    isOwner: p.id === room.owner?.id
   }));
   
   io.to(room.id).emit('tournament_players_updated', {
     players: playerData,
-    playerCount: room.players.length
+    playerCount: room.players.length,
   });
 }
 
