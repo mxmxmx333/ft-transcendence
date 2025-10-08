@@ -160,25 +160,31 @@ export class SocketManager {
 
     this.socket.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
       console.log('Joined room:', data);
-      this.resolvePendingOperation(data.roomId);
+      // this.resolvePendingOperation(data.roomId);
+    });
+    
+    this.socket.on('room_created', (data: ServerToClientEvents['room_created']) => {
+      console.log('Room created:', data);
+      this.updateLobbyStatus(`Room created: ${data.roomId}. Waiting for opponent...`);
+      // this.resolvePendingOperation(data.roomId);
     });
 
     this.socket.on('join_error', (error: ServerToClientEvents['join_error']) => {
       console.error('Join error:', error.message);
       alert(`Join error: ${error.message}`);
-      this.resolvePendingOperation('');
+      // this.resolvePendingOperation('');
     });
 
     this.socket.on('create_error', (error: ServerToClientEvents['create_error']) => {
       console.error('Create error:', error.message);
       alert(`Create error: ${error.message}`);
-      this.resolvePendingOperation('');
+      // this.resolvePendingOperation('');
     });
 
-    this.socket.on('room_created', (data: ServerToClientEvents['room_created']) => {
-      console.log('Room created:', data);
-      this.updateLobbyStatus(`Room created: ${data.roomId}. Waiting for opponent...`);
-      this.resolvePendingOperation(data.roomId);
+    this.socket.on('room_error', (error: ServerToClientEvents['room_error']) => {
+      console.log('Room error:', error.message);
+      alert(`Room error: ${error.message}`);
+      // this.resolvePendingOperation('');
     });
   }
 
@@ -187,12 +193,12 @@ export class SocketManager {
 
   this.socket.on('tournament_room_created', (data: any) => {
     console.log('Tournament room created:', data);
-    this.resolvePendingOperation(data);
+    // this.resolvePendingOperation(data);
   });
 
   this.socket.on('joined_tournament_room', (data: any) => {
     console.log('Joined tournament room:', data);
-    this.resolvePendingOperation(data);
+    // this.resolvePendingOperation(data);
   });
 
   this.socket.on('tournament_players_updated', (data: any) => {
@@ -270,12 +276,12 @@ export class SocketManager {
   });
 }
 
-  private resolvePendingOperation(data: any): void {
-    if (this.pendingResolve) {
-      this.pendingResolve(data);
-      this.pendingResolve = null;
-    }
-  }
+  // private resolvePendingOperation(data: any): void {
+  //   if (this.pendingResolve) {
+  //     this.pendingResolve(data);
+  //     this.pendingResolve = null;
+  //   }
+  // }
 
   private updateLobbyStatus(message: string): void {
     const statusElement = document.getElementById('lobby-status');
@@ -300,39 +306,130 @@ export class SocketManager {
   public async createTournament(): Promise<any> {
     await this.ensureConnection();
 
+    if (this.gameInstance && this.gameInstance.gameRunning) {
+      throw new Error('Cannot create room while another game exists');
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
-      this.pendingResolve = resolve;
-      const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
+      const handleSuccess = (data: any) => {
+        clearTimeout(timeout);
+        cleanup();
+        resolve(data);
+      };
 
-      this.socket!.once('room_created', () => clearTimeout(timeout));
-      this.socket!.once('create_error', () => clearTimeout(timeout));
+      const handleCreateError = (error: ServerToClientEvents['create_error']) => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error(error.message));
+      };
+
+      const handleTournamentError = (error: any) => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error(error.message || 'Tournament error'));
+      };
+
+      const cleanup = () => {
+        this.socket!.off('tournament_room_created', handleSuccess);
+        this.socket!.off('create_error', handleCreateError);
+        this.socket!.off('room_error', handleTournamentError);
+      };
+
+      this.socket!.once('tournament_room_created', handleSuccess);
+      this.socket!.once('create_error', handleCreateError);
+      this.socket!.once('room_error', handleTournamentError);
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Tournament creation timeout'));
+      }, this.roomOperationTimeout);
 
       this.socket!.emit('create_tournament_room');
       console.log('[Client] create_tournament_room emitted');
     });
+    // return new Promise((resolve, reject) => {
+    //   if (!this.hasActiveConnection()) {
+    //     return reject(new Error('Socket not connected'));
+    //   }
+
+    //   this.pendingResolve = resolve;
+    //   const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
+
+    //   this.socket!.once('room_created', () => clearTimeout(timeout));
+    //   this.socket!.once('create_error', () => clearTimeout(timeout));
+    //   this.socket!.once('room_error', () => clearTimeout(timeout));
+
+    //   this.socket!.emit('create_tournament_room');
+    //   console.log('[Client] create_tournament_room emitted');
+    // });
   }
 
   public async joinTournament(roomId: string): Promise<any> {
     await this.ensureConnection();
 
+    if (this.gameInstance && this.gameInstance.gameRunning) {
+      throw new Error('Cannot join tournament while another game exists');
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
-      this.pendingResolve = resolve;
-      const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
+      const handleSuccess = (data: any) => {
+        clearTimeout(timeout);
+        cleanup();
+        resolve(data);
+      };
 
-      this.socket!.once('joined_tournament_room', () => clearTimeout(timeout));
-      this.socket!.once('join_tournament_error', () => clearTimeout(timeout));
+      const handleJoinError = (error: ServerToClientEvents['join_error']) => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error(error.message));
+      };
+
+      const handleTournamentError = (error: any) => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error(error.message || 'Tournament error'));
+      };
+
+      const cleanup = () => {
+        this.socket!.off('joined_tournament_room', handleSuccess);
+        this.socket!.off('join_error', handleJoinError);
+        this.socket!.off('tournament_error', handleTournamentError);
+      };
+
+      this.socket!.once('joined_tournament_room', handleSuccess);
+      this.socket!.once('join_error', handleJoinError);
+      this.socket!.once('tournament_error', handleTournamentError);
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Join tournament timeout'));
+      }, this.roomOperationTimeout);
 
       this.socket!.emit('join_tournament_room', { roomId });
       console.log('[Client] join_tournament emitted for room:', roomId);
     });
+    // return new Promise((resolve, reject) => {
+    //   if (!this.hasActiveConnection()) {
+    //     return reject(new Error('Socket not connected'));
+    //   }
+
+    //   this.pendingResolve = resolve;
+    //   const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
+
+    //   this.socket!.once('joined_tournament_room', () => clearTimeout(timeout));
+    //   this.socket!.once('join_error', () => clearTimeout(timeout));
+
+    //   this.socket!.emit('join_tournament_room', { roomId });
+    //   console.log('[Client] join_tournament emitted for room:', roomId);
+    // });
   }
 
   public async startTournament(tournamentId: string): Promise<void> {
@@ -355,55 +452,129 @@ export class SocketManager {
   public async createRoom(): Promise<string> {
     await this.ensureConnection();
 
+    if (this.gameInstance && this.gameInstance.gameRunning) {
+      throw new Error('Cannot create room while another game exists');
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
-      this.pendingResolve = resolve;
-      const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
+       const handleSuccess = (data: ServerToClientEvents['room_created']) => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve(data.roomId);
+    };
 
-      this.socket!.once('room_created', () => clearTimeout(timeout));
-      this.socket!.once('create_error', () => clearTimeout(timeout));
+    const handleError = (error: ServerToClientEvents['create_error']) => {
+      clearTimeout(timeout);
+      cleanup();
+      reject(new Error(error.message));
+    };
 
-      const roomConfig = {
-        isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
-        isRemote: this.gameInstance?.isRemote ?? false,
-      };
+    const cleanup = () => {
+      this.socket!.off('room_created', handleSuccess);
+      this.socket!.off('create_error', handleError);
+    };
 
-      this.socket!.emit('create_room', roomConfig);
-      console.log('[Client] create_room emitted');
-    });
+    this.socket!.once('room_created', handleSuccess);
+    this.socket!.once('create_error', handleError);
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Room creation timeout'));
+    }, this.roomOperationTimeout);
+
+    const roomConfig = {
+      isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
+      isRemote: this.gameInstance?.isRemote ?? false,
+    };
+
+    this.socket!.emit('create_room', roomConfig);
+    console.log('[Client] create_room emitted');
+  });
+    //   this.pendingResolve = resolve;
+    //   const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
+
+    //   this.socket!.once('room_created', () => clearTimeout(timeout));
+    //   this.socket!.once('create_error', () => clearTimeout(timeout));
+
+    //   const roomConfig = {
+    //     isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
+    //     isRemote: this.gameInstance?.isRemote ?? false,
+    //   };
+
+    //   this.socket!.emit('create_room', roomConfig);
+    //   console.log('[Client] create_room emitted');
+    // });
   }
 
   public async joinRoom(roomId: string): Promise<string> {
     await this.ensureConnection();
 
+    if (this.gameInstance && this.gameInstance.gameRunning) {
+      throw new Error('Cannot join room while another game exists');
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.hasActiveConnection()) {
         return reject(new Error('Socket not connected'));
       }
 
-      this.pendingResolve = resolve;
-      const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
+      const handleSuccess = (data: ServerToClientEvents['joined_room']) => {
+        clearTimeout(timeout);
+        cleanup();
+        resolve(data.roomId);
+      };
 
-      this.socket!.once('joined_room', () => clearTimeout(timeout));
-      this.socket!.once('join_error', () => clearTimeout(timeout));
+      const handleError = (error: ServerToClientEvents['join_error']) => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error(error.message));
+      };
+
+      const cleanup = () => {
+        this.socket!.off('joined_room', handleSuccess);
+        this.socket!.off('join_error', handleError);
+      };
+
+      this.socket!.once('joined_room', handleSuccess);
+      this.socket!.once('join_error', handleError);
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Join room timeout'));
+      }, this.roomOperationTimeout);
 
       this.socket!.emit('join_room', { roomId });
       console.log('[Client] join_room emitted for room:', roomId);
     });
+    // return new Promise((resolve, reject) => {
+    //   if (!this.hasActiveConnection()) {
+    //     return reject(new Error('Socket not connected'));
+    //   }
+
+    //   this.pendingResolve = resolve;
+    //   const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
+
+    //   this.socket!.once('joined_room', () => clearTimeout(timeout));
+    //   this.socket!.once('join_error', () => clearTimeout(timeout));
+
+    //   this.socket!.emit('join_room', { roomId });
+    //   console.log('[Client] join_room emitted for room:', roomId);
+    // });
   }
 
-  private setupRoomOperationTimeout(
-    reject: (error: Error) => void,
-    errorMessage: string
-  ): NodeJS.Timeout {
-    return setTimeout(() => {
-      this.pendingResolve = null;
-      reject(new Error(errorMessage));
-    }, this.roomOperationTimeout);
-  }
+  // private setupRoomOperationTimeout(
+  //   reject: (error: Error) => void,
+  //   errorMessage: string
+  // ): NodeJS.Timeout {
+  //   return setTimeout(() => {
+  //     this.pendingResolve = null;
+  //     reject(new Error(errorMessage));
+  //   }, this.roomOperationTimeout);
+  // }
 
   public async leaveRoom(): Promise<void> {
     if (this.hasActiveConnection()) {

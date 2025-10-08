@@ -13,6 +13,7 @@ import path from 'path';
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
 import { start } from 'node:repl';
 import { clear } from 'node:console';
+import { abort } from 'node:process';
 
 // === TLS / Custom CA für fetch ===
 const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
@@ -89,6 +90,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
     player.conn.emit('create_error', {
       message: 'Failed to create room',
     });
+    socket.leave(roomId);
     return;
   }
   socket.join(roomId);
@@ -108,6 +110,12 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
         });
       } catch (error) {
         console.error(`[Server] Error invoking AI service for room ${roomId}:`, error);
+        player.conn.emit('create_error', {
+          message: 'Failed to start AI opponent',
+        });
+        abortGame(gameRooms[roomId]);
+        deleteRoom(roomId);
+        return;
       }
     })();
   } else if (!payload.isRemote) {
@@ -130,7 +138,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
       startGame(gameRooms[roomId]);
     } catch (error) {
       console.error(`[Server] Error starting game in room ${gameRooms[roomId].id}:`, error);
-      player.conn.emit('join_error', {
+      player.conn.emit('create_error', {
         message: 'Failed to start game',
       });
       player.roomId = undefined;
@@ -173,11 +181,11 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
     player.conn.emit('create_error', {
       message: 'Failed to create room',
     });
+    socket.leave(roomId);
     return;
   }
   socket.join(roomId);
   player.roomId = roomId;
-  ////emit
   player.conn.emit('tournament_room_created', {
     roomId: player.roomId,
     players: [{id: player.id, nickname: player.nickname}],
@@ -263,17 +271,17 @@ export function joinTournamentRoom(player: Player, roomId: string) {
 export function checkStartTournament(player: Player, roomId: string) {
   const room = tournamentRooms[roomId];
   if (!room) {
-    player.conn.emit('join_error', {
+    player.conn.emit('room_error', {
       message: 'Room not found',
     });
     return;
   }
   if (room.owner?.id !== player.id) {
-    player.conn.emit('join_error', {message: 'Only the owner can start the tournament',});
+    player.conn.emit('room_error', {message: 'Only the owner can start the tournament',});
     return;
   }
   if (room.players.length < 3) {
-    player.conn.emit('join_error', {message: 'At least 3 players are required to start the tournament',});
+    player.conn.emit('room_error', {message: 'At least 3 players are required to start the tournament',});
     return;
   }
   startTournament(roomId);
@@ -283,7 +291,7 @@ export function checkStartTournament(player: Player, roomId: string) {
 export function leaveTournamentRoom(player: Player, roomId: string) {
   const room = tournamentRooms[roomId];
   if (!room) {
-    player.conn.emit('tournament_error', { message: 'Tournament not found' });
+    player.conn.emit('room_error', { message: 'Tournament not found' });
     return;
   }
   
@@ -306,7 +314,8 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
   
   // Room löschen wenn leer
   if (room.players.length === 0) {
-    delete tournamentRooms[roomId];
+    abortGame(room as any);
+    deleteRoom(roomId);
     console.log(`[Server] Tournament room ${roomId} deleted - no players left`);
   }
   
@@ -377,6 +386,8 @@ export function joinRoom(player: Player, roomId: string) {
     player.conn.emit('join_error', {
       message: 'Failed to start game',
     });
+    abortGame(room);
+    deleteRoom(roomId);
     player.roomId = undefined;
     room.guest = null;
     return;
@@ -392,24 +403,44 @@ export function handleLeaveRoom(socket: Socket) {
   abortGame(room);
   const roomId = player.roomId;
   console.log(`[Socket] Player ${player.id} leaving room ${room.id}`);
-  if (room.guest && room.guest.id === player.id) {
-    room.guest = null;
-  }
-  if (room.owner && room.owner.id === player.id) {
-    if (room.guest) {
-      room.owner = room.guest;
-      room.guest = null;
-    } else {
-      room.owner = null;
-    }
-  }
+  deleteRoom(roomId);
   socket.leave(roomId);
-  player.roomId = undefined;
-  if (room.owner === null) delete gameRooms[roomId];
+  return;
 }
 
 export function handleDisconnect(player: Player) {
   console.log(`[Server] Player ${player.id} disconnected`);
   handleLeaveRoom(player.conn);
   activeConnections.delete(player.conn.id);
+}
+
+export function deleteRoom(roomId: string) {
+  const room = gameRooms[roomId];
+  deleteTournamentRoom(roomId);
+  if (!room) {
+    return;
+  }
+  if (room.owner) {
+    room.owner.roomId = undefined;
+    room.owner.conn.leave(roomId);
+  }
+  if (room.guest) {
+    room.guest.roomId = undefined;
+    room.guest.conn.leave(roomId);
+  }
+  delete gameRooms[roomId];
+  console.log(`[Server] Room ${roomId} deleted`);
+}
+
+export function deleteTournamentRoom(roomId: string) {
+  const room = tournamentRooms[roomId];
+  if (!room) {
+    return;
+  }
+  room.players.forEach(player => {
+    player.roomId = undefined;
+    player.conn.leave(roomId);
+  });
+  delete tournamentRooms[roomId];
+  console.log(`[Server] Tournament Room ${roomId} deleted`);
 }

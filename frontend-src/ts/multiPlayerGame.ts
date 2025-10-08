@@ -8,7 +8,7 @@ export class PongGame {
   private lastTimeStamp = 0;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private gameRunning = false;
+  gameRunning = false;
   private animationId!: number;
   private isPlayer1 = false;
   private roomId: string | null = null;

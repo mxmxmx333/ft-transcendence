@@ -1,11 +1,14 @@
 import { Player, GameRoom, tournamentRooms, TournamentRoom, gameRooms } from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
+import { deleteRoom } from './room';
+import { abort } from 'process';
 
 export function startTournament(roomId: string) {
     const room = tournamentRooms[roomId];
     if (!room) {
         console.error(`[Server] TournamentRoom ${roomId} not found`);
+        deleteRoom(roomId);
         return;
     }
     console.log(`[Server] Starting tournament in room ${roomId}`);
@@ -25,7 +28,7 @@ function startMatch(room: TournamentRoom) {
         } catch (error) {
             console.log(`[Server] Tournament over broadcast failed for room ${room.id}:`, error);
         }
-        delete tournamentRooms[room.id];
+        deleteRoom(room.id);
         return;
     }
     console.log(`[Server] Starting matches for tournament in room ${room.id} with ${room.players.length} players`);
@@ -100,6 +103,7 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
     
     if (!tournamentRoom) {
         console.error(`[Server] Tournament room ${room.id} not found`);
+        if (room) deleteRoom(room.id);
         return;
     }
 
@@ -114,11 +118,17 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
         loserPlayer = room.owner;
     } else {
         console.error(`[Server] Invalid winner: ${winner}`);
+        io.to(room.id).emit('room_error', { message: 'Invalid winner' });
+        abortGame(room);
+        if (room) deleteRoom(room.id);
         return;
     }
 
     if (!winnerPlayer || !loserPlayer) {
         console.error(`[Server] Players not found in room ${room.id}`);
+        io.to(room.id).emit('room_error', { message: 'Players not found' });
+        abortGame(room);
+        if (room) deleteRoom(room.id);
         return;
     }
 
