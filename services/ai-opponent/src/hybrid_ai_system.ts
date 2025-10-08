@@ -12,17 +12,6 @@ const POOR_WIN_RATE = 0.3;
 const BAD_WIN_RATE = 0.2;
 const ADAPTATION_THRESHOLD = 10;
 
-// AI decision constants
-const CRITICAL_TIME_THRESHOLD = 60;
-const CRITICAL_DISTANCE_THRESHOLD = 100;
-const DEFENSIVE_DISTANCE_THRESHOLD = 30;
-const STRATEGIC_DISTANCE_THRESHOLD = 50;
-const RL_OVERRIDE_CHANCE = 0.3;
-
-/**
- * Hybrid AI system that combines reinforcement learning with a strong baseline AI
- * Adapts the blend ratio based on performance metrics
- */
 export class HybridAISystem {
   private readonly rlAI: ImprovedReinforcementLearningAI;
   private readonly baselineAI: StrongBaselineAI;
@@ -38,9 +27,6 @@ export class HybridAISystem {
     this.baselineAI = new StrongBaselineAI(constants);
   }
 
-  /**
-   * Gets the target Y position by blending RL and baseline AI decisions
-   */
   getTargetY(gameState: GameStateNN): number {
     const rlTargetY = this.rlAI.getAction(gameState);
     const baselineTargetY = this.baselineAI.getAction(gameState);
@@ -52,9 +38,6 @@ export class HybridAISystem {
     }
   }
 
-  /**
-   * Calculates recent win rate based on performance window
-   */
   private getRecentWinRate(): number {
     if (this.performanceHistory.length === 0) {
       return 0;
@@ -65,9 +48,6 @@ export class HybridAISystem {
     return totalWins / recentGames.length;
   }
 
-  /**
-   * Adapts the RL weight based on recent performance
-   */
   private adaptRLWeight(): void {
     const recentWinRate = this.getRecentWinRate();
 
@@ -91,9 +71,6 @@ export class HybridAISystem {
     }
   }
 
-  /**
-   * Applies long-term adaptation strategy to gradually increase RL weight
-   */
   private applyLongTermAdaptation(): void {
     const experienceBonus = (this.gameCount - ADAPTATION_THRESHOLD) * 0.002;
     const targetWeight = Math.min(MAX_RL_WEIGHT, 0.6 + experienceBonus);
@@ -103,9 +80,6 @@ export class HybridAISystem {
     }
   }
 
-  /**
-   * Called when AI scores a point
-   */
   onAIScore(): void {
     this.rlAI.onAIScore();
     this.recentWins++;
@@ -113,9 +87,6 @@ export class HybridAISystem {
     this.trimPerformanceHistory();
   }
 
-  /**
-   * Called when player scores a point
-   */
   onPlayerScore(): void {
     this.rlAI.onPlayerScore();
     this.performanceHistory.push(0);
@@ -151,18 +122,12 @@ export class HybridAISystem {
     this.rlAI.onGameEnd(won);
   }
 
-  /**
-   * Trims performance history to prevent unlimited growth
-   */
   private trimPerformanceHistory(): void {
     if (this.performanceHistory.length > PERFORMANCE_WINDOW * 2) {
       this.performanceHistory = this.performanceHistory.slice(-PERFORMANCE_WINDOW);
     }
   }
 
-  /**
-   * Cleanup and save AI state before destruction
-   */
   public async cleanup(): Promise<void> {
     console.log('[HybridAI] Performing cleanup and saving RL AI state...');
     if (this.rlAI) {
@@ -171,16 +136,9 @@ export class HybridAISystem {
   }
 }
 
-/**
- * Strong baseline AI that uses physics prediction to intercept the ball
- * This serves as a reliable fallback when the RL AI is uncertain
- */
 class StrongBaselineAI {
   constructor(private readonly constants: Constants) {}
 
-  /**
-   * Calculates optimal paddle position based on ball trajectory prediction
-   */
   getAction(gameState: GameStateNN): number {
     if (gameState.ballVX <= 0) return gameState.aiY; // Ball moving away
 
