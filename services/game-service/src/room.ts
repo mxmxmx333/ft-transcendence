@@ -273,15 +273,23 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
   player.conn.leave(roomId);
   
   // Update an alle senden
-  broadcastTournamentUpdate(room);
+  if (room.players.length > 0) {
+    broadcastTournamentUpdate(room);
+  }
   
   // Room löschen wenn leer
   if (room.players.length === 0) {
     abortGame(room as any);
     deleteRoom(roomId);
     console.log(`[Server] Tournament room ${roomId} deleted - no players left`);
+  } else if (room.players.length < 3 && room.gameLoop) {
+    io.to(roomId).emit('room_error', {
+      message: 'Tournament aborted - not enough players remaining'
+    });
+    abortGame(room as any);
+    deleteRoom(roomId);
+    console.log(`[Server] Tournament ${roomId} aborted - insufficient players after disconnect`);
   }
-  
   console.log(`[Server] Player ${player.nickname} left tournament ${roomId}`);
 }
 
@@ -357,6 +365,7 @@ export function joinRoom(player: Player, roomId: string) {
 }
 
 export function handleLeaveRoom(socket: Socket) {
+  if (!socket.room) return;
   const player = socket.player;
   if (!player || !player.roomId) return;
 
@@ -372,7 +381,11 @@ export function handleLeaveRoom(socket: Socket) {
 
 export function handleDisconnect(player: Player) {
   console.log(`[Server] Player ${player.id} disconnected`);
-  handleLeaveRoom(player.conn);
+  if (player.roomId && tournamentRooms[player.roomId]) {
+    leaveTournamentRoom(player, player.roomId);
+  } if (player.roomId && gameRooms[player.roomId]) {
+    handleLeaveRoom(player.conn);
+  }
   activeConnections.delete(player.conn.id);
 }
 
