@@ -35,3 +35,12 @@ ca.crt
 approle/
 client.crt
 client.key
+
+# === nix-shell Setup ===
+.direnv/
+.envrc
+
+
+# === ai model ===
+global_ai_model.json*
+services/ai-opponent/src/hybrid_ai_system.ts

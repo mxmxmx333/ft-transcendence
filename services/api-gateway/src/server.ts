@@ -78,6 +78,7 @@ async function buildServer() {
     // Definiere welche Routen Auth benötigen
     const protectedRoutes = [
       '/api/profile',
+      '/api/profile/set-nickname',
       '/api/user',
       '/api/users',
       '/api/friends',
@@ -98,7 +99,7 @@ async function buildServer() {
     token = authHeader.slice(7);
     server.log.info('🔍 Token from Authorization header');
   }
-  
+
   // 2. Für Socket.IO: Token aus Query Parameter
   if (!token && request.url.startsWith('/socket.io')) {
     const url = new URL(request.url, 'http://localhost');
@@ -113,12 +114,24 @@ async function buildServer() {
       message: 'Please provide a valid Bearer token or token query parameter',
     });
   }
-
     try {
       const user = await server.vAuth.verify(token);
+        console.debug('Token:', token);
+        console.debug('ID:', user.sub);
+        console.debug('Nickname:', user.nickname);
+      if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
+      }
+      console.debug('type of user.sub:', typeof user.sub);
+      console.debug('type of user.nickname:', typeof user.nickname);
+      console.debug('type of request.headers:', typeof request.headers);
 
-      request.headers['x-user-id'] = user.sub;
-      request.headers['x-user-nickname'] = user.nickname;
+      request.headers['x-user-id'] = user.sub.toString();
+      if (user.nickname !== null) {
+        request.headers['x-user-nickname'] = user.nickname.toString();
+      }
+      console.debug('type of request.headers["x-user-id"]:', typeof request.headers['x-user-id']);
+
       server.log.info(`✅ Authorized user: ${user.nickname} (${user.sub})`);
     } catch (error) {
       server.log.warn(`❌ Auth failed: ${error}`);
@@ -137,6 +150,13 @@ async function buildServer() {
     websocket: true,
     wsClientOptions: {
       rejectUnauthorized: false,
+      rewriteRequestHeaders: (headers: any, request: any) => {
+        headers['x-user-id'] = request.headers['x-user-id'];
+        headers['x-user-nickname'] = request.headers['x-user-nickname'];
+        return {
+          ...headers,
+        };
+      },
     },
     wsUpstream: 'wss://localhost:3001',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -219,6 +239,20 @@ async function buildServer() {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/login',
     rewritePrefix: '/api/login',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/42',
+    rewritePrefix: '/api/auth/42',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/42/callback',
+    rewritePrefix: '/api/auth/42/callback',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

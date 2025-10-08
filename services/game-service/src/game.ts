@@ -1,7 +1,9 @@
-import { GameRoom, gameRooms } from './types/types';
+import { GameRoom, gameRooms, tournamentRooms } from './types/types';
 import { io } from './server';
 import { handleLeaveRoom } from './room';
-import type { GameStartPayload } from './types/types';
+import type { GameStartPayload, Player } from './types/types';
+import { setMaxIdleHTTPParsers } from 'http';
+import { handleTournamentGameEnd } from './tournament';
 
 export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
@@ -44,12 +46,6 @@ export function startGame(room: GameRoom) {
       success: true,
     };
 
-    // Owner'a gönder (Player 1)
-    room.owner.conn.emit('game_start', {
-      ...gameStartPayload,
-      isOwner: true,
-    });
-
     if (room.gameType !== 'local') {
       // Guest'e gönder (Player 2)
       room.guest.conn.emit('game_start', {
@@ -58,28 +54,85 @@ export function startGame(room: GameRoom) {
       });
     }
 
-    console.log(`[Server] Game start messages sent to both players`);
+    if ('players' in room && 'gameState' in room) {
+      // loope durch die players durch und sende ihnen game_start
+      console.debug('GAME STATE exists in room:', room.id);
+      let players = (room as any).players as Player[];
+      if (Array.isArray(players)) {
+        players.forEach((player: Player) => {
+          if (player.conn) {
+            player.conn.emit('game_start', {
+              ...gameStartPayload,
+              isOwner: player.id === room.owner?.id,
+            });
+          }
+        });
+      }
+      players = (room as any).lostPlayers as Player[];
+      if (Array.isArray(players)) {
+        players.forEach((player: Player) => {
+          if (player.conn) {
+            player.conn.emit('game_start', {
+              ...gameStartPayload,
+              isOwner: player.id === room.owner?.id,
+            });
+          }
+        });
+      }
+    }
+
+    // Owner'a gönder (Player 1)
+    room.owner.conn.emit('game_start', {
+      ...gameStartPayload,
+      isOwner: true,
+    });
+
+    console.log(`[Server] Game start messages sent to both players, payload: ${gameStartPayload}`);
   } catch (err) {
     console.error(`[Server] Error sending game start messages:`, err);
     throw new Error(`[startGame] Failed to send game start message: ${err}`);
   }
 
-  // Game loop başlat
+  setTimeout(() => {
+    gameLoop(room);
+  }, 3000);
+}
+
+function gameLoop(room: GameRoom) {
+  console.log(`[Server] Starting game loop for room ${room.id}`);
   room.gameLoop = setInterval(() => {
-    if (!gameRooms[room.id] || !room.owner || !room.guest) {
-      console.log(`[Server] Game loop stopped for room ${room.id}`);
-      clearInterval(room.gameLoop);
-      room.gameLoop = undefined;
+    if (!room.gameLoop) {
+      console.log(`[Server] Game loop already cleared for room ${room.id}`);
+      return; 
+    }
+    if (!gameRooms[room.id] && !tournamentRooms[room.id]) {
+      console.log(`[Server] Room ${room.id} no longer exists - stopping game loop`);
+      abortGame(room);
       return;
     }
+    if (!room.owner || !room.guest) {
+      console.log(`[Server] Missing players in room ${room.id} - stopping game loop`);
+      abortGame(room);
+      return;
+    }
+    if (!room.gameState) {
+      console.log(`[Server] No game state in room ${room.id} - stopping game loop`);
+      abortGame(room);
+      return;
+    }
+
     updateGameState(room);
     broadcastGameState(room);
   }, 1000 / 60);
-
   console.log(`[Server] Game loop started for room ${room.id}`);
 }
 
 function updateGameState(room: GameRoom) {
+  // Eğer oyun pause'lanmışsa hiçbir şey yapma
+  if (room.isPaused) {
+    return;
+  }
+
   const { gameState } = room;
   const now = Date.now();
   const deltaTime = (now - gameState.lastUpdate) / 1000;
@@ -115,12 +168,10 @@ function updateGameState(room: GameRoom) {
     room.guest!.score++;
     resetBall(room, false);
     scoreChanged = true;
-    // console.log(`[Server] Guest scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   } else if (gameState.ballX >= 800) {
     room.owner!.score++;
     resetBall(room, true);
     scoreChanged = true;
-    // console.log(`[Server] Owner scored! Score: ${room.owner!.score} - ${room.guest!.score}`);
   }
 
   // Skor değiştiyse hemen broadcast et
@@ -128,8 +179,12 @@ function updateGameState(room: GameRoom) {
     broadcastGameState(room);
   }
 
-  // Oyun bitti mi kontrol et
   if (room.owner!.score >= 10 || room.guest!.score >= 10) {
+    if (room.gameLoop) {
+      clearInterval(room.gameLoop);
+      room.gameLoop = undefined;
+      console.log(`[Server] Game loop cleared in updateGameState for room ${room.id}`);
+    }
     endGame(room);
     return; // Game loop'u durdur
   }
@@ -187,11 +242,23 @@ export function abortGame(room: GameRoom) {
 }
 
 export function endGame(room: GameRoom) {
+
+  if (room.gameLoop) {
+    clearInterval(room.gameLoop);
+    room.gameLoop = undefined;
+    console.log(`[Server] Game loop stopped for room ${room.id}`);
+  }
+
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
+  if ('players' in room) {
+    handleTournamentGameEnd(room, winner);
+    return;
+  }
+  
   io.to(room.id).emit('game_over', {
     winner,
     finalScore: {
@@ -205,6 +272,7 @@ export function endGame(room: GameRoom) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
   }
+  
 
   console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
 
@@ -224,6 +292,27 @@ export function endGame(room: GameRoom) {
 }
 
 function broadcastGameState(room: GameRoom) {
+  if (!room) {
+    console.warn(`[Server] No room in broadcastGameState`);
+    return;
+  }
+
+  if (!room.gameState) {
+    console.warn(`[Server] No gameState for room ${room.id} - skipping broadcast`);
+    return;
+  }
+
+  if (!room.owner || !room.guest) {
+    console.warn(`[Server] Missing players in room ${room.id} - skipping broadcast`);
+    return;
+  }
+
+  // Zusätzlicher Check: Ist Game Loop noch aktiv?
+  if (!room.gameLoop) {
+    console.warn(`[Server] Game loop not active for room ${room.id} - skipping broadcast`);
+    return;
+  }
+
   const gameState = {
     ballX: room.gameState.ballX,
     ballY: room.gameState.ballY,
@@ -236,8 +325,9 @@ function broadcastGameState(room: GameRoom) {
   };
 
   try {
+    // console.debug(`game_state sent: ${gameState}`)
     io.to(room.id).emit('game_state', gameState);
   } catch (error) {
-    console.log(`[Server] Game state broadcasted for room ${room.id}`);
+    console.log(`[Server] Game state not broadcasted for room ${room.id}`);
   }
 }

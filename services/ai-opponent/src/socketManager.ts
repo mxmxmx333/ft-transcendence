@@ -97,6 +97,14 @@ export class SocketManager {
     this.socket!.on('game_state', (state: ServerToClientEvents['game_state']) => {
       this.gameInstance?.updateFromServer(state);
     });
+    this.socket!.on('game_pause_state', (isPaused: boolean) => {
+      console.log('[SocketManager] Game pause state received:', isPaused);
+      if (isPaused) {
+        this.gameInstance?.pauseGame();
+      } else {
+        this.gameInstance?.resumeGame();
+      }
+    });
   }
 
   private setupRoomEvents(): void {

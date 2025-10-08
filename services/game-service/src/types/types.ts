@@ -43,11 +43,12 @@ export interface CreateRoomPayload {
     isSinglePlayer: boolean;
     isRemote: boolean;
   };
+  create_tournament_room: {}; // No additional data needed
 }
 
 export interface GameRoom {
   id: string;
-  gameType: 'single' | 'local' | 'remote';
+  gameType: 'single' | 'local' | 'remote' | 'tournament';
   owner: Player | null;
   guest: Player | null;
   ownerMovement: 'up' | 'down' | 'none';
@@ -61,6 +62,29 @@ export interface GameRoom {
   };
   isPrivate: boolean;
   gameLoop?: NodeJS.Timeout;
+  isPaused?: boolean;
+}
+
+export interface TournamentRoom {
+  id: string;
+  owner?: Player;     // Optional - nur während aktuellem Match
+  guest?: Player;     // Optional - nur während aktuellem Match
+  players: Player[];  // Wartende Spieler
+  lostPlayers: Player[];
+  lastWinner: Player | null;
+  matchCount: number;
+
+  // Game State nur während Match
+  ownerMovement?: 'up' | 'down' | 'none';
+  guestMovement?: 'up' | 'down' | 'none';
+  gameState?: {
+    ballX: number;
+    ballY: number;
+    ballVX: number;
+    ballVY: number;
+    lastUpdate: number;
+  };
+  gameLoop?: NodeJS.Timeout;
 }
 
 export interface AuthPayload {
@@ -71,3 +95,4 @@ export interface AuthPayload {
 export const activeConnections = new Map<string, Socket>();
 export const gameRooms: Record<string, GameRoom> = {};
 export const waitingPlayers: Player[] = [];
+export const tournamentRooms: Record<string, TournamentRoom> = {};

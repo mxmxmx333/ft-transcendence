@@ -12,6 +12,7 @@ pkgs.mkShell {
     pkg-config
     rustc
     rust-analyzer
+    sqlite-web
     typescript-language-server
     vscode-langservers-extracted
   ];

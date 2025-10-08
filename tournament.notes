@@ -1,0 +1,32 @@
+
+--> ähnliche Lobby wie bei Multiplayer Remote Spiel
+--> kann entweder Tournament beitreten mit ID oder neues starten
+--> Wenn ich neues starte, bekomm ich die ID und kann die dann verteilen
+--> kann auch "abbrechen"
+--> wenn ich beireten will, gebe ich die TournamentID ein (Max = 5)
+- die Beigetretenen treten direkt dem tournamentRoom bei und werden dann auf eine neue Seite vielleicht weitergeleitet? 
+--> irgendwo muss angezeigt werden wer alles bereits beigetreten ist
+--> Owner startet dann das Tournament (Min 3)
+--> Seite mit "Get Ready" muss kommen (sagt wer spielt als nächstes) --> Timer mit 3 sekunden
+--> 1. Spiel startet --> KO System
+--> im gameservice wird unterschiedne wer spielt und wer nicht --> dementsprechend wird input behandelt oder net
+--> Gewinner spielt das nächste Spiel gegen den/die nächsten
+
+
+bei match-ende schicken tournament_match_end --> nicht game_over!!
+--> im backend anpassen
+--> im frontend richtig anpassen (richtige message, canvas anpassen und evtl neues erstellen??)
+
+
+error:
+router.ts:1288 
+ Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'owner')
+    at handleTournamentMatchStart (router.ts:1288:12)
+    at Socket2.<anonymous> (socketManager.ts:235:23)
+    at Emitter.emit (index.js:136:20)
+    at Socket2.emitEvent (socket.js:538:20)
+    at Socket2.onevent (socket.js:525:18)
+    at Socket2.onpacket (socket.js:495:22)
+    at Emitter.emit (index.js:136:20)
+    at manager.js:209:18
+

@@ -46,10 +46,8 @@ export class HybridAISystem {
     const baselineTargetY = this.baselineAI.getAction(gameState);
 
     if (Math.random() < this.rlWeight) {
-      console.log(`[AI] RL TargetY: ${rlTargetY}, Baseline TargetY: ${baselineTargetY}`);
       return rlTargetY;
     } else {
-      console.log(`[Baseline] RL TargetY: ${rlTargetY}, Baseline TargetY: ${baselineTargetY}`);
       return baselineTargetY;
     }
   }
