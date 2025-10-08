@@ -1106,13 +1106,28 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
     navigateTo('/');
     return;
   }
-  showMultiplayerLobby();
-  setupLobbyUI(singlePlayer, remote);
-  try {
-    await socketManager.ensureConnection();
-    document.getElementById('lobby-status')!.textContent = 'Connected to server';
-  } catch (error) {
-    document.getElementById('lobby-status')!.textContent = 'Connection failed';
+
+  const socketManager = SocketManager.getInstance();
+  const existingGame = socketManager.getGameInstance();
+  if (existingGame && existingGame.gameRunning) {
+    alert('A game is already running. Please wait for it to finish first.');
+    return; 
+  }
+
+  if (!singlePlayer && remote) {
+    showMultiplayerLobby();
+    setupLobbyUI(singlePlayer, remote);
+    try {
+      await socketManager.ensureConnection();
+      document.getElementById('lobby-status')!.textContent = 'Connected to server';
+    } catch (error) {
+      document.getElementById('lobby-status')!.textContent = 'Connection failed';
+    }
+  }
+  else {
+    document.querySelector('.newgame-page')?.classList.add('hidden');
+    document.querySelector('.game-page')?.classList.remove('hidden');
+    setupLobbyUI(singlePlayer, remote);
   }
 }
 
@@ -1132,35 +1147,51 @@ function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: bo
 function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) return;
+  
+  const socketManager = SocketManager.getInstance();
+  const existingGame = socketManager.getGameInstance();
+  if (existingGame && existingGame.gameRunning) {
+    console.error('setupLobbyUI called while game is running - this should not happen');
+    alert('A game is already running. Please wait for it to finish first.');
+    showGamePage();
+    return;
+  }
+  
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
   game.isSinglePlayer = singlePlayer;
   game.isRemote = remote;
+
   if (singlePlayer || !remote) {
     startSinglePlayerGame(game, singlePlayer, remote);
     return;
   }
-  // if (!remote) {
-  //   document.getElementById('lobby-status')!.textContent = 'Starting local multiplayer game...';
-  //   startMultiplayerGame(game);
-  //   return;
-  // }
+
   document.getElementById('create-room-btn')?.addEventListener('click', async () => {
     const statusElement = document.getElementById('lobby-status')!;
     statusElement.textContent = 'Creating room...';
     try {
       const roomId = await socketManager.createRoom();
 
-      statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
+      if (roomId) {
+        statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
 
-      socketManager.onGameStart = () => {
-        document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-        document.querySelector('.game-page')?.classList.remove('hidden');
-        startMultiplayerGame(game);
-      };
+        socketManager.onGameStart = () => {
+          document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+          document.querySelector('.game-page')?.classList.remove('hidden');
+          startMultiplayerGame(game);
+        };
+      } else {
+        throw new Error('No room ID received');
+      }
     } catch (error) {
-      statusElement.textContent = 'Error creating room';
-    }
+      console.error('Join room failed:', error);
+      statusElement.textContent = 'Failed to join room';
+      
+      setTimeout(() => {
+        showGamePage();
+      }, 2000);
+    } 
   });
   document.getElementById('join-room-btn')?.addEventListener('click', async () => {
     const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
@@ -1179,10 +1210,16 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
           startMultiplayerGame(game);
         };
       } else {
-        statusElement.textContent = 'Room not found or full';
+        throw new Error('Failed to join room');
       }
     } catch (error) {
-      statusElement.textContent = 'Connection error';
+      console.error('Join room failed:', error);
+      statusElement.textContent = 'Failed to join room';
+      
+      // BEI ERROR ZURÜCK ZUR GAME SELECTION
+      setTimeout(() => {
+        showGamePage(); // Zurück zur Game-Auswahl
+      }, 2000);
     }
   });
 }
@@ -1234,12 +1271,21 @@ async function createTournament(): Promise<void> {
 
     const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
     
-    showTournamentInfo(roomId, true, tournamentData); // ✅ tournamentData hinzufügen
+    showTournamentInfo(roomId, true, tournamentData); // tournamentData hinzufügen
     document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
     
   } catch (error) {
     console.error('Failed to create tournament:', error);
     document.getElementById('tournament-status')!.textContent = 'Failed to create tournament. Please try again.';
+  
+    document.getElementById('tournament-info')?.classList.add('hidden');
+    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
+    
+    // Optional: Reset nach 2 Sekunden
+    setTimeout(() => {
+      resetTournamentUI();
+      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
+    }, 2000);
   }
 }
 
@@ -1261,7 +1307,6 @@ async function joinTournament(): Promise<void> {
     document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
 
     const tournamentData = await socketManager.joinTournament(tournamentId);
-
     console.log('Tournament data received:', tournamentData);
 
     showTournamentInfo(tournamentId, false, tournamentData); // false = not owner
@@ -1270,6 +1315,15 @@ async function joinTournament(): Promise<void> {
   } catch (error) {
     console.error('Failed to join tournament:', error);
     document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
+  
+    document.getElementById('tournament-info')?.classList.add('hidden');
+    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
+    
+    // Optional: Reset nach 2 Sekunden
+    setTimeout(() => {
+      resetTournamentUI();
+      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
+    }, 2000);
   }
 }
 
@@ -1288,13 +1342,7 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentDa
     console.log('Using nested player data:', tournamentData.room.players);
     updateTournamentPlayers(tournamentData.room.players);
   } else {
-    console.log('No player data found, using mock data');
-    // Fallback zu Mock Daten
-    const mockPlayers = [
-      { nickname: 'You', isOwner: isOwner },
-      { nickname: 'Player2', isOwner: false }
-    ];
-  
+    return;
   }
   updateTournamentPlayers(tournamentData.players || [{ nickname: 'You', isOwner: isOwner },
       { nickname: 'Player2', isOwner: false }]);

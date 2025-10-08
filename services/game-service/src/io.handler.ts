@@ -1,7 +1,9 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom } from './room';
+import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom, deleteRoom } from './room';
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload, GameRoom, TournamentRoom } from './types/types';
+import { abort } from 'node:process';
+import { abortGame } from './game';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -45,42 +47,40 @@ export function registerIoHandlers(io: Server) {
           const tournamentRoom = socket.room as TournamentRoom;
           
           if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) {
+            abortGame(tournamentRoom as any);
+            deleteRoom(tournamentRoom.id);
             console.log(`[Socket] No active match in tournament room ${tournamentRoom.id}`);
             return;
           }
           
           gameRoom = tournamentRoom as any;
-          console.log(`[Socket] TOURNAMENT: Processing paddle move for ${socket.player?.nickname}`);
         } 
         // Regular GameRoom
         else if ('gameState' in socket.room) {
           gameRoom = socket.room as GameRoom;
-          console.log(`[Socket] REGULAR: Processing paddle move for ${socket.player?.nickname} in room ${gameRoom.id}`);
         }
         else {
           console.error(`[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`);
+          abortGame(socket.room as any);
+          deleteRoom(socket.room.id);
           return;
         }
 
         if (!gameRoom) {
           console.error(`[Socket] No gameRoom found for socket ${socket.id}`);
+          abortGame(socket.room as any);
+          deleteRoom(socket.room.id);
           return;
         }
 
-        // Paddle Movement verarbeiten
         if (socket === gameRoom.owner?.conn) {
           gameRoom.ownerMovement = payload.moveP1;
           if (gameRoom.gameType === 'local') {
             gameRoom.guestMovement = payload.moveP2;
           }
-          console.debug(`[Socket] Owner ${socket.player?.nickname} paddle move: ${payload.moveP1}`);
         } else if (socket === gameRoom.guest?.conn) {
           gameRoom.guestMovement = payload.moveP2;
-          console.debug(`[Socket] Guest ${socket.player?.nickname} paddle move: ${payload.moveP2}`);
-        } else {
-          console.log(`[Socket] Socket ${socket.id} ${socket.player?.nickname} is neither owner nor guest in game room ${gameRoom.id}`);
         }
-
       } catch (error) {
         console.error('[Socket] Error in paddle_move handler:', error);
       }
@@ -114,7 +114,7 @@ export function registerIoHandlers(io: Server) {
     socket.on('leave_tournament', (data: { roomId: string }) => {
       if (!data || !data.roomId) {
         console.error(`[Socket] Invalid leave_tournament data from ${player.id}`);
-        socket.emit('tournament_error', { message: 'Invalid room ID' });
+        socket.emit('room_error', { message: 'Invalid room ID' });
         return;
       }
       console.log(`[Socket] Player ${player.id} leaving tournament ${data.roomId}`);
@@ -139,28 +139,29 @@ export function registerIoHandlers(io: Server) {
     socket.on('leave_room', () => {
       handleLeaveRoom(socket);
     });
-    // start-pause
-     socket.on('game_pause', (isPaused: boolean) => {
-      try {
-        if (!socket.room) return;
-        
-        const room = socket.room;
-        
-        console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
-        
-        // Oyun durumunu güncelle
-        room.isPaused = isPaused;
-        
-        // Tüm oyunculara bildir
-        if (!isPaused) {
-          room.gameState.lastUpdate = Date.now();
-        }
-        io.to(room.id).emit('game_pause_state', isPaused);
 
-      } catch (error) {
-        console.error('[Socket] Error in game_pause handler:', error);
+    // start-pause
+    socket.on('game_pause', (isPaused: boolean) => {
+    try {
+      if (!socket.room) return;
+      
+      const room = socket.room;
+      
+      console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
+      
+      // Oyun durumunu güncelle
+      room.isPaused = isPaused;
+      
+      // Tüm oyunculara bildir
+      if (!isPaused) {
+        room.gameState.lastUpdate = Date.now();
       }
-    });
+      io.to(room.id).emit('game_pause_state', isPaused);
+
+    } catch (error) {
+      console.error('[Socket] Error in game_pause handler:', error);
+    }
+  });
 
   });
   

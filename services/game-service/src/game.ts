@@ -107,20 +107,17 @@ function gameLoop(room: GameRoom) {
     }
     if (!gameRooms[room.id] && !tournamentRooms[room.id]) {
       console.log(`[Server] Room ${room.id} no longer exists - stopping game loop`);
-      clearInterval(room.gameLoop);
-      room.gameLoop = undefined;
+      abortGame(room);
       return;
     }
     if (!room.owner || !room.guest) {
       console.log(`[Server] Missing players in room ${room.id} - stopping game loop`);
-      clearInterval(room.gameLoop);
-      room.gameLoop = undefined;
+      abortGame(room);
       return;
     }
     if (!room.gameState) {
       console.log(`[Server] No game state in room ${room.id} - stopping game loop`);
-      clearInterval(room.gameLoop);
-      room.gameLoop = undefined;
+      abortGame(room);
       return;
     }
 
@@ -331,6 +328,6 @@ function broadcastGameState(room: GameRoom) {
     // console.debug(`game_state sent: ${gameState}`)
     io.to(room.id).emit('game_state', gameState);
   } catch (error) {
-    console.log(`[Server] Game state broadcasted for room ${room.id}`);
+    console.log(`[Server] Game state not broadcasted for room ${room.id}`);
   }
 }

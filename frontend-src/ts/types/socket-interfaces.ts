@@ -57,6 +57,9 @@ export interface ServerToClientEvents {
     message: string;
     success: boolean;
   };
+  room_error: {
+    message: string;
+  };
   game_pause_state: (isPaused: boolean) => void;
 }
 

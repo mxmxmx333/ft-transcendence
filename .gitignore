@@ -43,3 +43,4 @@ client.key
 
 # === ai model ===
 global_ai_model.json
+services/ai-opponent/src/hybrid_ai_system.ts
