@@ -236,9 +236,6 @@ class ImprovedNeuralNetwork {
     }
   }
 
-  /**
-   * Serialize network weights and biases for persistence
-   */
   serializeWeights(): {
     weights1: number[][];
     weights2: number[][];
@@ -257,9 +254,6 @@ class ImprovedNeuralNetwork {
     };
   }
 
-  /**
-   * Load weights and biases from serialized data
-   */
   loadWeights(data: {
     weights1: number[][];
     weights2: number[][];
@@ -326,9 +320,6 @@ export class ImprovedReinforcementLearningAI {
     this.initializeFromPersistence();
   }
 
-  /**
-   * Initialize AI from persisted data if available
-   */
   private async initializeFromPersistence(): Promise<void> {
     if (this.isLoading || this.initialized) return;
 
@@ -688,9 +679,6 @@ export class ImprovedReinforcementLearningAI {
     this.saveModelIfNeeded();
   }
 
-  /**
-   * Keep only recent game results to prevent memory bloat
-   */
   private trimRecentGames(): void {
     const MAX_RECENT_GAMES = 100;
     if (this.recentGames.length > MAX_RECENT_GAMES) {
@@ -698,9 +686,6 @@ export class ImprovedReinforcementLearningAI {
     }
   }
 
-  /**
-   * Save model to file if enough time has passed
-   */
   private async saveModelIfNeeded(): Promise<void> {
     const now = Date.now();
     if (!this.initialized || this.isLoading || now - this.lastSaveTime < this.SAVE_INTERVAL) {
@@ -743,17 +728,11 @@ export class ImprovedReinforcementLearningAI {
     };
   }
 
-  /**
-   * Force save the current model state
-   */
   public async forceSave(): Promise<void> {
     this.lastSaveTime = 0; // Reset timer to force save
     await this.saveModelIfNeeded();
   }
 
-  /**
-   * Get current AI statistics including file-based data
-   */
   public getDetailedStats(): {
     gameCount: number;
     winCount: number;
@@ -776,9 +755,6 @@ export class ImprovedReinforcementLearningAI {
     };
   }
 
-  /**
-   * Cleanup and final save before destruction
-   */
   public async cleanup(): Promise<void> {
     console.log('[RL-AI] Performing final cleanup and save to file...');
     await this.forceSave();

@@ -1270,22 +1270,13 @@ async function createTournament(): Promise<void> {
     console.log('Tournament created with data:', tournamentData);
 
     const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
-    
-    showTournamentInfo(roomId, true, tournamentData); // tournamentData hinzufügen
+
+    showTournamentInfo(roomId, tournamentData);
     document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
     
   } catch (error) {
     console.error('Failed to create tournament:', error);
     document.getElementById('tournament-status')!.textContent = 'Failed to create tournament. Please try again.';
-  
-    document.getElementById('tournament-info')?.classList.add('hidden');
-    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
-    
-    // Optional: Reset nach 2 Sekunden
-    setTimeout(() => {
-      resetTournamentUI();
-      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
-    }, 2000);
   }
 }
 
@@ -1309,31 +1300,19 @@ async function joinTournament(): Promise<void> {
     const tournamentData = await socketManager.joinTournament(tournamentId);
     console.log('Tournament data received:', tournamentData);
 
-    showTournamentInfo(tournamentId, false, tournamentData); // false = not owner
+    showTournamentInfo(tournamentId, tournamentData);
     document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
 
   } catch (error) {
     console.error('Failed to join tournament:', error);
     document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
-  
-    document.getElementById('tournament-info')?.classList.add('hidden');
-    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
-    
-    // Optional: Reset nach 2 Sekunden
-    setTimeout(() => {
-      resetTournamentUI();
-      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
-    }, 2000);
   }
 }
 
-function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentData?: any): void {
+function showTournamentInfo(tournamentId: string, tournamentData?: any): void {
   document.getElementById('current-tournament-id')!.textContent = tournamentId;
   document.getElementById('tournament-info')?.classList.remove('hidden');
-  
-  if (isOwner) {
-    document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
-  }
+  document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
 
   if (tournamentData && tournamentData.players) {
     console.log('Using real player data:', tournamentData.players);
@@ -1344,8 +1323,7 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentDa
   } else {
     return;
   }
-  updateTournamentPlayers(tournamentData.players || [{ nickname: 'You', isOwner: isOwner },
-      { nickname: 'Player2', isOwner: false }]);
+  updateTournamentPlayers(tournamentData.players);
 }
 
 function updateTournamentPlayers(playersData: any): void {
@@ -1374,13 +1352,9 @@ function updateTournamentPlayers(playersData: any): void {
     playerDiv.className = 'flex justify-between items-center p-2 bg-gray-800 rounded';
 
     const nickname = player.nickname ;
-    const isPlayerOwner = player.isOwner || false;
-
     playerDiv.innerHTML = `
-      <span class="text-white">${nickname}</span>
-      <span class="text-xs ${isPlayerOwner ? 'neon-text-yellow' : 'text-gray-400'}">
-        ${isPlayerOwner ? '👑 Owner' : 'Player'}
-      </span>
+      <span class="text-white">${player.nickname}</span>
+      <span class="text-xs text-gray-400">Player</span>
     `;
     playersList.appendChild(playerDiv);
   });
@@ -1389,34 +1363,11 @@ function updateTournamentPlayers(playersData: any): void {
   
   // Enable start button if enough players and user is owner
   if (startBtn) {
-   const currentUser = getCurrentUserNickname(); // Helper function needed
-    const isCurrentUserOwner = players.some(p => 
-      (p.nickname === currentUser || p.nickname === 'You') && (p.isOwner)
-    );
-    
-    startBtn.disabled = players.length < 3 || !isCurrentUserOwner;
+    startBtn.disabled = players.length < 3;
     startBtn.textContent = players.length < 3 
       ? `Start Tournament (Min. 3 players)` 
       : `Start Tournament (${players.length} players)`;
-    
-    const statusElement = document.getElementById('tournament-status');
-    if (statusElement && players.length >= 3 && isCurrentUserOwner) {
-      statusElement.textContent = `Ready to start with ${players.length} players!`;
-    }
   }
-}
-
-function getCurrentUserNickname(): string {
-  try {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.nickname || payload.name || 'You';
-    }
-  } catch (e) {
-    console.error('Could not decode token for nickname');
-  }
-  return 'You';
 }
 
 async function startTournament(): Promise<void> {
