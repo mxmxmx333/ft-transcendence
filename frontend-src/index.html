@@ -14,11 +14,11 @@
     <div class="flex justify-between items-center max-w-7xl mx-auto">
         <!-- Navigation Menu -->
 <ul class="main-nav hidden md:flex space-x-6 md:space-x-6 md:flex-row flex-col text-center md:text-left">
-            <li><a href="/game" data-link class="neon-text-blue hover:neon-text-pink">New Game</a></li>
-            <li><a href="/tournament" data-link class="neon-text-blue hover:neon-text-pink">Join/Create Tournament</a></li>
+            <li><a href="/game" data-link class="neon-text-blue hover:neon-text-pink">Game</a></li>
+            <li><a href="/tournament" data-link class="neon-text-blue hover:neon-text-pink">Tournament</a></li>
             <li><a href="/profile" data-link class="neon-text-blue hover:neon-text-pink">Profile</a></li>
-            <li><a href="/livechat" data-link class="neon-text-blue hover:neon-text-pink">Live-chat</a></li>
-            <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Top Ranking</a></li>
+            <li><a href="/livechat" data-link class="neon-text-blue hover:neon-text-pink">Live-Chat</a></li>
+            <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Game Statistics</a></li>
             <li><a href="/search" data-link class="neon-text-blue hover:neon-text-pink">Search Users</a></li>
             <li><a href="/logout" data-link class="neon-text-blue hover:neon-text-pink">Logout</a></li>
         </ul>
@@ -398,6 +398,76 @@
   </div>
 </section>
     </main>
+
+<!-- In index.html Statistics Page Section hinzufügen: -->
+<div class="statistics-page page hidden">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold neon-text-blue mb-2">Game Statistics</h1>
+      <p class="text-gray-400">Track your gaming performance and match history</p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <div class="text-3xl font-bold neon-text-blue" id="games-played">0</div>
+        <div class="text-gray-400 mt-2">Games Played</div>
+      </div>
+      
+      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <div class="text-3xl font-bold text-green-400" id="games-won">0</div>
+        <div class="text-gray-400 mt-2">Games Won</div>
+      </div>
+      
+      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <div class="text-3xl font-bold text-red-400" id="games-lost">0</div>
+        <div class="text-gray-400 mt-2">Games Lost</div>
+      </div>
+      
+      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <div class="text-3xl font-bold neon-text-yellow" id="win-rate">0%</div>
+        <div class="text-gray-400 mt-2">Win Rate</div>
+        <div class="w-full bg-gray-700 rounded-full h-2 mt-3">
+          <div class="bg-yellow-400 h-2 rounded-full transition-all duration-500" id="win-rate-bar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+        <div class="text-xl font-bold text-blue-400" id="avg-score">0</div>
+        <div class="text-gray-400 text-sm">Avg Score</div>
+      </div>
+      
+      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+        <div class="text-xl font-bold text-purple-400" id="total-score">0</div>
+        <div class="text-gray-400 text-sm">Total Score</div>
+      </div>
+      
+      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+        <div class="text-xl font-bold text-gray-400" id="last-game">Never</div>
+        <div class="text-gray-400 text-sm">Last Game</div>
+      </div>
+    </div>
+
+    <!-- Match History Section -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold neon-text-blue">Match History</h2>
+      </div>
+
+      <!-- Match History Container -->
+      <div id="match-history-container" class="space-y-3">
+        <div class="text-center py-8">
+          <div class="text-gray-400">Loading match history...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
     <!-- Footer -->
     <footer class="bg-gray-900 py-8 px-4 sm:px-8 border-t border-gray-800">
         <div class="max-w-7xl mx-auto">

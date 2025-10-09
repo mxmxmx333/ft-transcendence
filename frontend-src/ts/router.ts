@@ -3,6 +3,7 @@ import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
 import { setupMobileMenu } from './mobilMenu';
+import { getStatistics } from './statistics';
 
 const socketManager = SocketManager.getInstance();
 // socketManager.connect();
@@ -139,17 +140,18 @@ function showOptionsPage() {
   }
 
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  hideAllPages();
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
   document.querySelector('.options-page')?.classList.remove('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
 
   loadOptionsData();
@@ -176,25 +178,38 @@ function showUserSearchPage() {
   }
 
   manageNavbar();
-
+  hideAllPages();
   // TÜM sayfaları gizle
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
   // Search sayfasını göster
   document.querySelector('.user-search-page')?.classList.remove('hidden');
 
   // Setup fonksiyonunu çağır
   setupUserSearch();
+}
+
+function showStatistics() {
+
+  if (!isAuthenticated()) {
+    navigateTo('/');
+    return;
+  }
+
+  manageNavbar();
+  hideAllPages();
+
+  document.querySelector('.statistics-page')?.classList.remove('hidden');
+  getStatistics();
 }
 
 function setupUserSearch() {
@@ -488,19 +503,19 @@ function showUserProfilePage() {
   }
 
   manageNavbar();
+  hideAllPages();
   // Tüm sayfaları gizle
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.remove('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
   // URL'den user ID'yi al ve profil verilerini yükle
   const userId = window.location.pathname.split('/').pop();
@@ -518,17 +533,17 @@ async function showOAuthResultPage() {
   const state = urlParams.get('state');
 
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  hideAllPages();
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
   const oauth_result_header = document.getElementById('oauth-result-header');
   const oauth_result_text= document.getElementById('oauth-result-text');
@@ -574,18 +589,19 @@ async function showOAuthResultPage() {
 
 function showNicknamePage() {
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  hideAllPages();
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
   document.querySelector('.nickname-page')?.classList.remove('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  
 }
 
 async function loadUserProfileData(userId: number) {
@@ -719,61 +735,63 @@ function addUserProfileEventListeners(userId: number) {
 }
 
 function showLiveChat() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
+  // const loginPage = document.querySelector('.login-page');
+  // const profilePage = document.querySelector('.profile-page');
+  // const gamePage = document.querySelector('.game-page');
+  // const multiPGamePage = document.querySelector('.multiplayer-lobby');
 
   manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  hideAllPages();
+  // loginPage?.classList.add('hidden');
+  // profilePage?.classList.add('hidden');
+  // gamePage?.classList.add('hidden');
+  // multiPGamePage?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
 }
 
-function showStatistics() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
+// function showStatistics() {
+//   const loginPage = document.querySelector('.login-page');
+//   const profilePage = document.querySelector('.profile-page');
+//   const gamePage = document.querySelector('.game-page');
+//   const multiPGamePage = document.querySelector('.multiplayer-lobby');
 
-  manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+//   manageNavbar();
+//   loginPage?.classList.add('hidden');
+//   profilePage?.classList.add('hidden');
+//   gamePage?.classList.add('hidden');
+//   multiPGamePage?.classList.add('hidden');
+//   document.querySelector('.options-page')?.classList.add('hidden');
+//   document.querySelector('.user-search-page')?.classList.add('hidden');
+//   document.querySelector('.user-profile-page')?.classList.add('hidden');
+//   document.querySelector('.oauth-result-page')?.classList.add('hidden');
+//   document.querySelector('.nickname-page')?.classList.add('hidden');
+//   document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
-}
+// }
 
 function showAuthPage() {
   const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
+  // const profilePage = document.querySelector('.profile-page');
+  // const gamePage = document.querySelector('.game-page');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
 
   manageNavbar();
+  hideAllPages();
   loginPage?.classList.remove('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  // profilePage?.classList.add('hidden');
+  // gamePage?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
 }
 
@@ -788,18 +806,18 @@ function showProfilePage() {
   }
 
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
+  hideAllPages();
+  // document.querySelector('.login-page')?.classList.add('hidden');
   document.querySelector('.profile-page')?.classList.remove('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  // document.querySelector('.game-page')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
   loadProfileData();
 }
@@ -810,17 +828,18 @@ function showGamePage() {
     return;
   }
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
+  hideAllPages();
+  // document.querySelector('.login-page')?.classList.add('hidden');
+  // document.querySelector('.profile-page')?.classList.add('hidden');
+  // document.querySelector('.game-page')?.classList.add('hidden');
   document.querySelector('.newgame-page')?.classList.remove('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
 }
 
@@ -1088,15 +1107,16 @@ async function handleLogout() {
 
 // QUESTION: what's happening here? is it more of a "show game options?" --> is the funciton name appropriate?
 function showMultiplayerLobby() {
-  document.querySelector('.game-page')?.classList.add('hidden');
+  hideAllPages();
+  // document.querySelector('.game-page')?.classList.add('hidden');
   document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  // document.querySelector('.newgame-page')?.classList.add('hidden');
+  // document.querySelector('.user-search-page')?.classList.add('hidden');
+  // document.querySelector('.options-page')?.classList.add('hidden');
+  // document.querySelector('.user-profile-page')?.classList.add('hidden');
+  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
+  // document.querySelector('.nickname-page')?.classList.add('hidden');
+  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
 }
 
@@ -1252,6 +1272,7 @@ function hideAllPages(): void {
   document.querySelector('.options-page')?.classList.add('hidden');
   document.querySelector('.user-search-page')?.classList.add('hidden');
   document.querySelector('.user-profile-page')?.classList.add('hidden');
+  document.querySelector('.statistics-page')?.classList.add('hidden');
 }
 
 function resetTournamentUI(): void {

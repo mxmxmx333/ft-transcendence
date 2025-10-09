@@ -1,4 +1,7 @@
 import User from './user';
+import MatchHistory from './user';
+import GameStatistics from './user';
+import UserProfileWithHistory from './user';
 
 // ENVIRONMENT VARIABLES
 import * as dotenv from 'dotenv';
@@ -330,10 +333,10 @@ export default class AuthService {
   }
 
   // ======= GAME STATISTICS METHODS =======
-  getUserGameStats(userId: number): any {
-    const stmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
-    return stmt.get(userId);
-  }
+  // getUserGameStats(userId: number): any {
+  //   const stmt = this.db.prepare('SELECT * FROM game_statistics WHERE user_id = ?');
+  //   return stmt.get(userId);
+  // }
 
   updateGameStats(userId: number, won: boolean, score: number): boolean {
     const stmt = this.db.prepare(`
@@ -347,6 +350,214 @@ export default class AuthService {
     `);
     const info = stmt.run(won ? 1 : 0, won ? 0 : 1, score, userId);
     return info.changes > 0;
+  }
+
+  // ======= MATCH HISTORY METHODS =======
+
+  getUserMatchHistory(userId: number, limit: number = 50): any[] {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT 
+          mh.*,
+          CASE 
+            WHEN mh.player1_id = ? THEN p2.nickname 
+            ELSE p1.nickname 
+          END as opponent_nickname,
+          CASE 
+            WHEN mh.player1_id = ? THEN p2.avatar 
+            ELSE p1.avatar 
+          END as opponent_avatar,
+          CASE 
+            WHEN mh.player1_id = ? THEN mh.player1_score 
+            ELSE mh.player2_score 
+          END as my_score,
+          CASE 
+            WHEN mh.player1_id = ? THEN mh.player2_score 
+            ELSE mh.player1_score 
+          END as opponent_score,
+          CASE 
+            WHEN mh.winner_id = ? THEN 'won'
+            ELSE 'lost'
+          END as result
+        FROM match_history mh
+        LEFT JOIN users p1 ON p1.id = mh.player1_id
+        LEFT JOIN users p2 ON p2.id = mh.player2_id
+        WHERE mh.player1_id = ? OR mh.player2_id = ?
+        ORDER BY mh.played_at DESC
+        LIMIT ?
+      `);
+      
+      return stmt.all(userId, userId, userId, userId, userId, userId, userId, limit);
+    } catch (error) {
+      console.error('Failed to get match history:', error);
+      return [];
+    }
+  }
+
+  getUserProfileWithHistory(userId: number, currentUserId: number): any {
+    try {
+      // Basic user data
+      const userStmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
+      const user = userStmt.get(userId);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Friendship status
+      let friendshipStatus = 'none';
+      if (userId !== currentUserId) {
+        const friendshipStmt = this.db.prepare(`
+          SELECT status FROM friendships 
+          WHERE (requester_id = ? AND addressee_id = ?) 
+             OR (requester_id = ? AND addressee_id = ?)
+        `);
+        const friendship = friendshipStmt.get(currentUserId, userId, userId, currentUserId);
+        friendshipStatus = friendship ? friendship.status : 'none';
+      }
+
+      // Game statistics
+      const gameStats = this.getUserGameStats(userId);
+
+      // Recent matches (nur für eigenes Profil oder Freunde)
+      let recentMatches: any[] = [];
+      if (userId === currentUserId || friendshipStatus === 'accepted') {
+        recentMatches = this.getUserMatchHistory(userId, 10);
+      }
+
+      return {
+        id: user.id,
+        nickname: user.nickname,
+        avatar: user.avatar || 'default',
+        status: user.status || 'offline',
+        game_stats: gameStats,
+        recent_matches: recentMatches,
+        friendship_status: friendshipStatus
+      };
+    } catch (error) {
+      console.error('Failed to get user profile with history:', error);
+      throw error;
+    }
+  }
+
+  getUserGameStats(userId: number): any {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT 
+          COUNT(*) as games_played,
+          SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as games_won,
+          SUM(CASE 
+            WHEN winner_id != ? AND winner_id IS NOT NULL THEN 1 
+            ELSE 0 
+          END) as games_lost,
+          SUM(CASE 
+            WHEN player1_id = ? THEN player1_score 
+            ELSE player2_score 
+          END) as total_score,
+          MAX(played_at) as last_game_date
+        FROM match_history 
+        WHERE player1_id = ? OR player2_id = ?
+      `);
+      
+      const stats = stmt.get(userId, userId, userId, userId, userId);
+      
+      const gamesPlayed = stats.games_played || 0;
+      const gamesWon = stats.games_won || 0;
+      const gamesLost = stats.games_lost || 0;
+      
+      return {
+        user_id: userId,
+        games_played: gamesPlayed,
+        games_won: gamesWon,
+        games_lost: gamesLost,
+        win_rate: gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0,
+        avg_score: gamesPlayed > 0 ? Math.round((stats.total_score || 0) / gamesPlayed) : 0,
+        total_score: stats.total_score || 0,
+        last_game_date: stats.last_game_date
+      };
+    } catch (error) {
+      console.error('Failed to get game stats:', error);
+      return {
+        user_id: userId,
+        games_played: 0,
+        games_won: 0,
+        games_lost: 0,
+        win_rate: 0,
+        avg_score: 0,
+        total_score: 0
+      };
+    }
+  }
+
+  saveMatchResult(matchData: any): boolean {
+    try {
+      console.log('🎯 Internal match result received:', matchData);
+
+      const player1Id = matchData.player1_id ? parseInt(matchData.player1_id) : null;
+      const player2Id = matchData.player2_id ? parseInt(matchData.player2_id) : null;
+      const winnerId = matchData.winner_id ? parseInt(matchData.winner_id) : null;
+
+      if (!player1Id) {
+        console.error('player1_id is required');
+        return false;
+      }
+
+      const stmt = this.db.prepare(`
+        INSERT INTO match_history 
+        (player1_id, player2_id, winner_id, player1_score, player2_score, 
+        game_type, game_mode, room_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        player1Id,
+        player2Id,
+        winnerId,
+        matchData.player1_score || 0,
+        matchData.player2_score || 0,
+        matchData.game_type || 'single',
+        matchData.game_mode || null,
+        matchData.room_id || null
+      );
+
+      console.log('Match result saved with ID:', result.lastInsertRowid);
+      return true;
+    } catch (error) {
+      console.error('Failed to save match result:', error);
+      return false;
+    }
+  }
+
+getLeaderboard(limit: number = 10): any[] {
+    try {
+      const stmt = this.db.prepare(`
+        WITH user_stats AS (
+          SELECT 
+            u.id, u.nickname, u.avatar,
+            COUNT(mh.id) as games_played,
+            SUM(CASE WHEN mh.winner_id = u.id THEN 1 ELSE 0 END) as games_won,
+            SUM(CASE 
+              WHEN mh.player1_id = u.id THEN mh.player1_score 
+              ELSE mh.player2_score 
+            END) as total_score
+          FROM users u
+          LEFT JOIN match_history mh ON (mh.player1_id = u.id OR mh.player2_id = u.id)
+          GROUP BY u.id, u.nickname, u.avatar
+          HAVING games_played > 0
+        )
+        SELECT *,
+          ROUND((CAST(games_won AS FLOAT) / games_played) * 100, 2) as win_rate,
+          ROUND(total_score / games_played, 2) as avg_score
+        FROM user_stats
+        ORDER BY games_won DESC, win_rate DESC, avg_score DESC
+        LIMIT ?
+      `);
+      
+      return stmt.all(limit);
+    } catch (error) {
+      console.error('Failed to get leaderboard:', error);
+      return [];
+    }
   }
 
   // ======= UTILITY METHODS =======

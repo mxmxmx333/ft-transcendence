@@ -108,7 +108,7 @@ async function buildServer() {
   }
 
   if (!token) {
-    server.log.warn(`❌ No token found for ${request.url}`);
+    server.log.warn(`No token found for ${request.url}`);
     return reply.code(401).send({
       error: 'Authorization token missing',
       message: 'Please provide a valid Bearer token or token query parameter',
@@ -134,7 +134,7 @@ async function buildServer() {
 
       server.log.info(`✅ Authorized user: ${user.nickname} (${user.sub})`);
     } catch (error) {
-      server.log.warn(`❌ Auth failed: ${error}`);
+      server.log.warn(`Auth failed: ${error}`);
       return reply.code(401).send({
         error: 'Invalid token',
         message: 'Token verification failed',
@@ -268,6 +268,28 @@ async function buildServer() {
     prefix: '/api/profile',
     rewritePrefix: '/api/profile',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  //match history
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/my-statistics',
+    rewritePrefix: '/api/my-statistics',
+    httpMethods: ['GET'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/my-matches',
+    rewritePrefix: '/api/my-matches',
+    httpMethods: ['GET'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/leaderboard',
+    rewritePrefix: '/api/leaderboard',
+    httpMethods: ['GET'],
   });
 
   server.setNotFoundHandler((request, reply) => {

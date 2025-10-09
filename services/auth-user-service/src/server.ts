@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import path from 'path';
-import dbConnector from './db';
+import dbConnector, { createMatchHistoryTable } from './db';
 import AuthService from './auth.service';
 import AuthController from './auth.controller';
 import fs from 'fs';
@@ -8,6 +8,7 @@ import vaultClient from './vault-client';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
+import { MatchResultBody } from './user';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
@@ -98,6 +99,9 @@ interface FriendResponseBody {
 async function start() {
   const server = await buildServer();
   const authService = new AuthService(server);
+
+  createMatchHistoryTable(server.db);
+
   const oAuthService = new OAuthService();
   const authController = new AuthController(authService, oAuthService, server);
 
@@ -270,6 +274,84 @@ async function start() {
       );
     }
   );
+
+  server.post<{ Body: MatchResultBody }>('/api/internal/match-result', async (req, reply) => {
+    try {
+      console.log('🎯 Internal match result received:', req.body);
+      const success = authService.saveMatchResult(req.body);
+      
+      req.log.info({ matchData: req.body }, 'Match result saved internally');
+      return reply.send({ success });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to save match result' });
+    }
+  });
+
+  server.get<{ Querystring: { limit?: string } }>('/api/my-matches', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      
+      const decoded = await req.server.vAuth.verify(token);
+      const limit = parseInt(req.query.limit || '50');
+      const matches = authService.getUserMatchHistory(Number(decoded.sub), limit);
+      
+      return reply.send({ matches });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get match history' });
+    }
+  });
+
+  server.get('/api/my-statistics', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      
+      const decoded = await req.server.vAuth.verify(token);
+      const stats = authService.getUserGameStats(Number(decoded.sub));
+      
+      return reply.send(stats);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get statistics' });
+    }
+  });
+
+  server.get<{ Params: { id: string } }>('/api/profile/:id', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      
+      const decoded = await req.server.vAuth.verify(token);
+      const userId = parseInt(req.params.id);
+      const profile = authService.getUserProfileWithHistory(userId, Number(decoded.sub));
+      
+      return reply.send(profile);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get profile' });
+    }
+  });
+
+  server.get<{ Querystring: { limit?: string } }>('/api/leaderboard', async (req, reply) => {
+    try {
+      const limit = parseInt(req.query.limit || '10');
+      const leaderboard = authService.getLeaderboard(limit);
+      
+      return reply.send({ leaderboard });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get leaderboard' });
+    }
+  });
 
   // =========
   server.put<{ Body: UpdateProfileBody }>('/api/profile', async (req, reply) => {

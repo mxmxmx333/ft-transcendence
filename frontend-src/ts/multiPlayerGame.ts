@@ -359,6 +359,7 @@ export class PongGame {
       return;
     }
     let countdown = 3;
+    this.announce_match( this.myNickname, this.opponentNickname);
     
     // Clear any existing countdown
     if (this.countdownInterval) {
@@ -383,6 +384,16 @@ export class PongGame {
         }
       }
     }, 1000);
+  }
+
+  private announce_match(owner: string, guest: string) {
+    this.updateStatus(`Next Match: ${owner} vs ${guest}`);
+    console.log('Tournament match announcement:', { owner, guest });
+    // alert(`Next Match: ${owner} vs ${guest}`);
+    // Optional: Clear the message after a few seconds
+    // setTimeout(() => {
+    //   this.updateStatus('');
+    // }, 3000);
   }
 
   public handleRoomTerminated() {
