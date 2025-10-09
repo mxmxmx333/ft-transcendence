@@ -184,6 +184,25 @@ async function buildServer() {
     rewritePrefix: '/api/auth',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+  
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/socket.io/livechat',
+    rewritePrefix: '/socket.io',
+    websocket: true,
+    wsClientOptions: {
+      rejectUnauthorized: false,
+      rewriteRequestHeaders: (headers: any, request: any) => {
+        headers['x-user-id'] = request.headers['x-user-id'];
+        headers['x-user-nickname'] = request.headers['x-user-nickname'];
+        return {
+          ...headers,
+        };
+      },
+    },
+    wsUpstream: 'wss://localhost:3002',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
 
   // NEW ADDED PLEASE DONT DELETE, I FORGOT EDDING THESE ROUTES AND IT COST ME A DAY ABOUT FRIEND REQUEST FEATURE :((
   // ==============================================

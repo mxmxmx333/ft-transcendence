@@ -300,7 +300,7 @@
 
 // profileOptions.ts - Friend request kabul/red sistemi ile güncellenmiş
 
-import { navigateTo } from './router.js';
+import { navigateTo, profilePage, showPage } from './router.js';
 
 export class ProfileOptions {
   private currentAvatar: string = 'default';
@@ -462,8 +462,9 @@ export class ProfileOptions {
 
       if (response.ok) {
         console.log('Profile updated successfully!');
-        document.querySelector('.options-page')?.classList.add('hidden');
-        document.querySelector('.profile-page')?.classList.remove('hidden');
+        // document.querySelector('.options-page')?.classList.add('hidden');
+        // document.querySelector('.profile-page')?.classList.remove('hidden');
+		showPage(profilePage);
       } else {
         throw new Error('Failed to update profile');
       }

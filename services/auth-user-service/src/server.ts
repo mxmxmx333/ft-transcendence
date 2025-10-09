@@ -8,6 +8,9 @@ import vaultClient from './vault-client';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
+import { Server as SocketIOServer } from 'socket.io';
+import { AuthPayload } from './types/types';
+import { registerIoHandlers } from './io.handler';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
@@ -22,7 +25,8 @@ const keyPath = path.join(__dirname, certDir, 'server.key');
 const certPath = path.join(__dirname, certDir, 'server.crt');
 const caPath = path.join(__dirname, certDir, 'ca.crt');
 
-async function buildServer() {
+
+// async function buildServer() {
   let httpsOptions;
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
@@ -36,7 +40,7 @@ async function buildServer() {
   } else {
     console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
   }
-  const server = fastify({
+  export const server = fastify({
     logger: {
       level: 'debug',
       ...(isDevelopment
@@ -54,10 +58,49 @@ async function buildServer() {
     ...httpsOptions,
   });
 
-  // Register plugins
-  await server.register(dbConnector);
-  await server.register(vaultClient);
-  await server.register(vAuth);
+
+  export const io = new SocketIOServer(server.server, {
+	cors: {
+	  origin: frontendUrl,
+	  methods: ['GET', 'POST'],
+	  credentials: true,
+	},
+	transports: ['websocket', 'polling'],
+	allowEIO3: true,
+  });
+  
+  
+  // --- Authentication middleware for sockets ---
+  io.use((socket, next) => {
+	const token = socket.handshake.auth.token;
+	if (!token)
+		return next(new Error('No token provided'));
+
+	try
+	{
+		let decoded: AuthPayload= {} as AuthPayload;
+    	decoded.id = socket.request.headers['x-user-id']?.toString() as string;
+    	decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
+    	console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
+
+    	socket.user = {
+			id: decoded.id,
+			nickname: decoded.nickname
+   		};
+		console.log(`[LiveChat] User ${socket.user.nickname} connected`);
+		next();
+	}
+	catch (err)
+	{
+		console.error('[LiveChat] Invalid token', err);
+		next(new Error('Missing or invalid token'));
+	}
+  });
+  
+//   return server;
+// }
+
+registerIoHandlers(io);
 
   // Error handling
   server.setErrorHandler((error, request, reply) => {
@@ -65,8 +108,6 @@ async function buildServer() {
     reply.status(500).send({ error: 'Internal Server Error' });
   });
 
-  return server;
-}
 
 interface SignupBody {
   nickname: string;
@@ -96,7 +137,11 @@ interface FriendResponseBody {
 }
 
 async function start() {
-  const server = await buildServer();
+//   const server = await buildServer();
+  // Register plugins
+  await server.register(dbConnector);
+  await server.register(vaultClient);
+  await server.register(vAuth);
   const authService = new AuthService(server);
   const oAuthService = new OAuthService();
   const authController = new AuthController(authService, oAuthService, server);
@@ -313,6 +358,7 @@ async function start() {
 
   await server.listen({ port: 3002, host: '0.0.0.0' });
   console.log('Server "auth-user-service" is listening: https://localhost:3002 ');
+  
 }
 
 start().catch((err) => {
