@@ -242,19 +242,17 @@ export function abortGame(room: GameRoom) {
 }
 
 export function endGame(room: GameRoom) {
-
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
     console.log(`[Server] Game loop stopped for room ${room.id}`);
   }
-
   const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
   const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
 
-  saveGameResult({
+  let gameResult = {
     player1: room.owner!.id,
     player2: room.gameType === 'single' ? null : room.guest!.id,
     winner: winner === 'owner' ? room.owner!.id : room.gameType === 'single' ? null : room.guest!.id,
@@ -264,12 +262,16 @@ export function endGame(room: GameRoom) {
     },
     gameType: room.gameType,
     roomId: room.id
-  });
+  }
 
+  
   if ('players' in room) {
+    saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner ?? room.guest?.id, gameType: 'tournament' });
     handleTournamentGameEnd(room, winner);
     return;
   }
+
+  saveGameResult({...gameResult });
   
   io.to(room.id).emit('game_over', {
     winner,

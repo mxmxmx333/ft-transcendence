@@ -1,6 +1,3 @@
-import { isAuthenticated } from "./auth";
-import { navigateTo } from "./router";
-
 interface MatchHistory {
   id: number;
   opponent_nickname: string;
@@ -59,6 +56,7 @@ export class StatisticsManager {
         console.log('Matches loaded:', this.matches.length);
 
         this.displayStatistics();
+        this.drawCharts();
         this.displayMatchHistory();
 
     } catch (error) {
@@ -70,13 +68,16 @@ export class StatisticsManager {
   private displayStatistics() {
     if (!this.stats) return;
 
+    const winRate = this.stats.games_played > 0 ? ((this.stats.games_won / this.stats.games_played) * 100) : 0;
+    const avgScore = this.stats.games_played > 0 ? (this.stats.total_score / this.stats.games_played) : 0;
+
     // Grundlegende Stats
+    this.updateElement('win-rate-percentage', `${winRate.toFixed(1)}%`);
+    this.updateElement('avg-score-value', avgScore.toFixed(1));
     this.updateElement('games-played', this.stats.games_played.toString());
-    this.updateElement('games-won', this.stats.games_won.toString());
-    this.updateElement('games-lost', this.stats.games_lost.toString());
-    this.updateElement('win-rate', `${this.stats.win_rate}%`);
-    this.updateElement('avg-score', this.stats.avg_score?.toString() || '0');
-    this.updateElement('total-score', this.stats.total_score.toString());
+
+    const winLossText = `${this.stats.games_won} wins / ${this.stats.games_lost} losses`;
+    this.updateElement('win-loss-text', winLossText);
 
     // Letztes Spiel
     if (this.stats.last_game_date) {
@@ -85,11 +86,102 @@ export class StatisticsManager {
     } else {
       this.updateElement('last-game', 'Never');
     }
+  }
 
-    // Progress bars für Win Rate
-    const winRateBar = document.getElementById('win-rate-bar') as HTMLElement;
-    if (winRateBar) {
-      winRateBar.style.width = `${this.stats.win_rate}%`;
+  private drawCharts() {
+    this.drawWinRateChart();
+    this.drawAvgScoreChart();
+  }
+
+  private drawWinRateChart() {
+    const canvas = document.getElementById('win-rate-chart') as HTMLCanvasElement;
+    if (!canvas || !this.stats) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 70;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const winRate = this.stats.games_played > 0 
+      ? (this.stats.games_won / this.stats.games_played)
+      : 0;
+
+    // Background circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#374151'; // gray-700
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Win rate arc
+    if (winRate > 0) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, -Math.PI / 2, (2 * Math.PI * winRate) - Math.PI / 2);
+      ctx.strokeStyle = '#10B981'; // emerald-500
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Add glow effect
+      ctx.shadowColor = '#10B981';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  private drawAvgScoreChart() {
+    const canvas = document.getElementById('avg-score-chart') as HTMLCanvasElement;
+    if (!canvas || !this.stats) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 70;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const avgScore = this.stats.games_played > 0 
+      ? (this.stats.total_score / this.stats.games_played)
+      : 0;
+
+    const scoreRatio = Math.min(avgScore / 10, 1); // Max score is 10
+
+    // Background circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#374151'; // gray-700
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Score arc
+    if (scoreRatio > 0) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, -Math.PI / 2, (2 * Math.PI * scoreRatio) - Math.PI / 2);
+      
+      // Color gradient based on score
+      let color = '#EF4444'; // red-500 (low score)
+      if (scoreRatio > 0.7) color = '#10B981'; // emerald-500 (high score)
+      else if (scoreRatio > 0.4) color = '#F59E0B'; // amber-500 (medium score)
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Add glow effect
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -155,6 +247,9 @@ export class StatisticsManager {
     const element = document.getElementById(id);
     if (element) {
       element.textContent = value;
+      console.log(`✅ Updated ${id}:`, value);
+    } else {
+      console.warn(`⚠️ Element not found: ${id}`);
     }
   }
 

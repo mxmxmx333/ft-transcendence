@@ -399,74 +399,74 @@
 </section>
     </main>
 
-<!-- In index.html Statistics Page Section hinzufügen: -->
+<!-- Statistics Page Section -->
 <div class="statistics-page page hidden">
   <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="text-center mb-8">
       <h1 class="text-4xl font-bold neon-text-blue mb-2">Game Statistics</h1>
-      <p class="text-gray-400">Track your gaming performance and match history</p>
+      <p class="text-gray-400">Your gaming performance overview</p>
     </div>
 
-    <!-- Stats Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-        <div class="text-3xl font-bold neon-text-blue" id="games-played">0</div>
-        <div class="text-gray-400 mt-2">Games Played</div>
-      </div>
+    <!-- main stats -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
       
-      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-        <div class="text-3xl font-bold text-green-400" id="games-won">0</div>
-        <div class="text-gray-400 mt-2">Games Won</div>
+      <!-- Win Rate Chart -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Win Rate</h3>
+        <div class="relative w-40 h-40 mx-auto mb-4">
+          <canvas id="win-rate-chart" width="160" height="160"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-2xl font-bold neon-text-yellow" id="win-rate-percentage">0%</div>
+              <div class="text-sm text-gray-400">Win Rate</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-sm text-gray-400" id="win-loss-text">0 wins / 0 losses</div>
       </div>
-      
-      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-        <div class="text-3xl font-bold text-red-400" id="games-lost">0</div>
-        <div class="text-gray-400 mt-2">Games Lost</div>
+
+      <!-- Average Score Chart -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Average Score</h3>
+        <div class="relative w-40 h-40 mx-auto mb-4">
+          <canvas id="avg-score-chart" width="160" height="160"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-2xl font-bold neon-text-green" id="avg-score-value">0.0</div>
+              <div class="text-sm text-gray-400">/ 10</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-sm text-gray-400">Average points per game</div>
       </div>
-      
-      <div class="stat-card bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
-        <div class="text-3xl font-bold neon-text-yellow" id="win-rate">0%</div>
-        <div class="text-gray-400 mt-2">Win Rate</div>
-        <div class="w-full bg-gray-700 rounded-full h-2 mt-3">
-          <div class="bg-yellow-400 h-2 rounded-full transition-all duration-500" id="win-rate-bar" style="width: 0%"></div>
+
+      <!-- Games Played -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Games Played</h3>
+        <div class="flex items-center justify-center h-40">
+          <div class="text-center">
+            <div class="text-6xl font-bold neon-text-purple mb-2" id="games-played">0</div>
+            <div class="text-gray-400">Total Games</div>
+            <div class="text-sm text-gray-500 mt-2" id="last-game-date">Never played</div>
+          </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Additional Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
-        <div class="text-xl font-bold text-blue-400" id="avg-score">0</div>
-        <div class="text-gray-400 text-sm">Avg Score</div>
-      </div>
+    <!-- match history -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-2xl font-bold mb-6 neon-text-blue">Match History</h3>
       
-      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
-        <div class="text-xl font-bold text-purple-400" id="total-score">0</div>
-        <div class="text-gray-400 text-sm">Total Score</div>
-      </div>
-      
-      <div class="stat-card bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
-        <div class="text-xl font-bold text-gray-400" id="last-game">Never</div>
-        <div class="text-gray-400 text-sm">Last Game</div>
+      <div id="match-history-container" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Match cards will be inserted here -->
       </div>
     </div>
 
-    <!-- Match History Section -->
-    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold neon-text-blue">Match History</h2>
-      </div>
-
-      <!-- Match History Container -->
-      <div id="match-history-container" class="space-y-3">
-        <div class="text-center py-8">
-          <div class="text-gray-400">Loading match history...</div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
+
 
     <!-- Footer -->
     <footer class="bg-gray-900 py-8 px-4 sm:px-8 border-t border-gray-800">
