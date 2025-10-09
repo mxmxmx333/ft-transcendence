@@ -10,7 +10,7 @@ public/js/
 node_modules/
 
 # === Database ===
-pong.db
+pong.db*
 
 # === Bootstrap Artifacts / Secrets ===
 services/vault/certs/*.key
@@ -26,7 +26,7 @@ vault3_data/
 vault1_logs/
 vault2_logs/
 vault3_logs/
-./database/
+./database/*
 
 # === CERTIFICATES and Credentials ===
 server.crt

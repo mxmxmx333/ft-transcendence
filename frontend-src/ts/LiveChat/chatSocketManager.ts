@@ -90,7 +90,7 @@ export class ChatSocketManager
 					DOM.reconnectInfo.classList.remove('hidden');
 				}
 			});
-			
+
 			this.socket.on('disconnect', () => {
 				if (this.logout)
 					console.log("[Live Chat] Socket disconnected (Logout)");
@@ -104,7 +104,7 @@ export class ChatSocketManager
 					DOM.reconnectInfo.classList.remove('hidden');
 				}
 			});
-			
+
 			this.socket.io.on('reconnect_attempt', (attempt: number) => {
 				console.warn(`[Live Chat] Reconnecting... Attempt ${attempt}`);
 			});
