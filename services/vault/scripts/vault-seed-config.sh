@@ -3,9 +3,9 @@ set -eu
 
 # Quellen (einzelne Dateien, read-only gemountet)
 SRC_DEV="/source/vault-dev.hcl"
-SRC_V1="/source/vault1.hcl"
-SRC_V2="/source/vault2.hcl"
-SRC_V3="/source/vault3.hcl"
+SRC_V1="/source/vault-1.hcl"
+SRC_V2="/source/vault-2.hcl"
+SRC_V3="/source/vault-3.hcl"
 SRC_V1_AGENT="/source_agents/vault-1-agent.hcl"
 SRC_V2_AGENT="/source_agents/vault-2-agent.hcl"
 SRC_V3_AGENT="/source_agents/vault-3-agent.hcl"
@@ -13,7 +13,6 @@ SRC_V3_AGENT="/source_agents/vault-3-agent.hcl"
 SRC_CLIENT_SERVER_AGENT="/source_agents/service-server-client-agent.hcl"
 SRC_SERVER_AGENT="/source_agents/service-server-agent.hcl"
 SRC_HUP_DEBOUNCE="/scripts/debounce_hup.sh"
-chmod +x "$SRC_HUB_DEBOUNCE"
 
 # Ziele (je ein Verzeichnis pro Node – sind deine named volumes)
 DST_DEV="/dest-dev"
@@ -23,10 +22,10 @@ DST_V3="/dest-3"
 DST_V1_AGENT="/dest-1-agent"
 DST_V2_AGENT="/dest-2-agent"
 DST_V3_AGENT="/dest-3-agent"
-DST_CLIENT_SERVER_AGENT_1="/api-gateway-agent"
-DST_CLIENT_SERVER_AGENT_2="/auth-user-service-agent"
-DST_SERVER_AGENT_1="/game-service-agent"
-DST_SERVER_AGENT_2="/ai-opponent-agent"
+DST_CLIENT_SERVER_AGENT_1="/dest-agent-server-client-config"
+DST_CLIENT_SERVER_AGENT_2="/dest-agent-server-client-config"
+DST_SERVER_AGENT_1="/dest-agent-server-config"
+DST_SERVER_AGENT_2="/dest-agent-server-config"
 DST_HUP_DEBOUNCE="/run/vault"
 
 
@@ -40,7 +39,7 @@ seed_file() {
     cp "$src" "$dst"
     chmod 0644 "$dst"
     echo "✅ seeded/updated $dst"
-    touch "${dst}.updated"   # Marker, falls du später HUP triggern willst
+    # touch "${dst}.updated"
   else
     echo "↩︎ $dst unchanged"
   fi
@@ -58,5 +57,6 @@ seed_file "$SRC_CLIENT_SERVER_AGENT"  "$DST_CLIENT_SERVER_AGENT_2"  "service-ser
 seed_file "$SRC_SERVER_AGENT"         "$DST_SERVER_AGENT_1"         "service-server-agent.hcl"
 seed_file "$SRC_SERVER_AGENT"         "$DST_SERVER_AGENT_2"         "service-server-agent.hcl"
 seed_file "$SRC_HUP_DEBOUNCE"         "$DST_HUP_DEBOUNCE"           "debounce_hup.sh"
+chmod 0755 "$DST_HUP_DEBOUNCE/debounce_hup.sh" 2>/dev/null || true
 
 echo "✅ all done"

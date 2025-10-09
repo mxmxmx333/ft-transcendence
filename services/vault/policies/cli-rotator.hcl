@@ -6,14 +6,15 @@ path "pki/issue/vault-clients-internal" {
 path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
+
 path "auth/token/renew-self" {
   capabilities = ["update"]
 }
 
-path "auth/approle/role/ai-opponent-rotator/secret-id" {
+path "auth/approle/role/cli-rotator/secret-id" {
   capabilities = ["update"]
 }
-path "auth/approle/role/ai-opponent-rotator/role-id" {
+path "auth/approle/role/cli-rotator/role-id" {
   capabilities = ["read"]
 }
 
@@ -23,6 +24,7 @@ path "pki/ca/pem" {
 }
 
 # Service-Server cert
-path "pki/issue/ai-opponent-internal" {
+path "pki/issue/cli-internal" {
   capabilities = ["update"]
 }
+

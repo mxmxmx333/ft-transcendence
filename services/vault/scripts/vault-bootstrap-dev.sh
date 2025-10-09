@@ -235,6 +235,7 @@ vault write auth/approle/role/auth-user-service \
 
 mkdir -p /certs/api-gateway/approle /certs/auth-user-service/approle
 umask 077
+chown "${HOST_UID:-0}:${HOST_GID:-0}" /certs/api-gateway/approle /certs/auth-user-service/approle 2>/dev/null || true
 
 vault read  -field=role_id  auth/approle/role/api-gateway/role-id            > /certs/api-gateway/approle/role_id
 vault write -f -format=json auth/approle/role/api-gateway/secret-id | jq -r '.data.secret_id' > /certs/api-gateway/approle/secret_id

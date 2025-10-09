@@ -6,6 +6,7 @@ import fs from 'fs';
 import fastifyStatic from '@fastify/static';
 import vaultClient from './vault-client';
 import vAuth from './auth';
+import tlsReloadPlugin from './tls-reload';
 dotenv.config();
 
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
@@ -29,7 +30,7 @@ if (!upstreamAuthAndUserService) {
 }
 
 async function buildServer() {
-  let httpsOptions;
+  let httpsOptions: Record<string, any> = {};
   const keyPath = path.join(__dirname, certDir, 'server.key');
   const certPath = path.join(__dirname, certDir, 'server.crt');
   const caPath = path.join(__dirname, certDir, 'ca.crt');
@@ -66,6 +67,13 @@ async function buildServer() {
   // Register plugins
   await server.register(vaultClient);
   await server.register(vAuth);
+  await server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
 
   server.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/socket.io')) {

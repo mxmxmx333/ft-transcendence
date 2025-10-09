@@ -1,6 +1,6 @@
 .PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
 		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev cli
+		setup-env start-vault-dev vault-deps-dev cli destroy-docker-volumes ensure-network clean-networks clean
 
 ################################################################################
 # VARIABLES
@@ -121,3 +121,120 @@ stop-vault-dev:
 	$(COMPOSE) --profile "dev" down
 
 vault-dev-re: clean-vault-dev start-vault-dev
+
+vault-deps-prod: setup-env 
+	$(COMPOSE) --profile "prod" up --exit-code-from vault-seed-config vault-seed-config
+	$(COMPOSE) --profile "prod" up --exit-code-from vault-1-seed vault-1-seed
+
+prod: vault-deps-prod
+	$(COMPOSE) --profile "prod" up -d vault-1
+	$(COMPOSE) --profile "prod" up --exit-code-from setup-volume-ownerships setup-volume-ownerships
+	$(COMPOSE) --profile "prod" up --exit-code-from vault-bootstrap-prod vault-bootstrap-prod
+	$(COMPOSE) --profile "prod" up -d api-gateway auth-user-service game-service web-application-firewall
+	$(COMPOSE) --profile "prod" up -d api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent
+	$(COMPOSE) --profile "prod" up -d vault-2 vault-2-agent vault-3 vault-3-agent vault-1-agent
+
+
+clean-networks:
+	@echo "🌐 Cleaning Docker networks…"
+	@docker network rm transcendence_api-network >/dev/null 2>&1 || true
+	@docker network prune -f >/dev/null 2>&1 || true
+	@echo "✅ Networks cleaned."
+
+# Remove all docker volumes of this project
+PROJECT_NAME := transcendence
+VOLUME_SUFFIXES := \
+	database \
+	web-application-firewall-certs \
+	game-service-certs \
+	cli-certs \
+	service-agent-config \
+	web-application-firewall-agent-certs \
+	web-application-firewall-agent-approle \
+	api-gateway-service-certs \
+	api-gateway-agent-certs \
+	api-gateway-agent-approle \
+	api-gateway-approle-service \
+	game-service-agent-certs \
+	game-service-agent-approle \
+	auth-user-service-agent-certs \
+	auth-user-service-certs \
+	auth-user-service-agent-approle \
+	auth-user-service-approle \
+	ai-opponent-agent-approle \
+	cli-agent-approle \
+	vault-dev-config \
+	vault-dev-data \
+	vault-dev-logs \
+	vault-dev-runtime-certs \
+	vault-1-config \
+	vault-1-data \
+	vault-1-logs \
+	vault-1-runtime-certs \
+	vault-2-config \
+	vault-2-data \
+	vault-2-logs \
+	vault-2-runtime-certs \
+	vault-3-config \
+	vault-3-data \
+	vault-3-logs \
+	vault-3-runtime-certs \
+	vault-1-agent-config \
+	vault-1-agent-role \
+	vault-2-agent-config \
+	vault-2-agent-role \
+	vault-3-agent-config \
+	vault-3-agent-role \
+	vault-keys \
+	agent-server-config \
+	agent-server-client-config \
+	vault-agent-hup \
+	vault-agent-ca
+
+# Convenience macro to prefix volumes with project name
+VOLUMES := $(foreach v,$(VOLUME_SUFFIXES),$(PROJECT_NAME)_$(v))
+
+destroy-docker-volumes:
+	@echo "⚠️  Stopping stacks and deleting project volumes ($(PROJECT_NAME))…"
+	# Stop stacks (keep going even if not running)
+	@$(COMPOSE) --profile prod down -v --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) --profile dev down -v --remove-orphans 2>/dev/null || true
+	# Remove known volumes for this project
+	@for v in $(VOLUMES); do \
+	  echo " - removing $$v"; \
+	  docker volume rm -f "$$v" >/dev/null 2>&1 || true; \
+	done
+	# Catch-all: remove any leftover volumes that still match the project prefix
+	@docker volume ls -q | awk '/^$(PROJECT_NAME)_/ {print $$0}' | xargs -r docker volume rm -f >/dev/null 2>&1 || true
+	@echo "✅ All volumes for $(PROJECT_NAME) removed."
+
+# Remove locally built service images for this project
+.destroy-images-help:
+	@echo "🗑️  Removing built images for $(PROJECT_NAME)…"
+
+destroy-service-images: .destroy-images-help
+	# Remove images built by compose (have the compose project label)
+	@docker images -q --filter "label=com.docker.compose.project=$(PROJECT_NAME)" | xargs -r docker rmi -f >/dev/null 2>&1 || true
+	# Fallback: remove images by repository name prefix (project-service)
+	@docker images --format '{{.Repository}}:{{.Tag}}' | awk '/^$(PROJECT_NAME)-/ {print $$0}' | xargs -r docker rmi -f >/dev/null 2>&1 || true
+	# Final prune of dangling layers only
+	@docker image prune -f >/dev/null 2>&1 || true
+	@echo "✅ Built images for $(PROJECT_NAME) removed."
+
+
+# Meta-clean target: nuke volumes and networks
+clean: down destroy-docker-volumes clean-networks
+	@echo "🧹 Project cleaned (volumes + networks)."
+
+down:
+	@echo "🛑 Stopping all services (dev + prod profiles) for project $(PROJECT_NAME)..."
+	@$(COMPOSE) -p $(PROJECT_NAME) --profile prod down -v --remove-orphans || true
+	@$(COMPOSE) -p $(PROJECT_NAME) --profile dev  down -v --remove-orphans || true
+	@echo "🔎 Ensuring no lingering containers remain..."
+	@docker ps -q --filter "label=com.docker.compose.project=$(PROJECT_NAME)" | xargs -r docker stop >/dev/null 2>&1 || true
+	@docker ps -aq --filter "label=com.docker.compose.project=$(PROJECT_NAME)" | xargs -r docker rm -f >/dev/null 2>&1 || true
+	@echo "✅ All services stopped and cleaned up."
+
+
+re: clean destroy-service-images prod
+	@echo "🔄 Project rebuilt and restarted."

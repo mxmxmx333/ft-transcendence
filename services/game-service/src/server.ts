@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { AuthPayload } from './types/types';
 import fs from 'fs';
 import path from 'path';
+import tlsReloadPlugin from './tls-reload';
 
 
 dotenv.config();
@@ -21,22 +22,16 @@ export const aiUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
 if (!aiUpstream) {
   throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
 }
-let httpsOptions;
 
 const keyPath = path.join(__dirname, certDir, 'server.key');
 const certPath = path.join(__dirname, certDir, 'server.crt');
 const caPath = path.join(__dirname, certDir, 'ca.crt');
+let httpsOptions: Record<string, any> = {};
 if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
-  httpsOptions = {
-    https: {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath),
-      ca: fs.readFileSync(caPath),
-    },
-  };
-  console.log('Api-Gateway: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  httpsOptions = { https: { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath), ca: fs.readFileSync(caPath) } };
+  console.log('Game-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
-  console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
+  console.warn('Game-Service: SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
 
 const server = fastify({
@@ -117,6 +112,13 @@ server.setErrorHandler((error, request, reply) => {
 });
 
 async function start() {
+  server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
   await server.listen({ port: 3001, host: '0.0.0.0' });
   console.log('Server backend is listening: https://localhost:3001 adresinde çalışıyor');
 }

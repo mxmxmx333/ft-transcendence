@@ -8,7 +8,6 @@ auto_auth {
     config {
       role_id_file_path                 = "/approle/role_id"            # Agent-RoleID (Sidecar)
       secret_id_file_path               = "/approle/secret_id"          # Agent-SecretID (wird unten rotiert)
-      secret_id_response_wrapping_path  = "/approle/secret_id_wrapped"  # 1st-run secure intro (optional)
       remove_secret_id_file_after_reading = false
     }
   }
@@ -22,9 +21,10 @@ template_config {
 
 vault {
   address         = "{{ env `VAULT_ADDR` }}"
-  tls_ca_cert     = "/agent/certs/ca.crt"
-  tls_client_cert = "/agent/certs/client.crt"   # mTLS des Agents
-  tls_client_key  = "/agent/certs/client.key"
+  tls_disable = false
+  ca_cert     = "/agent/certs/ca.crt"
+  client_cert = "/agent/certs/client.crt"   # mTLS des Agents
+  client_key  = "/agent/certs/client.key"
 }
 
 # AGENT SELF ROTATION
@@ -33,7 +33,7 @@ template {
   perms = "0600"
   contents = <<EOH
 {{- with secret (printf "auth/approle/role/%s/secret-id" (env "APPROLE_AGENT_NAME"))
-               (printf "metadata=%s-agent" (env "SERVICE_NAME")) -}}
+               (printf "metadata=agent=%s-agent" (env "SERVICE_NAME")) -}}
 {{ .Data.secret_id }}
 {{- end -}}
 EOH
@@ -102,7 +102,7 @@ template {
   perms = "0600"
   contents = <<EOH
 {{- with secret (printf "auth/approle/role/%s/secret-id" (env "APPROLE_SERVICE_NAME"))
-               (printf "metadata=%s-service" (env "SERVICE_NAME")) -}}
+               (printf "metadata=service=%s-service" (env "SERVICE_NAME")) -}}
 {{ .Data.secret_id }}
 {{- end -}}
 EOH
@@ -146,14 +146,26 @@ EOH
 
 # -------- Trust-Bundle (Agent) --------
 template {
-  destination = "/agent/ca/ca.crt"
+  destination = "/agent/certs/ca.crt"
   perms = "0644"
-  contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
+               (printf "common_name=%s-agent" (env "SERVICE_NAME"))
+               "ttl=720h" -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- end -}}
+EOH
 }
-
 # -------- Trust-Bundle (Service) --------
 template {
   destination = "/service/certs/ca.crt"
   perms = "0644"
-  contents = "{{ with secret \"pki/ca/pem\" }}{{ .Data.certificate }}{{ end }}"
+  contents = <<EOH
+{{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_SERVER"))
+               (printf "common_name=%s" (env "SERVICE_DNS"))
+               (printf "alt_names=%s"   (env "SERVICE_ALT_NAMES"))
+               "ttl=720h" -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- end -}}
+EOH
 }

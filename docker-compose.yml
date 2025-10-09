@@ -1,5 +1,58 @@
 name: transcendence
 services:
+  setup-volume-ownerships:
+    image: alpine:3.20
+    profiles: ["dev", "prod"]
+    user: "0:0"
+    environment:
+      APP_UID: "100"
+      APP_GID: "100"
+      CERT_DIRS: "/waf/service-certs /waf/agent-certs /apigw/service-certs /apigw/agent-certs /game/service-certs /game/agent-certs /auth/service-certs /auth/agent-certs /vault1/runtime-certs /vault2/runtime-certs /vault3/runtime-certs /shared/agent-hup"
+      APPROLE_DIRS: "/waf/approle /apigw/approle-agent /apigw/approle-service /game/approle-agent /auth/approle-agent /auth/approle-service /vault1/approle-agent /vault2/approle-agent /vault3/approle-agent"
+      RAFT_DIRS: "/vault1/raft /vault2/raft /vault3/raft"
+      LOG_DIRS: "/vault1/logs /vault2/logs /vault3/logs"
+      EXTRA_DIRS: "/shared/keys /auth/database"
+    command: ["sh","-lc","/scripts/setup_volume_ownerships.sh"]
+    volumes:
+      - ./services/vault/scripts/setup_volume_ownerships.sh:/scripts/setup_volume_ownerships.sh:ro
+      # WAF
+      - web-application-firewall-certs:/waf/service-certs
+      - web-application-firewall-agent-certs:/waf/agent-certs
+      - web-application-firewall-agent-approle:/waf/approle
+      # API Gateway
+      - api-gateway-service-certs:/apigw/service-certs
+      - api-gateway-agent-certs:/apigw/agent-certs
+      - api-gateway-agent-approle:/apigw/approle-agent
+      - api-gateway-approle-service:/apigw/approle-service
+      # Game Service
+      - game-service-certs:/game/service-certs
+      - game-service-agent-certs:/game/agent-certs
+      - game-service-agent-approle:/game/approle-agent
+      # Auth User Service
+      - auth-user-service-certs:/auth/service-certs
+      - auth-user-service-agent-certs:/auth/agent-certs
+      - auth-user-service-agent-approle:/auth/approle-agent
+      - auth-user-service-approle:/auth/approle-service
+      - database:/auth/database
+      # Vault Nodes
+      - vault-keys:/vault/keys
+      - vault-1-runtime-certs:/vault1/runtime-certs
+      - vault-2-runtime-certs:/vault2/runtime-certs
+      - vault-3-runtime-certs:/vault3/runtime-certs
+      - vault-1-agent-role:/vault1/approle-agent
+      - vault-2-agent-role:/vault2/approle-agent
+      - vault-3-agent-role:/vault3/approle-agent
+      - vault-1-data:/vault1/raft
+      - vault-2-data:/vault2/raft
+      - vault-3-data:/vault3/raft
+      - vault-1-logs:/vault1/logs
+      - vault-2-logs:/vault2/logs
+      - vault-3-logs:/vault3/logs
+      # Shared
+      - vault-keys:/shared/keys
+      - vault-agent-hup:/shared/agent-hup
+    restart: "no"
+
   web-application-firewall:
     build:
       context: ./services/web-application-firewall
@@ -8,8 +61,7 @@ services:
         MODSEC_VERSION: ${MODSEC_VERSION:-3.0.8}
         NGINX_VERSION: ${NGINX_VERSION:-1.22.1}
         LMDB_VERSION: ${LMDB_VERSION:-0.9.29}
-    user: "1000:1000"
-    entrypoint: ["sh","-lc","while ! (test -s /etc/nginx/certs/server.crt && test -s /etc/nginx/certs/server.key && test -s /etc/nginx/certs/ca.crt); do sleep 0.5; done; exec \"$@\""]
+    user: "100:100"
     depends_on:
       api-gateway:
         condition: service_started
@@ -27,9 +79,10 @@ services:
     restart: unless-stopped
 
   web-application-firewall-agent:
+    profiles: ["prod"]
     image: hashicorp/vault:1.20.2
-    user: "1000:1000"
-    command: ["agent","-config=/agents/service-server-agent.hcl"]
+    user: "100:100"
+    entrypoint: vault agent -config=/agents/service-server-agent.hcl
     depends_on:
       web-application-firewall:
         condition: service_started
@@ -42,15 +95,15 @@ services:
       APPROLE_AGENT_NAME: "web-application-firewall-rotator"
       PKI_ROLE_SERVER: "ft-transcendence"
       PKI_ROLE_CLIENT: "vault-clients-internal"
+      SKIP_SETCAP: "true"
     volumes:
-      - vault-agent-ca:/agent/ca:rw
       - web-application-firewall-agent-certs:/agent/certs:rw
       - web-application-firewall-certs:/service/certs:rw
       - web-application-firewall-agent-approle:/approle:rw
       - agent-server-config:/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-      - /run/vault:size=4m,mode=0700
+      - /run/vault:size=4m,mode=0700,uid=100,gid=100
       - /tmp:size=8m,mode=1777
     read_only: true
     security_opt:
@@ -69,8 +122,7 @@ services:
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
-    user: "1000:1000"
-    entrypoint: ["sh","-lc","while ! (test -s /app/certs/server.crt && test -s /app/certs/server.key && test -s /app/certs/ca.crt && test -s /app/certs/client.crt && test -s /app/certs/client.key); do sleep 0.5; done; exec \"$@\""]
+    user: "100:100"
     depends_on:
       auth-user-service:
         condition: service_started
@@ -80,9 +132,11 @@ services:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       GAME_SERVICE_UPSTREAM: https://game-service:3001
+      AI_OPPONENT_SERVICE_UPSTREAM: https://ai-opponent:3003
       AUTH_USER_SERVICE_UPSTREAM: https://auth-user-service:3002
       CERT_DIR: /app/certs
       APPROLE_DIR: /approle-service
+      VAULT_ADDR: "https://vault-1:8200"
     volumes:
       - api-gateway-service-certs:/app/certs:ro
       - api-gateway-approle-service:/approle-service:ro
@@ -93,9 +147,10 @@ services:
     restart: unless-stopped
 
   api-gateway-agent:
+    profiles: ["prod"]
     image: hashicorp/vault:1.20.2
-    user: "1000:1000"
-    command: ["agent","-config=/agents/service-server-client-agent.hcl"]
+    user: "100:100"
+    entrypoint: vault agent -config=/agents/service-server-client-agent.hcl
     depends_on:
       api-gateway:
         condition: service_started
@@ -109,8 +164,8 @@ services:
       APPROLE_SERVICE_NAME: "api-gateway"
       PKI_ROLE_SERVER: "api-gateway-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
+      SKIP_SETCAP: "true"
     volumes:
-      - vault-agent-ca:/agent/ca:rw
       - api-gateway-agent-certs:/agent/certs:rw
       - api-gateway-service-certs:/service/certs:rw
       - api-gateway-agent-approle:/approle:rw
@@ -118,7 +173,7 @@ services:
       - agent-server-client-config:/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-      - /run/vault:size=4m,mode=0700
+      - /run/vault:size=4m,mode=0700,uid=100,gid=100
       - /tmp:size=8m,mode=1777
     read_only: true
     security_opt:
@@ -135,8 +190,7 @@ services:
 
   game-service:
     build: ./services/game-service
-    user: "1000:1000"
-    entrypoint: ["sh","-lc","while ! (test -s /app/certs/server.crt && test -s /app/certs/server.key && test -s /app/certs/ca.crt); do sleep 0.5; done; exec \"$@\""]
+    user: "100:100"
     environment:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -152,9 +206,10 @@ services:
     restart: unless-stopped
 
   game-service-agent:
+    profiles: ["prod"]
     image: hashicorp/vault:1.20.2
-    user: "1000:1000"
-    command: ["agent","-config=/agents/service-server-agent.hcl"]
+    user: "100:100"
+    entrypoint: vault agent -config=/agents/service-server-agent.hcl
     depends_on:
       game-service:
         condition: service_started
@@ -167,15 +222,15 @@ services:
       APPROLE_AGENT_NAME: "game-service-rotator"
       PKI_ROLE_SERVER: "game-service-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
+      SKIP_SETCAP: "true"
     volumes:
-      - vault-agent-ca:/agent/ca:rw
       - game-service-agent-certs:/agent/certs:rw
       - game-service-certs:/service/certs:rw
       - game-service-agent-approle:/approle:rw
       - agent-server-config:/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-      - /run/vault:size=4m,mode=0700
+      - /run/vault:size=4m,mode=0700,uid=100,gid=100
       - /tmp:size=8m,mode=1777
     read_only: true
     security_opt:
@@ -192,14 +247,15 @@ services:
 
   auth-user-service:
     build: ./services/auth-user-service
-    user: "1000:1000"
-    entrypoint: ["sh","-lc","while ! (test -s /app/certs/server.crt && test -s /app/certs/server.key && test -s /app/certs/ca.crt && test -s /app/certs/client.crt && test -s /app/certs/client.key); do sleep 0.5; done; exec \"$@\""]
+    user: "100:100"
     environment:
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       JWT_SECRET: ${JWT_SECRET}
       CERT_DIR: /app/certs
       APPROLE_DIR: /approle-service
+      VAULT_ADDR: "https://vault-1:8200"
+      FRONTEND_URL: "web-application-firewall:8443"
     volumes:
       - database:/app/database
       - auth-user-service-certs:/app/certs:ro
@@ -211,9 +267,10 @@ services:
     restart: unless-stopped
 
   auth-user-service-agent:
+    profiles: ["prod"]
     image: hashicorp/vault:1.20.2
-    user: "1000:1000"
-    command: ["agent","-config=/agents/service-server-client-agent.hcl"]
+    user: "100:100"
+    entrypoint: vault agent -config=/agents/service-server-client-agent.hcl
     depends_on:
       auth-user-service:
         condition: service_started
@@ -227,8 +284,8 @@ services:
       APPROLE_SERVICE_NAME: "auth-user-service"
       PKI_ROLE_SERVER: "auth-user-service-internal"
       PKI_ROLE_CLIENT: "vault-clients-internal"
+      SKIP_SETCAP: "true"
     volumes:
-      - vault-agent-ca:/agent/ca:rw
       - auth-user-service-agent-certs:/agent/certs:rw
       - auth-user-service-certs:/service/certs:rw
       - auth-user-service-agent-approle:/approle:rw
@@ -236,7 +293,7 @@ services:
       - agent-server-client-config:/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-      - /run/vault:size=4m,mode=0700
+      - /run/vault:size=4m,mode=0700,uid=100,gid=100
       - /tmp:size=8m,mode=1777
     read_only: true
     security_opt:
@@ -251,7 +308,6 @@ services:
       - api-network
     restart: unless-stopped
 
-
   cli-client:
     build: ./cli
     network_mode: host
@@ -263,7 +319,7 @@ services:
   # for all vault services (dev + prod)
   vault-seed-config:
     image: alpine:3.20
-    profiles: [ "dev", "prod" ]
+    profiles: [ "dev", "prod" ]      
     volumes:
       - ./services/vault/config/:/source:ro
       - ./services/vault/scripts/:/scripts:ro
@@ -308,8 +364,8 @@ services:
       VAULT_ADDR: "https://vault-dev:8200"
       VAULT_SKIP_VERIFY: "1"
       ENABLE_MTLS_AT_END: "true"
-      HOST_UID: "${HOST_UID:-1000}"               # Fallback 1000
-      HOST_GID: "${HOST_GID:-1000}"               # Fallback 1000
+      HOST_UID: "${HOST_UID:-100}"               # Fallback 100
+      HOST_GID: "${HOST_GID:-100}"               # Fallback 100
     volumes:
       - ./services/vault/scripts:/scripts:ro                             # <— Skript nur gemountet
       - ./services/vault/policies:/policies:ro                           # <— Policies nur gemountet
@@ -341,8 +397,6 @@ services:
       - "127.0.0.1:8202:8202"
     networks: [ api-network ]
 
-
-
   # --- Prod/Staging: 3-node cluster
   vault-1-seed:
     image: alpine:3.20
@@ -352,8 +406,8 @@ services:
       EXTRASAN: ",DNS:localhost"
       DEST: "/destination"
       DAYS: "7"
-      HOST_UID: "1000"
-      HOST_GID: "1000"
+      HOST_UID: "100"
+      HOST_GID: "100"
     volumes:
       - vault-1-runtime-certs:/destination
       - ./services/vault/scripts/:/scripts:ro
@@ -366,15 +420,15 @@ services:
       dockerfile: services/vault/bootstrap/Dockerfile
     profiles: [ "prod" ]
     depends_on: [ vault-1 ]
-    user: "1000:1000"
+    user: "0:0"
     pid: "service:vault-1"
     entrypoint: [ "sh", "/scripts/vault-bootstrap-prod.sh" ]
     environment:
       VAULT_ADDR: "https://vault-1:8200"
       VAULT_SKIP_VERIFY: "1"
       ENABLE_MTLS_AT_END: "true"
-      VAULT_UID: "1000"
-      VAULT_GID: "1000"
+      VAULT_UID: "100"
+      VAULT_GID: "100"
       VAULT_KEY_DIR: "/vault/keys"
     volumes:
       - ./services/vault/scripts:/scripts:ro
@@ -390,19 +444,21 @@ services:
       - vault-3-agent-role:/approle/vault-3-agent:rw
 
       # Service Agents (initial seed)
-      - vault-agent-ca:/agent/ca:rw
 
+      - web-application-firewall-agent-certs:/certs/web-application-firewall-agent:rw
       - web-application-firewall-agent-approle:/approle/web-application-firewall-agent:rw
 
+      - api-gateway-agent-certs:/certs/api-gateway-agent:rw
       - api-gateway-agent-approle:/approle/api-gateway-agent:rw
 
+      - auth-user-service-agent-certs:/certs/auth-user-service-agent:rw
       - auth-user-service-agent-approle:/approle/auth-user-service-agent:rw
 
+      - game-service-agent-certs:/certs/game-service-agent:rw
       - game-service-agent-approle:/approle/game-service-agent:rw
 
-      - ai-opponent-agent-approle:/approle/ai-opponent-agent:rw
-
-      - cli-agent-approle:/approle/cli-agent:rw
+      # - ai-opponent-agent-certs:/certs/ai-opponent-agent:rw
+      # - ai-opponent-agent-approle:/approle/ai-opponent-agent:rw
 
       # Config volumes (seeded by vault-seed-config)
       - vault-1-config:/vault/config:rw
@@ -429,17 +485,20 @@ services:
   vault-1:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
-    command: [ "server", "-config=/vault/config/vault-1.hcl" ]
+    user: "100:100"
+    entrypoint: vault server -config=/vault/config/vault-1.hcl
     cap_add: [ "IPC_LOCK" ]
     ports: [ "127.0.0.1:18200:8300"]
     ulimits: { memlock: -1 }
+    environment:
+      SKIP_SETCAP: "1"
+      SKIP_CHOWN: "true"
     volumes:
       - vault-1-config:/vault/config:ro
       - vault-1-runtime-certs:/vault/certs:ro   # initiale Zertifikate von vault-1-seed
       - vault-1-data:/vault/raft
       - vault-1-logs:/vault/logs
-    expose: [ "8200" ]
+    expose: [ "18200" ]
     networks: [ api-network ]
     security_opt:
       - no-new-privileges:true
@@ -448,17 +507,19 @@ services:
   vault-1-agent:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
+    user: "100:100"
     pid: "service:vault-1"
     depends_on: [ vault-1 ]
-    command: [ "agent", "-config=/vault/agents/vault-1-agent.hcl" ]
+    entrypoint: vault agent -config=/vault/agents/vault-1-agent.hcl
+    environment:
+      SKIP_SETCAP: "true"
     volumes:
       - vault-1-runtime-certs:/vault/certs:rw
       - vault-1-agent-role:/approle:rw
       - vault-1-agent-config:/vault/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-      - /run/vault:rw,size=4m,mode=0700
+      - /run/vault:rw,size=4m,mode=0700,uid=100,gid=100
       - /tmp:rw,size=8m,mode=1777
     read_only: true
     networks: [ api-network ]
@@ -469,18 +530,21 @@ services:
   vault-2:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
-    command: [ "server", "-config=/vault/config/vault-2.hcl" ]
+    user: "100:100"
+    entrypoint: vault server -config=/vault/config/vault-2.hcl
     depends_on: [ vault-1 ]
     cap_add: [ "IPC_LOCK" ]
     ulimits: { memlock: -1 }
+    environment:
+      SKIP_SETCAP: "1"
+      SKIP_CHOWN: "true"
     ports: [ "127.0.0.1:28200:8300" ]
     volumes:
       - vault-2-config:/vault/config:ro
       - vault-2-runtime-certs:/vault/certs:ro
       - vault-2-data:/vault/raft
       - vault-2-logs:/vault/logs
-    expose: [ "8200" ]
+    expose: [ "28200" ]
     networks: [ api-network ]
     security_opt:
       - no-new-privileges:true
@@ -489,17 +553,19 @@ services:
   vault-2-agent:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
+    user: "100:100"
     pid: "service:vault-2"
     depends_on: [ vault-2 ]
-    command: [ "agent", "-config=/vault/agents/vault-2-agent.hcl" ]
+    entrypoint: vault agent -config=/vault/agents/vault-2-agent.hcl
+    environment:
+      SKIP_SETCAP: "true"
     volumes:
       - vault-2-runtime-certs:/vault/certs:rw
       - vault-2-agent-role:/approle:rw
       - vault-2-agent-config:/vault/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-     - /run/vault:rw,size=4m,mode=0700
+     - /run/vault:rw,size=4m,mode=0700,uid=100,gid=100
      - /tmp:rw,size=8m,mode=1777
     read_only: true
     networks: [ api-network ]
@@ -511,17 +577,20 @@ services:
   vault-3:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
-    command: [ "server", "-config=/vault/config/vault-3.hcl" ]   # mit retry_join auf vault-1
+    user: "100:100"
+    entrypoint: vault server -config=/vault/config/vault-3.hcl
     cap_add: [ "IPC_LOCK" ]
     ulimits: { memlock: -1 }
+    environment:
+      SKIP_SETCAP: "1"
+      SKIP_CHOWN: "true"
     ports: [ "127.0.0.1:38200:8300" ]
     volumes:
       - vault-3-config:/vault/config:ro
       - vault-3-runtime-certs:/vault/certs:ro
       - vault-3-data:/vault/raft
       - vault-3-logs:/vault/logs
-    expose: [ "8200" ]
+    expose: [ "38200" ]
     networks: [ api-network ]
     security_opt:
       - no-new-privileges:true
@@ -530,17 +599,19 @@ services:
   vault-3-agent:
     profiles: [ "prod" ]
     image: hashicorp/vault:1.20
-    user: "1000:1000"
+    user: "100:100"
     pid: "service:vault-3"
     depends_on: [ vault-3 ]
-    command: [ "agent", "-config=/vault/agents/vault-3-agent.hcl" ]
+    entrypoint: vault agent -config=/vault/agents/vault-3-agent.hcl
+    environment:
+      SKIP_SETCAP: "true"
     volumes:
       - vault-3-runtime-certs:/vault/certs:rw
       - vault-3-agent-role:/approle:rw
       - vault-3-agent-config:/vault/agents:ro
       - vault-agent-hup:/agent/hup:ro
     tmpfs:
-     - /run/vault:rw,size=4m,mode=0700
+     - /run/vault:rw,size=4m,mode=0700,uid=100,gid=100
      - /tmp:rw,size=8m,mode=1777
     read_only: true
     networks: [ api-network ]
@@ -572,7 +643,6 @@ volumes:
   auth-user-service-agent-approle: {}
   auth-user-service-approle: {}
   ai-opponent-agent-approle: {}
-  cli-agent-approle: {}
 
 # VAULT
   vault-dev-config: {}
@@ -606,4 +676,3 @@ volumes:
   agent-server-client-config: {}
 
   vault-agent-hup: {}
-  vault-agent-ca: {}

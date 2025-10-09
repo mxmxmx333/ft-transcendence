@@ -5,6 +5,7 @@ import AuthService from './auth.service';
 import AuthController from './auth.controller';
 import fs from 'fs';
 import vaultClient from './vault-client';
+import tlsReloadPlugin from './tls-reload';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
@@ -23,7 +24,7 @@ const certPath = path.join(__dirname, certDir, 'server.crt');
 const caPath = path.join(__dirname, certDir, 'ca.crt');
 
 async function buildServer() {
-  let httpsOptions;
+  let httpsOptions: Record<string, any> = {};
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
       https: {
@@ -58,6 +59,13 @@ async function buildServer() {
   await server.register(dbConnector);
   await server.register(vaultClient);
   await server.register(vAuth);
+  await server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
 
   // Error handling
   server.setErrorHandler((error, request, reply) => {

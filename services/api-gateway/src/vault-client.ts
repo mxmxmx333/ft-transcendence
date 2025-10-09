@@ -13,6 +13,11 @@ import {
 
 dotenv.config();
 
+
+function filesReady(paths: string[]) {
+  return paths.every((p) => fs.existsSync(p));
+}
+
 function mustRead(p: string, label: string) {
   if (!fs.existsSync(p)) throw new Error(`${label} not found: ${p}`);
   return fs.readFileSync(p);
@@ -35,6 +40,7 @@ declare module 'fastify' {
       appRoleLogin: () => Promise<void>;
       renewNow: () => Promise<void>;
       vRequest: typeof undiciFetch;
+      reloadMtls: () => Promise<void>;
     };
   }
 }
@@ -53,23 +59,80 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
 
   if (!VAULT_ADDR) throw new Error('VAULT_ADDR is required in .env');
 
-  const ca = mustRead(caPath, 'Vault CA');
-  const cert = mustRead(crtPath, 'Client certificate');
-  const key = mustRead(keyPath, 'Client key');
+  let enabled = false;
 
-  const dispatcher = new UndiciAgent({
-    keepAliveTimeout: 30_000,
-    keepAliveMaxTimeout: 60_000,
-    connect: {
-      ca,
-      cert,
-      key,
-      rejectUnauthorized: true,
-    },
-  });
+  function createDispatcher() {
+    if (filesReady([caPath, crtPath, keyPath])) {
+      const ca = mustRead(caPath, 'Vault CA');
+      const cert = mustRead(crtPath, 'Client certificate');
+      const key = mustRead(keyPath, 'Client key');
+      enabled = true;
+      return new UndiciAgent({
+        keepAliveTimeout: 30_000,
+        keepAliveMaxTimeout: 60_000,
+        connect: {
+          ca,
+          cert,
+          key,
+          rejectUnauthorized: true,
+        },
+      });
+    }
+    // Fallback agent without mTLS; plugin stays disabled until files appear
+    enabled = false;
+    return new UndiciAgent({ keepAliveTimeout: 30_000, keepAliveMaxTimeout: 60_000 });
+  }
+
+  let dispatcher = createDispatcher();
+
+  async function tryEnable(force = false) {
+    if (!force && enabled) return;
+    if (!filesReady([caPath, crtPath, keyPath, roleIdPath, secretIdPath])) {
+      fastify.log.warn('[vault] mTLS/approle files not present yet; vault client inactive');
+      return;
+    }
+    // swap dispatcher with mTLS
+    const next = new UndiciAgent({
+      keepAliveTimeout: 30_000,
+      keepAliveMaxTimeout: 60_000,
+      connect: {
+        ca: mustRead(caPath, 'Vault CA'),
+        cert: mustRead(crtPath, 'Client certificate'),
+        key: mustRead(keyPath, 'Client key'),
+        rejectUnauthorized: true,
+      },
+    });
+    const prev = dispatcher;
+    dispatcher = next;
+    try { await prev.close(); } catch {}
+    enabled = true;
+    await appRoleLogin();
+    fastify.log.info('[vault] enabled mTLS after files appeared');
+  }
 
   const state: VaultState = {};
   const marginMs = Math.max(Number(VAULT_TOKEN_MARGIN_SEC) || 30, 5) * 1000;
+
+  let reloading = false;
+  async function reloadMtls() {
+    if (reloading) return;
+    reloading = true;
+    try {
+      const next = createDispatcher();
+      const prev = dispatcher;
+      dispatcher = next;
+      try {
+        await prev.close();
+      } catch (e) {
+        if (typeof (prev as any).destroy === 'function') (prev as any).destroy();
+      }
+      fastify.log.info('[vault] mTLS dispatcher reloaded');
+    } catch (err) {
+      fastify.log.error({ err }, '[vault] mTLS reload failed');
+    } finally {
+      reloading = false;
+    }
+  }
 
   const rawFetch: typeof undiciFetch = (url, init) =>
     undiciFetch(url, { ...(init as UndiciRequestInit), dispatcher });
@@ -83,6 +146,7 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   };
 
   async function appRoleLogin() {
+    if (!enabled) return; // wait until mTLS/files are available
     const roleId = mustRead(roleIdPath, 'role_id').toString().trim();
     const secretId = mustRead(secretIdPath, 'secret_id').toString().trim();
     const res = await rawFetch(`${VAULT_ADDR}/v1/auth/approle/login`, {
@@ -100,6 +164,7 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   }
 
   async function renewNow() {
+    if (!enabled) return;
     if (!state.token) return appRoleLogin();
     if (!state.renewable) return appRoleLogin();
     const res = await vfetch(`${VAULT_ADDR}/v1/auth/token/renew-self`, {
@@ -120,6 +185,7 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
 
   let singleFlightLock: Promise<void> | null = null;
   async function ensureToken(force = false) {
+    if (!enabled) return;
     const nearlyExpired = !state.expiresAt || state.expiresAt - Date.now() <= marginMs;
     const need = force || !state.token || nearlyExpired;
     if (!need) return;
@@ -146,7 +212,7 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   };
 
   fastify.decorate('vClient', {
-    dispatcher,
+    get dispatcher() { return dispatcher; },
     fetch: vfetch,
     rawFetch: rawFetch,
     getToken: () => state.token,
@@ -154,11 +220,18 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     appRoleLogin,
     renewNow,
     vRequest,
+    reloadMtls,
   });
+  
+  // Install SIGHUP handler to reload Vault mTLS materials at runtime
+  const hupHandler = () => { void (enabled ? reloadMtls() : tryEnable(true)); };
+  process.on('SIGHUP', hupHandler);
 
-  await appRoleLogin();
+  // Do not fail startup if files are missing; attempt to enable once
+  await tryEnable(false);
 
   fastify.addHook('onClose', async () => {
+    process.off('SIGHUP', hupHandler);
     await dispatcher.close();
   });
 };

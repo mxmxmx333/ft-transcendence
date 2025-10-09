@@ -41,6 +41,24 @@ DONE policies und approles fertigstellen.
 DONE: ca bei den agents placen. 
 -----
 
-env. update in den services. 
-PENDING!!! 
-chown all docker-volumes 1000:1000
+DONE env. update in den services. 
+
+DONE chown all docker-volumes 1000:1000
+
+
+PENDING!!!
+
+agents dont trust the cerrtificates
+
+Alles klar — das Fehlerbild sagt: die Agents vertrauen der Server-CA nicht. Zwei Bausteine fehlen/stoßen zusammen:
+	1.	CA-Datei muss wirklich im Agent-Container ankommen (richtiger Mount-Pfad).
+	2.	Der Agent muss sie aktiv nutzen (per HCL vault { ca_cert = ... } oder via Env VAULT_CACERT), ohne VAULT_SKIP_VERIFY=1.
+
+Deine Logs zeigen, dass die Agents nach wie vor gegen https://vault-1:8200 verbinden und mit unknown authority scheitern — also ist mindestens einer der zwei Punkte noch nicht erfüllt.
+
+Quick, deterministic Fix (ohne Ratespiel)
+
+A. Gemeinsame CA als Named Volume mounten
+	•	Definiere ein gemeinsames Volume agent-ca und mounte es:
+	•	in den Bootstrap-Container nach /agent/ca (dorthin schreibt das Skript die CA),
+	•	in jeden Service-Agent (read-only) ebenfalls nach /agent/ca.

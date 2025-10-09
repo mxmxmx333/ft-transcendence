@@ -13,6 +13,7 @@ path "auth/token/renew-self" {
 path "auth/approle/role/vault-node-1-rotator/secret-id" {
   capabilities = ["update"]
 }
+
 path "auth/approle/role/vault-node-1-rotator/role-id" {
   capabilities = ["read"]
 }

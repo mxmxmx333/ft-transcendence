@@ -21,19 +21,20 @@ VAULT_AGENT_2_APPROLE_DIR="${VAULT_AGENT_2_APPROLE_DIR:-/approle/vault-2-agent}"
 VAULT_AGENT_3_APPROLE_DIR="${VAULT_AGENT_3_APPROLE_DIR:-/approle/vault-3-agent}"
 
 # VAULT SERVICE AGENT CERT DIRS
-VAULT_AGENT_CA_DIR="${VAULT_AGENT_CA_DIR:-/agent/ca/}"
-
+VAULT_AGENT_API_GATEWAY_CERT_DIR="${VAULT_AGENT_API_GATEWAY_CERT_DIR:-/certs/api-gateway-agent}"
 VAULT_AGENT_API_GATEWAY_APPROLE_DIR="${VAULT_AGENT_API_GATEWAY_APPROLE_DIR:-/approle/api-gateway-agent/}"
 
+VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR:-/certs/auth-user-service-agent}"
 VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR="${VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR:-/approle/auth-user-service-agent/}"
 
+VAULT_AGENT_GAME_SERVICE_CERT_DIR="${VAULT_AGENT_GAME_SERVICE_CERT_DIR:-/certs/game-service-agent}"
 VAULT_AGENT_GAME_SERVICE_APPROLE_DIR="${VAULT_AGENT_GAME_SERVICE_APPROLE_DIR:-/approle/game-service-agent/}"
 
+VAULT_AGENT_AI_OPPONENT_CERT_DIR="${VAULT_AGENT_AI_OPPONENT_CERT_DIR:-/certs/ai-opponent-agent}"
 VAULT_AGENT_AI_OPPONENT_APPROLE_DIR="${VAULT_AGENT_AI_OPPONENT_APPROLE_DIR:-/approle/ai-opponent-agent/}"
 
+VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR:-/certs/web-application-firewall-agent}"
 VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR:-/approle/web-application-firewall-agent/}"
-
-VAULT_AGENT_CLI_APPROLE_DIR="${VAULT_AGENT_CLI_APPROLE_DIR:-/approle/cli-agent/}"
 
 # VAULT CONFIG SRC AND DEST DIR
 VAULT_CONFIG_SRC_NAME="${VAULT_CONFIG_SRC_NAME:-vault-1.hcl.replace}"
@@ -262,11 +263,12 @@ define_pki_roles() {
 
   echo ">> write pki role vault-clients-internal (client mTLS to Vault)"
   vault write pki/roles/vault-clients-internal \
-    allowed_domains="api-gateway,auth-user-service,api-gateway-agent,auth-user-service-agent,game-service-agent,web-application-firewall-agent" \
+    allowed_domains="api-gateway,auth-user-service,api-gateway-agent,auth-user-service-agent,game-service-agent,web-application-firewall-agent,ai-opponent-agent,cli-agent" \
     allow_bare_domains=true allow_subdomains=false allow_ip_sans=false \
     key_type="ec" key_bits=256 \
     server_flag=false client_flag=true \
     max_ttl="720h"
+
 }
 
 issue_cert() {
@@ -294,21 +296,12 @@ issue_vault_certs(){
   issue_cert "vault-1"                        "vault-node-internal"     "vault-1,localhost"                    "127.0.0.1"   "$VAULT_1_CERT_DIR"                                "server"
   issue_cert "vault-2"                        "vault-node-internal"     "vault-2,localhost"                    "127.0.0.1"   "$VAULT_2_CERT_DIR"                                "server"
   issue_cert "vault-3"                        "vault-node-internal"     "vault-3,localhost"                    "127.0.0.1"   "$VAULT_3_CERT_DIR"                                "server"
-  # issue_cert "api-gateway-agent"              "vault-clients-internal"  "api-gateway-agent"                    ""            "$VAULT_AGENT_API_GATEWAY_CERT_DIR"                "client"
-  # issue_cert "auth-user-service-agent"        "vault-clients-internal"  "auth-user-service-agent"              ""            "$VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR"          "client"
-  # issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
-  # issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
-
+  issue_cert "api-gateway-agent"              "vault-clients-internal"  "api-gateway-agent"                    ""            "$VAULT_AGENT_API_GATEWAY_CERT_DIR"                "client"
+  issue_cert "auth-user-service-agent"        "vault-clients-internal"  "auth-user-service-agent"              ""            "$VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR"          "client"
+  issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
+  issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
 }
 
-generate_ca_service_agents_cert() {
-  echo ">> generate CA cert for service agents"
-  mkdir -p "$VAULT_AGENT_CA_DIR"
-  chmod 755 "$VAULT_AGENT_CA_DIR" && chown "$VAULT_UID:$VAULT_GID" "$VAULT_AGENT_CA_DIR" 2>/dev/null || true
-  vault read -format=json pki/ca/pem | jq -r '.data.certificate' > "$VAULT_AGENT_CA_DIR/ca.crt"
-  chmod 644 "$VAULT_AGENT_CA_DIR/ca.crt"
-  chown "$VAULT_UID:$VAULT_GID" "$VAULT_AGENT_CA_DIR/ca.crt" 2>/dev/null || true
-}
 # ------- Phase 8: Policies & App-Roles -------
 
 render_approle_id_and_secret() {
@@ -350,8 +343,8 @@ enable_policies_and_approles() {
   
   vault auth list -format=json | jq -e 'has("approle/")' >/dev/null || vault auth enable approle
 
-  vault policy write api-gateway                        policies/common/api-gateway.hcl
-  vault policy write auth-user-service                  policies/common/auth-user-service.hcl
+  vault policy write api-gateway                        policies/api-gateway.hcl
+  vault policy write auth-user-service                  policies/auth-user-service.hcl
   vault policy write ai-opponent-rotator                policies/pki-rotate-ai-opponent.hcl
   vault policy write api-gateway-rotator                policies/pki-rotate-api-gateway.hcl
   vault policy write auth-user-service-rotator          policies/pki-rotate-auth-user-service.hcl
@@ -400,7 +393,7 @@ enable_policies_and_approles() {
   render_approle_id_and_secret "game-service-rotator"                 "$VAULT_AGENT_GAME_SERVICE_APPROLE_DIR"                "$VAULT_UID" "$VAULT_GID"
   render_approle_id_and_secret "web-application-firewall-rotator"     "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR"    "$VAULT_UID" "$VAULT_GID"
   # render_approle_id_and_secret "ai-opponent-rotator"                  "$VAULT_AGENT_AI_OPPONENT_APPROLE_DIR"                 "$VAULT_UID" "$VAULT_GID"
-  # render_approle_id_and_secret "cli"                                  "$VAULT_AGENT_CLI_APPROLE_DIR"                         "$VAULT_UID" "$VAULT_GID"
+  # render_approle_id_and_secret "cli-rotator"                          "$VAULT_AGENT_CLI_APPROLE_DIR"                         "$VAULT_UID" "$VAULT_GID"
 }
 
 enable_node_mtls() {
@@ -434,11 +427,54 @@ enable_node_mtls() {
   echo "Success: mTLS config deployed to: $dst"
 }
 
+# ------- Test: aktuell geladene Zertifikate via curl (ohne openssl) -------
+test_vault_cert() {
+  echo ">> Test: hole aktuell geladene Zertifikate von $VAULT_ADDR"
+
+  # Versuche eine passende CA-Datei zu nutzen (falls vorhanden), sonst ohne Verify
+  CACERT=""
+  for c in /agent/ca/ca.crt /vault/certs/ca.crt /certs/vault-1/ca.crt; do
+    if [ -s "$c" ]; then CACERT="$c"; break; fi
+  done
+  [ -n "$CACERT" ] && echo ">> benutze CA-Datei: $CACERT" || echo ">> keine CA-Datei gefunden – TLS-Infos werden trotzdem aus curl -v geparst"
+
+  for i in $(seq 1 10); do
+    # 1) Health-Check (mit oder ohne CA)
+    if [ -n "$CACERT" ]; then
+      code="$(curl -sS -o /dev/null -w '%{http_code}' --cacert "$CACERT" "$VAULT_ADDR/v1/sys/health" || true)"
+    else
+      code="$(curl -sS -o /dev/null -w '%{http_code}' -k "$VAULT_ADDR/v1/sys/health" || true)"
+    fi
+
+    case "$code" in
+      200|429|501|503)
+        echo ">> API erreichbar (HTTP $code)"
+        # 2) TLS-Zertifikatsinfo aus curl -v (stderr) herausparsen
+        if [ -n "$CACERT" ]; then
+          TLSINFO="$(curl -sSvk --cacert "$CACERT" "$VAULT_ADDR/v1/sys/health" -o /dev/null 2>&1 | sed -n -e 's/^\*  subject: //p' -e 's/^\*  issuer: //p' -e 's/^\*  SSL certificate verify ok.*/verify ok/p')"
+        else
+          TLSINFO="$(curl -sSvk "$VAULT_ADDR/v1/sys/health" -o /dev/null 2>&1 | sed -n -e 's/^\*  subject: //p' -e 's/^\*  issuer: //p')"
+        fi
+        [ -n "$TLSINFO" ] && echo "$TLSINFO" || echo ">> keine TLS-Infos aus curl erhalten"
+        [ -n "$CACERT" ] && echo ">> Verifikation mit CA-Datei versucht" || true
+        return 0 ;;
+    esac
+
+    echo "!! sys/health noch nicht bereit (Versuch $i), warte 1s..."; sleep 1
+  done
+
+  echo "!! konnte sys/certs/sys/health nach mehreren Versuchen nicht zuverlässig lesen"
+  return 1
+}
+
+
 
 wait_for_vault || { echo "!! vault not reachable"; exit 1; }
 
-if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
- init_vault || { echo "!! vault init failed"; exit 1; }
+if [ ! -f "$MARKER_FILE" ]; then
+  if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
+  init_vault || { echo "!! vault init failed"; exit 1; }
+  fi
 fi
 
 if ! vault status -format=json | jq -e '.sealed == false' >/dev/null; then
@@ -449,19 +485,26 @@ if [ -f "$MARKER_FILE" ]; then
   echo ">> bootstrap already done (marker found at $MARKER_FILE). Exiting."
   exit 0
 fi
+
+
 export_vault_token
+test_vault_cert || { echo "!! vault cert test failed"; exit 1; }
 enable_jwt_transit
 enable_pki_engine
 define_pki_roles
 issue_vault_certs
-generate_ca_service_agents_cert
 enable_policies_and_approles
+echo "Sending SIGHUP to PID 1 to reload Vault certs..."
+kill -HUP 1 2>/dev/null || true
+sleep 3
+
+test_vault_cert || { echo "!! vault cert test failed"; exit 1; }
 if [ "${ENABLE_MTLS_AT_END:-false}" = "true" ]; then
   enable_node_mtls "$VAULT_CONFIG_SRC_DIR/$VAULT_CONFIG_SRC_NAME" \
                    "$VAULT_1_CONFIG_DIR/$VAULT_CONFIG_FILE_NAME"
 fi
 
-# MARKER setzen
+# MARKER setzens
 mkdir -p "$VAULT_BOOTSTRAP_STATE_DIR"
 date -Iseconds > "$MARKER_FILE"
 echo ">> bootstrap done."
