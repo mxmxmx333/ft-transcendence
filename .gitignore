@@ -5,6 +5,7 @@ src/dist/
 # === Frontend Build ===
 public/css/output.css
 public/js/
+services/web-application-firewall/html/
 
 # === Node Modules ===
 node_modules/

@@ -1,7 +1,7 @@
 import { Server } from 'http';
-import { SocketManager } from './socketManager.js';
-import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces.js';
-import { gamePage, newgamePage, showPage } from './router.js';
+import { SocketManager } from './socketManager';
+import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces';
+import { gamePage, newgamePage, showPage } from './router';
 
 export class PongGame {
   public isSinglePlayer = false;
@@ -16,10 +16,6 @@ export class PongGame {
   private opponentNickname = '';
   private myNickname = 'Player';
   private socketManager?: SocketManager;
-
-  // TODO: Fix Lobby message (w/s, up/down )
-
-  // TODO: fix Game Over (on reset game)
 
   // Constants - normalized for 800x600
   private paddleHeight = 100;

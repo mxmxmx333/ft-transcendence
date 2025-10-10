@@ -209,6 +209,7 @@ services:
       API_GATEWAY_UPSTREAM: https://api-gateway:3000
       CERT_DIR: /app/certs
       AI_OPPONENT_SERVICE_UPSTREAM: https://ai-opponent:3003
+      AUTH_USER_SERVICE_UPSTREAM: https://auth-user-service:3002
     volumes:
       - game-service-certs:/app/certs:ro
     security_opt:

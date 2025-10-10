@@ -25,6 +25,11 @@ if (!aiUpstream) {
   throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
 }
 
+export const authUserServiceUpstream = process.env.AUTH_USER_SERVICE_UPSTREAM;
+if (!authUserServiceUpstream) {
+  throw new Error('AUTH_USER_SERVICE_UPSTREAM environment variable is not set');
+}
+
 const keyPath = path.join(certDir, 'server.key');
 const certPath = path.join(certDir, 'server.crt');
 const caPath = path.join(certDir, 'ca.crt');

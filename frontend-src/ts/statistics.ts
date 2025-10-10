@@ -76,12 +76,12 @@ export class StatisticsManager {
     this.updateElement('win-loss-text', winLossText);
 
     // Letztes Spiel
-    if (this.stats.last_game_date) {
-      const lastGame = new Date(this.stats.last_game_date);
-      this.updateElement('last-game', lastGame.toLocaleDateString());
-    } else {
-      this.updateElement('last-game', 'Never');
-    }
+    // if (this.stats.last_game_date) {
+    //   const lastGame = new Date(this.stats.last_game_date);
+    //   this.updateElement('last-game', lastGame.toLocaleDateString());
+    // } else {
+    //   this.updateElement('last-game', 'Never');
+    // }
   }
 
   private drawCharts() {

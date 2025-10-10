@@ -4,6 +4,7 @@ import { handleLeaveRoom } from './room';
 import type { GameStartPayload, Player } from './types/types';
 import { setMaxIdleHTTPParsers } from 'http';
 import { handleTournamentGameEnd } from './tournament';
+import { authUserServiceUpstream } from './server';
 
 export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
@@ -56,7 +57,6 @@ export function startGame(room: GameRoom) {
 
     if ('players' in room && 'gameState' in room) {
       // loope durch die players durch und sende ihnen game_start
-      console.debug('GAME STATE exists in room:', room.id);
       let players = (room as any).players as Player[];
       if (Array.isArray(players)) {
         players.forEach((player: Player) => {
@@ -250,9 +250,6 @@ export async function endGame(room: GameRoom) {
   const winner = room.owner!.score >= 10 ? room.owner!.nickname : room.guest!.nickname;
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
-  const winnerNickname =
-    winner === room.owner!.nickname ? room.owner!.nickname : room.guest!.nickname;
-
   let gameResult = {
     player1: room.owner!.id,
     player2: room.gameType === 'single' ? null : room.guest!.id,
@@ -271,12 +268,7 @@ export async function endGame(room: GameRoom) {
   };
 
   if ('players' in room) {
-    await saveGameResult({
-      ...gameResult,
-      player2: room.guest!.id,
-      winner: gameResult.winner ?? room.guest?.id,
-      gameType: 'tournament',
-    });
+    await saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner != null ? gameResult.winner : room.guest?.id, gameType: 'tournament' });
     console.debug(`[Server] Tournament game result saved for room ${room.id}`);
     handleTournamentGameEnd(room, winner);
     return;
@@ -290,15 +282,14 @@ export async function endGame(room: GameRoom) {
       owner: room.owner!.score,
       guest: room.guest!.score,
     },
-    message: `Game over! ${winnerNickname} wins!`,
+    message: `Game over! ${winner} wins!`,
   });
 
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
   }
-
-  console.log(`[Server] Game ended in room ${room.id}, winner: ${winnerNickname}`);
+  console.log(`[Server] Game ended in room ${room.id}, winner: ${winner}`);
 
   // 5 saniye sonra oyuncuları lobby'e yönlendir
   setTimeout(() => {
@@ -334,16 +325,13 @@ async function saveGameResult(gameData: {
   };
 
   try {
-    const response = await fetch('https://localhost:3002/api/match-result', {
+    const response = await fetch(`${authUserServiceUpstream}/api/match-result`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(matchData),
       // @ts-ignore
-      agent: new (await import('https')).Agent({
-        rejectUnauthorized: false,
-      }),
     });
 
     if (response.ok) {
@@ -376,7 +364,6 @@ function broadcastGameState(room: GameRoom) {
     return;
   }
 
-  // Zusätzlicher Check: Ist Game Loop noch aktiv?
   if (!room.gameLoop) {
     console.warn(`[Server] Game loop not active for room ${room.id} - skipping broadcast`);
     return;
@@ -394,7 +381,6 @@ function broadcastGameState(room: GameRoom) {
   };
 
   try {
-    // console.debug(`game_state sent: ${gameState}`)
     io.to(room.id).emit('game_state', gameState);
   } catch (error) {
     console.log(`[Server] Game state not broadcasted for room ${room.id}`);

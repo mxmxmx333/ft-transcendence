@@ -9,8 +9,8 @@ import {
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
-import { PaddleMovePayload, CreateRoomPayload } from './types/types';
-import { apiGatewayUpstream, aiUpstream } from './server';
+import { CreateRoomPayload } from './types/types';
+import { aiUpstream } from './server';
 import { startTournament } from './tournament';
 
 // === Room Management ===
@@ -213,7 +213,7 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   });
   io.to(roomId).emit('tournament_player_joined', {
     roomId: room.id,
-    message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+    message: `Player ${player.nickname} has joined the TournamentRoom`,
     players: cleanPlayers,
     totalPlayers: cleanPlayers.length,
     success: true,
@@ -236,7 +236,6 @@ export function checkStartTournament(player: Player, roomId: string) {
     return;
   }
   startTournament(roomId);
-  // Player1 vs Player2 starten
 }
 
 export function leaveTournamentRoom(player: Player, roomId: string) {

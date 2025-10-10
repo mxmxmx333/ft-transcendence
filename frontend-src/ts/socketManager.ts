@@ -210,19 +210,15 @@ export class SocketManager {
       alert(`Tournament error: ${error.message}`);
     });
 
-    this.socket.on('tournament_player_joined', (data: any) => {
-      console.log('Player joined tournament:', data);
-      if ((window as any).updateTournamentPlayers) {
-        (window as any).updateTournamentPlayers(data.players || data.room?.players || []);
-      }
-    });
+  this.socket.on('tournament_player_joined', (data: any) => {
+    console.log('Player joined tournament:', data);
+    updateTournamentPlayers(data.players || data.room?.players || []);
+  });
 
-    this.socket.on('tournament_player_left', (data: any) => {
-      console.log('Player left tournament:', data);
-      if ((window as any).updateTournamentPlayers) {
-        (window as any).updateTournamentPlayers(data.players || data.room?.players || []);
-      }
-    });
+  this.socket.on('tournament_player_left', (data: any) => {
+    console.log('Player left tournament:', data);
+    updateTournamentPlayers(data.players || data.room?.players || []);
+  });
 
     this.socket.on('tournament_match_start', (data: any) => {
       console.log('Current game instance:', this.gameInstance);
