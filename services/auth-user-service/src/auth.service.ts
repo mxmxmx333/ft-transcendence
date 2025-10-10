@@ -10,6 +10,9 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+
+const uploadsDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads/avatars');
+
 // AUTHENTICATION SERVICE
 export default class AuthService {
   private db: any;
@@ -502,7 +505,6 @@ async processAndSaveAvatar(
 ): Promise<string> {
   try {
     // Uploads dizinini oluştur
-    const uploadsDir = path.join(__dirname, '../../uploads/avatars');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
