@@ -241,23 +241,38 @@ export function abortGame(room: GameRoom) {
   console.log(`[Server] Game aborted for room ${room.id}`);
 }
 
-export function endGame(room: GameRoom) {
-
+export async function endGame(room: GameRoom) {
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
     console.log(`[Server] Game loop stopped for room ${room.id}`);
   }
-
-  const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
+  const winner = room.owner!.score >= 10 ? room.owner!.nickname : room.guest!.nickname;
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
-  const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
+  const winnerNickname = winner === room.owner!.nickname ? room.owner!.nickname : room.guest!.nickname;
 
+  let gameResult = {
+    player1: room.owner!.id,
+    player2: room.gameType === 'single' ? null : room.guest!.id,
+    winner: winner === room.owner!.nickname ? room.owner!.id : room.gameType === 'single' ? null : room.guest!.id,
+    scores: {
+      player1: room.owner!.score,
+      player2: room.guest!.score
+    },
+    gameType: room.gameType,
+    roomId: room.id
+  }
+
+  
   if ('players' in room) {
+    await saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner ?? room.guest?.id, gameType: 'tournament' });
+    console.debug(`[Server] Tournament game result saved for room ${room.id}`);
     handleTournamentGameEnd(room, winner);
     return;
   }
+
+  await saveGameResult({...gameResult });
   
   io.to(room.id).emit('game_over', {
     winner,
@@ -289,6 +304,52 @@ export function endGame(room: GameRoom) {
     delete gameRooms[room.id];
     console.log(`[Server] Room ${room.id} cleaned up`);
   }, 5000);
+}
+
+async function saveGameResult(gameData: {
+  player1: any,
+  player2?: any,
+  winner?: any,
+  scores: { player1: number, player2: number },
+  gameType: string,
+  roomId?: string
+}): Promise<boolean> {
+
+  const matchData = {
+    player1_id: gameData.player1,
+    player2_id: gameData.player2,
+    winner_id: gameData.winner,
+    player1_score: gameData.scores.player1,
+    player2_score: gameData.scores.player2,
+    game_type: gameData.gameType,
+    room_id: gameData.roomId
+  };
+
+  try {
+    const response = await fetch('https://localhost:3002/api/match-result', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(matchData),
+      // @ts-ignore
+      agent: new (await import('https')).Agent({
+        rejectUnauthorized: false
+      })
+    });
+
+    if (response.ok) {
+      console.log('Match result saved successfully');
+      return true;
+    } else {
+      const errorData = await response.text();
+      console.error('Failed to save match result:', response.status, errorData);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error saving match result:', error);
+    return false;
+  }
 }
 
 function broadcastGameState(room: GameRoom) {

@@ -40,6 +40,13 @@
 
 			</li>
             <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Statistics</a></li>
+<ul class="main-nav hidden md:flex space-x-6 md:space-x-6 md:flex-row flex-col text-center md:text-left">
+            <li><a href="/game" data-link class="neon-text-blue hover:neon-text-pink">Game</a></li>
+            <li><a href="/tournament" data-link class="neon-text-blue hover:neon-text-pink">Tournament</a></li>
+            <li><a href="/profile" data-link class="neon-text-blue hover:neon-text-pink">Profile</a></li>
+            <li><a href="/livechat" data-link class="neon-text-blue hover:neon-text-pink">Live-Chat</a></li>
+            <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Game Statistics</a></li>
+            <li><a href="/search" data-link class="neon-text-blue hover:neon-text-pink">Search Users</a></li>
             <li><a href="/logout" data-link class="neon-text-blue hover:neon-text-pink">Logout</a></li>
         </ul>
 
@@ -658,14 +665,14 @@
 
                     <div class="flex flex-col md:flex-row justify-between items-center w-full gap-4 md:gap-8">
                         <div class="text-center order-1 md:order-1">
-                            <p class="text-gray-300">Player 1: <span id="game-nick" class="neon-text-blue font-bold"></span></p>
+                            <p class="text-gray-300"> <span id="game-nick" class="neon-text-blue font-bold"></span></p>
                             <p class="text-gray-300">Score: <span id="score" class="neon-text-yellow font-bold text-xl"></span></p>
                         </div>
 
                         <canvas class="w-full max-w-2xl h-auto aspect-video neon-border-pink rounded-lg order-3 md:order-2" id="gameCanvas"></canvas>
 
                         <div class="text-center order-2 md:order-3">
-                            <p class="text-gray-300">Player 2: <span id="game-nick2" class="neon-text-blue font-bold"></span></p>
+                            <p class="text-gray-300"> <span id="game-nick2" class="neon-text-blue font-bold"></span></p>
                             <p class="text-gray-300">Score: <span id="score2" class="neon-text-yellow font-bold text-xl"></span></p>
                         </div>
                     </div>
@@ -775,6 +782,76 @@
   </div>
 </section>
     </main>
+
+<!-- Statistics Page Section -->
+<div class="statistics-page page hidden">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold neon-text-blue mb-2">Game Statistics</h1>
+      <p class="text-gray-400">Your gaming performance overview</p>
+    </div>
+
+    <!-- main stats -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      
+      <!-- Win Rate Chart -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Win Rate</h3>
+        <div class="relative w-40 h-40 mx-auto mb-4">
+          <canvas id="win-rate-chart" width="160" height="160"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-2xl font-bold neon-text-yellow" id="win-rate-percentage">0%</div>
+              <div class="text-sm text-gray-400">Win Rate</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-sm text-gray-400" id="win-loss-text">0 wins / 0 losses</div>
+      </div>
+
+      <!-- Average Score Chart -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Average Score</h3>
+        <div class="relative w-40 h-40 mx-auto mb-4">
+          <canvas id="avg-score-chart" width="160" height="160"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-2xl font-bold neon-text-green" id="avg-score-value">0.0</div>
+              <div class="text-sm text-gray-400">/ 10</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-sm text-gray-400">Average points per game</div>
+      </div>
+
+      <!-- Games Played -->
+      <div class="bg-gray-800 rounded-lg p-6 text-center border border-gray-700">
+        <h3 class="text-xl font-bold neon-text-blue mb-4">Games Played</h3>
+        <div class="flex items-center justify-center h-40">
+          <div class="text-center">
+            <div class="text-6xl font-bold neon-text-purple mb-2" id="games-played">0</div>
+            <div class="text-gray-400">Total Games</div>
+            <div class="text-sm text-gray-500 mt-2" id="last-game-date">Never played</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- match history -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-2xl font-bold mb-6 neon-text-blue">Match History</h3>
+      
+      <div id="match-history-container" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Match cards will be inserted here -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
     <!-- Footer -->
     <footer class="bg-gray-900 py-8 px-4 sm:px-8 border-t border-gray-800">
         <div class="max-w-7xl mx-auto">

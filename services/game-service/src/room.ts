@@ -390,18 +390,18 @@ export function handleDisconnect(player: Player) {
 }
 
 export function deleteRoom(roomId: string) {
-  const room = gameRooms[roomId];
   deleteTournamentRoom(roomId);
+  const room = gameRooms[roomId];
   if (!room) {
     return;
   }
   if (room.owner) {
-    room.owner.roomId = undefined;
     room.owner.conn.leave(roomId);
+    room.owner.roomId = undefined;
   }
   if (room.guest) {
-    room.guest.roomId = undefined;
     room.guest.conn.leave(roomId);
+    room.guest.roomId = undefined;
   }
   delete gameRooms[roomId];
   console.log(`[Server] Room ${roomId} deleted`);
@@ -416,6 +416,19 @@ export function deleteTournamentRoom(roomId: string) {
     player.roomId = undefined;
     player.conn.leave(roomId);
   });
+  room.lostPlayers.forEach(player => {
+    player.roomId = undefined;
+    player.conn.leave(roomId);
+  });
+  room.lastWinner?.conn.leave(roomId);
+  if (room.lastWinner) room.lastWinner.roomId = undefined;
+  room.owner?.conn.leave(roomId);
+  if (room.owner) room.owner.roomId = undefined;
+  room.guest?.conn.leave(roomId);
+  if (room.guest) room.guest.roomId = undefined;
+
   delete tournamentRooms[roomId];
+  const roomg = gameRooms[roomId];
+  if (roomg) delete gameRooms[roomId];
   console.log(`[Server] Tournament Room ${roomId} deleted`);
 }

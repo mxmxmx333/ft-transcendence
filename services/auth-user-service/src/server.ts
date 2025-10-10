@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import path from 'path';
-import dbConnector from './db';
+import dbConnector, { createMatchHistoryTable } from './db';
 import AuthService from './auth.service';
 import fastifyMultipart from '@fastify/multipart';
 import AuthController from './auth.controller';
@@ -12,6 +12,7 @@ import { SqliteError } from 'better-sqlite3';
 import { Server as SocketIOServer } from 'socket.io';
 import { AuthPayload } from './types/types';
 import { registerIoHandlers } from './io.handler';
+import { MatchResultBody } from './user';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
@@ -154,6 +155,9 @@ async function start() {
   await server.register(vaultClient);
   await server.register(vAuth);
   const authService = new AuthService(server);
+
+  createMatchHistoryTable(server.db);
+
   const oAuthService = new OAuthService();
   const authController = new AuthController(authService, oAuthService, server);
 
@@ -308,6 +312,54 @@ server.register(require('@fastify/static'), {
     return authController.getFriendRequests(req, reply);
   });
 
+
+  server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
+    try {
+      console.log('🎯 Internal match result received:', req.body);
+      const success = authService.saveMatchResult(req.body);
+      
+      req.log.info({ matchData: req.body }, 'Match result saved internally');
+      return reply.send({ success });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to save match result' });
+    }
+  });
+
+  server.get<{ Querystring: { limit?: string } }>('/api/my-matches', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      
+      const decoded = await req.server.vAuth.verify(token);
+      const limit = parseInt(req.query.limit || '50');
+      const matches = authService.getUserMatchHistory(Number(decoded.sub), limit);
+      
+      return reply.send({ matches });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get match history' });
+    }
+  });
+
+  server.get('/api/my-statistics', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      
+      const decoded = await req.server.vAuth.verify(token);
+      const stats = authService.getUserGameStats(Number(decoded.sub));
+      
+      return reply.send(stats);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get statistics' });
+    }
+  });
 
   // =========
   server.put<{ Body: UpdateProfileBody }>('/api/profile', async (req, reply) => {

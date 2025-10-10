@@ -20,20 +20,20 @@ export default fp(
       const db = new Database(dbPath, { verbose: console.debug });
 
       db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    auth_method TEXT NOT NULL,
-    nickname TEXT UNIQUE,
-    email TEXT UNIQUE,
-    password_hash TEXT,
-    external_id INTEGER UNIQUE,
-    totp_secret TEXT,
-    avatar TEXT DEFAULT 'default',
-    status TEXT DEFAULT 'online',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          auth_method TEXT NOT NULL,
+          nickname TEXT UNIQUE,
+          email TEXT UNIQUE,
+          password_hash TEXT,
+          external_id INTEGER UNIQUE,
+          totp_secret TEXT,
+          avatar TEXT DEFAULT 'default',
+          status TEXT DEFAULT 'online',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 
 
 	// (STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW'))
@@ -127,4 +127,27 @@ declare module 'fastify' {
   interface FastifyInstance {
     db: Database.Database;
   }
+}
+
+export function createMatchHistoryTable(db: any) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS match_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player1_id INTEGER NOT NULL,
+      player2_id INTEGER,
+      winner_id INTEGER,
+      player1_score INTEGER NOT NULL,
+      player2_score INTEGER DEFAULT 0,
+      game_type TEXT NOT NULL,
+      room_id TEXT,
+      played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (player1_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (player2_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_match_history_player1 ON match_history(player1_id);
+    CREATE INDEX IF NOT EXISTS idx_match_history_player2 ON match_history(player2_id);
+    CREATE INDEX IF NOT EXISTS idx_match_history_played_at ON match_history(played_at);
+  `);
 }

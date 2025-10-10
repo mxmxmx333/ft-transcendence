@@ -5,6 +5,7 @@ import type {
   ClientToServerEvents,
 } from './types/socket-interfaces';
 import { io, Socket } from 'socket.io-client';
+import {handleTournamentMatchStart, handleTournamentEnd, updateTournamentPlayers} from './router';
 
 export class SocketManager {
   private static instance: SocketManager;
@@ -19,9 +20,6 @@ export class SocketManager {
   private readonly maxReconnectAttempts = 5;
   private readonly reconnectDelay = 1000;
   private readonly roomOperationTimeout = 10000;
-
-  // Room operation handling
-  private pendingResolve: ((roomId: string) => void) | null = null;
 
   private constructor() {}
 
@@ -204,9 +202,7 @@ export class SocketManager {
   this.socket.on('tournament_players_updated', (data: any) => {
     console.log('Tournament players updated:', data);
     // Router function aufrufen
-    if ((window as any).updateTournamentPlayers) {
-      (window as any).updateTournamentPlayers(data.players);
-    }
+    updateTournamentPlayers(data.players);
   });
 
   this.socket.on('tournament_error', (error: any) => {
@@ -228,15 +224,8 @@ export class SocketManager {
     }
   });
 
-
-  this.socket.on('tournament_started', (data: any) => {
-    console.log('Tournament started:', data);
-    // Game start logic hier
-  });
-
-  this.socket.on('tournament_match_start', () => {
+  this.socket.on('tournament_match_start', (data: any) => {
     console.log('Current game instance:', this.gameInstance);
-    
     // Reset game instance for new match
     if (this.gameInstance) {
         console.log('🔄 Stopping previous game instance');
@@ -250,38 +239,20 @@ export class SocketManager {
         console.log('🔄 Navigating to game page for tournament match');
         window.location.hash = '#/pong';
     }
-    
     // Call window function like the other tournament events
-    if ((window as any).handleTournamentMatchStart) {
-      (window as any).handleTournamentMatchStart();
-    }
+    handleTournamentMatchStart(data);
   });
 
   this.socket.on('tournament_match_end', (data: any) => {
     console.log('Tournament match ended:', data);
-    // in multiplayer
-    // if (this.gameInstance && !data.isTournament)
     this.gameInstance?.matchEnd(data);
-    //in router
-    if ((window as any).handleTournamentMatchEnd) {
-      (window as any).handleTournamentMatchEnd(data);
-    }
   });
 
   this.socket.on('tournament_winner', (data: any) => {
     console.log('Tournament winner:', data);
-    if ((window as any).handleTournamentEnd) {
-      (window as any).handleTournamentEnd(data);
-    }
+    handleTournamentEnd(data);
   });
 }
-
-  // private resolvePendingOperation(data: any): void {
-  //   if (this.pendingResolve) {
-  //     this.pendingResolve(data);
-  //     this.pendingResolve = null;
-  //   }
-  // }
 
   private updateLobbyStatus(message: string): void {
     const statusElement = document.getElementById('lobby-status');

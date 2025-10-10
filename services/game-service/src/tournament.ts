@@ -2,7 +2,6 @@ import { Player, GameRoom, tournamentRooms, TournamentRoom, gameRooms } from './
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { deleteRoom } from './room';
-import { abort } from 'process';
 
 export function startTournament(roomId: string) {
     const room = tournamentRooms[roomId];
@@ -21,16 +20,7 @@ function startMatch(room: TournamentRoom) {
         console.error(`[Server] TournamentRoom not found`);
         return;
     }
-    if (room.players.length < 1) {
-        console.log(`[Server] Tournament in room ${room.id} finished - no more players left`);
-        try {
-            io.to(room.id).emit('tournament_winner', {winner: room.lastWinner?.id, message: `Tournament over! ${room.lastWinner?.nickname} wins!`});
-        } catch (error) {
-            console.log(`[Server] Tournament over broadcast failed for room ${room.id}:`, error);
-        }
-        deleteRoom(room.id);
-        return;
-    }
+    if (checkTournamentEnd(room)) return;
     console.log(`[Server] Starting matches for tournament in room ${room.id} with ${room.players.length} players`);
     
     console.debug(`[Server] players: ${room.players.map(p => p.nickname).join(', ')}`);
@@ -51,7 +41,7 @@ function startMatch(room: TournamentRoom) {
     console.debug(`[Server] players: ${room.players.map(p => p.nickname).join(', ')}`);
     console.log(`[Server] Starting match between ${owner.nickname} and ${guest.nickname} in tournament room ${room.id}`);
     
-    room.owner = owner;        // Aktuelle Match-Teilnehmer
+    room.owner = owner;
     room.guest = guest;
     room.ownerMovement = 'none';
     room.guestMovement = 'none';
@@ -75,27 +65,12 @@ function startMatch(room: TournamentRoom) {
         io.to(room.id).emit('tournament_match_start', {
             player1: owner.nickname,
             player2: guest.nickname,
-            roomId: room.id,
-            owner: cleanPlayerForSocket(room.owner),
-            guest: cleanPlayerForSocket(room.guest),
-            matchNumber: room.matchCount,
-            message: `Match ${room.matchCount}: ${room.owner.nickname} vs ${room.guest.nickname}`
         });
         console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
     } catch (error) {
         console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);
     }
     startGame(room as any);
-}
-
-function cleanPlayerForSocket(player: Player) {
-    return {
-        id: player.id,
-        nickname: player.nickname,
-        roomId: player.roomId,
-        paddleY: player.paddleY,
-        score: player.score,
-    };
 }
 
 export function handleTournamentGameEnd(room: GameRoom, winner: string) {
@@ -110,10 +85,10 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
     let winnerPlayer: Player | null = null;
     let loserPlayer: Player | null = null;
 
-    if (winner === 'owner') {
+    if (winner === room.owner?.nickname) {
         winnerPlayer = room.owner;
         loserPlayer = room.guest;
-    } else if (winner === 'guest') {
+    } else if (winner === room.guest?.nickname) {
         winnerPlayer = room.guest;
         loserPlayer = room.owner;
     } else {
@@ -134,13 +109,9 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
 
     console.log(`[Server] Tournament match ended. Winner: ${winnerPlayer.nickname}`);
 
-    // Verlierer eliminieren
     tournamentRoom.lostPlayers.push(loserPlayer);
-    
-    // Gewinner für nächste Runde setzen
     tournamentRoom.lastWinner = winnerPlayer;
     
-    // Game State zurücksetzen für nächstes Match
     tournamentRoom.owner = undefined;
     tournamentRoom.guest = undefined;
     tournamentRoom.gameState = undefined;
@@ -149,18 +120,31 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
 
     try {
         io.to(room.id).emit('tournament_match_end', {
-            winner: winnerPlayer.id,
             winnerName: winnerPlayer.nickname,
-            loser: loserPlayer.id,
             loserName: loserPlayer.nickname,
-            message: `🎉 ${winnerPlayer.nickname} defeated ${loserPlayer.nickname}!`
         });
+        console.log(`[Server] Tournament match end broadcasted for room ${room.id}`);
     } catch (error) {
         console.log(`[Server] Tournament match end broadcast failed:`, error);
     }
 
-    // Nächstes Match nach Pause
+    if (checkTournamentEnd(tournamentRoom)) return;
+
     setTimeout(() => {
         startMatch(tournamentRoom);
     }, 2000);
+}
+
+function checkTournamentEnd(room: TournamentRoom) {
+    if (room.players.length < 1) {
+        console.log(`[Server] Tournament in room ${room.id} finished - no more players left`);
+        try {
+            io.to(room.id).emit('tournament_winner', {winner: room.lastWinner?.nickname});
+        } catch (error) {
+            console.log(`[Server] Tournament over broadcast failed for room ${room.id}:`, error);
+        }
+        deleteRoom(room.id);
+        return true;
+    }
+    return false;
 }

@@ -12,16 +12,57 @@ export default interface User {
   updated_at?: string;
 }
 
+export interface MatchHistory {
+  id?: number;
+  player1_id: number;
+  player2_id?: number;
+  winner_id?: number;
+  player1_score: number;
+  player2_score: number;
+  game_type: 'singleplayer' | 'local' | 'remote' | 'tournament';
+  game_mode?: string;
+  room_id?: string;
+  played_at?: string;
+  
+  opponent_nickname?: string;
+  opponent_avatar?: string;
+  my_score?: number;
+  opponent_score?: number;
+  result?: 'won' | 'lost';
+}
+
 export interface GameStatistics {
   id?: number;
   user_id: number;
   games_played: number;
   games_won: number;
   games_lost: number;
+  win_rate?: number;
+  avg_score?: number;
   last_game_date?: string;
   total_score: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UserProfileWithHistory {
+  id: number;
+  nickname: string;
+  avatar: string;
+  status: string;
+  game_stats: GameStatistics;
+  recent_matches: MatchHistory[];  // LETZTE 10 MATCHES
+  friendship_status?: string;
+}
+
+export interface MatchResultBody {
+  player1_id: number;
+  player2_id?: number;
+  winner_id?: number;
+  player1_score: number;
+  player2_score: number;
+  game_type: 'singleplayer' | 'local' | 'remote' | 'tournament';
+  room_id?: string;
 }
 
 export interface Friendship {
