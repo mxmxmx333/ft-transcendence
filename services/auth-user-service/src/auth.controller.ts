@@ -265,7 +265,7 @@ export default class AuthController {
   }
 
   // ======= NEW PROFILE METHODS =======
-  async getProfile(request: FastifyRequest, reply: FastifyReply) {
+ async getProfile(request: FastifyRequest, reply: FastifyReply) {
   try {
     const token = request.headers?.authorization?.split(' ')[1];
     if (!token) {
@@ -283,17 +283,27 @@ export default class AuthController {
 
     const gameStats = await this.authService.getUserGameStats(userId);
 
-    console.log('🔍 getProfile - user avatar:', user.avatar); // ✅ DEBUG
+    console.log('🔍 getProfile - user avatar:', user.avatar);
+
+    // ✅ Avatar URL'sini doğru şekilde oluştur
+    let avatarUrl = user.avatar || 'default';
+    
+    // Eğer custom avatar ise, dosya uzantısını ekle
+    if (avatarUrl.startsWith('custom_')) {
+      // Frontend'in erişebileceği URL formatı
+      avatarUrl = `/uploads/avatars/${avatarUrl}.jpg`; // Veya gerçek uzantıyı kontrol et
+    }
 
     return reply.send({
       id: user.id,
       nickname: user.nickname,
       email: user.email,
-      avatar: user.avatar || 'default', // ✅ BU SATIRI KONTROL EDİN
+      avatar: avatarUrl,
       status: user.status,
       gameStatistics: gameStats,
     });
   } catch (err) {
+    console.error('Get profile error:', err);
     return reply.status(401).send({ error: 'Unauthorized' });
   }
 }
