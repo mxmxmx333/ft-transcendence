@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import path from 'path';
 import dbConnector from './db';
 import AuthService from './auth.service';
+import fastifyMultipart from '@fastify/multipart';
 import AuthController from './auth.controller';
 import fs from 'fs';
 import vaultClient from './vault-client';
@@ -139,6 +140,16 @@ interface FriendResponseBody {
 async function start() {
 //   const server = await buildServer();
   // Register plugins
+
+  //TESTING
+  await server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+      files: 1 // Maksimum 1 dosya
+    }
+  });
+
+  //TESTING
   await server.register(dbConnector);
   await server.register(vaultClient);
   await server.register(vAuth);
@@ -203,6 +214,10 @@ async function start() {
     }
   });
 
+  server.get('/api/profile/avatars', async (req, reply) => {
+  return authController.getAvailableAvatars(req, reply);
+});
+
   server.get('/api/profile', async (req, reply) => {
     req.log.info({ headers: req.headers }, 'Incoming profile request');
     req.log.info({ auth: req.headers.authorization }, 'Auth header');
@@ -225,6 +240,21 @@ async function start() {
     }
   });
 
+
+  //TESTING
+server.post('/api/profile/avatar/upload', async (req, reply) => {
+  return authController.uploadAvatar(req, reply);
+});
+
+server.delete('/api/profile/avatar', async (req, reply) => {
+  return authController.deleteCustomAvatar(req, reply);
+});
+
+server.register(require('@fastify/static'), {
+  root: path.join(__dirname, '../uploads'),
+  prefix: '/uploads/',
+});
+  //TESTING
   server.post<{ Body: { nickname: string } }>('/api/profile/set-nickname', async (request, reply) => {
     request.log.info({ headers: request.headers }, 'Incoming profile request');
     try {
@@ -278,60 +308,10 @@ async function start() {
     return authController.getFriendRequests(req, reply);
   });
 
-  // Friend request'e cevap verme endpoint'i
-  server.post('/api/friends/request/:id/accept', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'accept' } } as any,
-      reply
-    );
-  });
-
-  server.post('/api/friends/request/:id/decline', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'decline' } } as any,
-      reply
-    );
-  });
-
-  server.post<{ Params: { id: string }; Body: { action: 'accept' | 'decline' } }>(
-    '/api/friends/request/:id/:action?',
-    async (req, reply) => {
-      // URL parametresinden action'ı al veya body'den
-      const actionFromUrl = (req.params as any).action;
-      const actionFromBody = (req.body as any)?.action;
-      const action = actionFromUrl || actionFromBody;
-
-      if (!action) {
-        return reply.status(400).send({ error: 'Action parameter required' });
-      }
-
-      return authController.respondToFriendRequestById(
-        {
-          ...req,
-          params: req.params,
-          body: { action },
-        } as any,
-        reply
-      );
-    }
-  );
 
   // =========
   server.put<{ Body: UpdateProfileBody }>('/api/profile', async (req, reply) => {
     return authController.updateProfile(req, reply);
-  });
-
-  server.get<{ Querystring: { q: string } }>('/api/users/search', async (req, reply) => {
-    req.log.info({ query: req.query }, 'Incoming search request');
-    return authController.searchUsers(req, reply);
-  });
-
-  server.post<{ Body: FriendRequestBody }>('/api/friends/request', async (req, reply) => {
-    return authController.sendFriendRequest(req, reply);
-  });
-
-  server.put<{ Body: FriendResponseBody }>('/api/friends/respond', async (req, reply) => {
-    return authController.respondToFriendRequest(req, reply);
   });
 
   server.get('/api/friends', async (req, reply) => {

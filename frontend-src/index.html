@@ -17,7 +17,7 @@
             <li><a href="/game" data-link class="neon-text-blue hover:neon-text-pink">New Game</a></li>
             <li><a href="/tournament" data-link class="neon-text-blue hover:neon-text-pink">Join/Create Tournament</a></li>
             <li><a href="/profile" data-link class="neon-text-blue hover:neon-text-pink">Profile</a></li>
-            <li id="live-chat-link" class="flex items-center">
+            <li id="live-chat-link">
 				<a href="/livechat" data-link class="neon-text-blue hover:neon-text-pink">Live-chat</a>
 				<svg id="live-chat-notification"
 					xmlns="http://www.w3.org/2000/svg" 
@@ -39,8 +39,7 @@
 				</svg> -->
 
 			</li>
-            <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Top Ranking</a></li>
-            <li><a href="/search" data-link class="neon-text-blue hover:neon-text-pink">Search Users</a></li>
+            <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Statistics</a></li>
             <li><a href="/logout" data-link class="neon-text-blue hover:neon-text-pink">Logout</a></li>
         </ul>
 
@@ -148,26 +147,30 @@
           </div>
         </section>
 
-        <!-- Profile Page -->
-        <section class="profile-page hidden w-full max-w-md">
-            <div class="bg-gray-900 rounded-xl neon-border-pink p-8 text-center">
-                <svg class="w-24 h-24 mx-auto fill-pink-400 drop-shadow-[0_0_5px_rgba(255,0,255,0.7)] mb-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-                    <circle cx="32" cy="20" r="12"/>
-                    <path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
-                </svg>
-                <h2 class="neon-text-pink text-2xl mb-6">My Profile</h2>
-                <div class="space-y-3 text-left max-w-xs mx-auto">
-                    <p class="neon-text-yellow">Nick Name: <span id="profile-nickname" class="neon-text-blue font-bold"></span></p>
-                    <p class="neon-text-yellow">Email: <span id="profile-email" class="neon-text-blue font-bold"></span></p>
-                    <p class="neon-text-yellow">Last Game: <span id="profile-gamestatistics" class="neon-text-blue font-bold"></span></p>
-                    <p class="neon-text-yellow">Status: <span id="profile-nickname" class="neon-text-blue font-bold"></span></p>
-                    <p class="neon-text-yellow">Friends: <span id="profile-nickname" class="neon-text-blue font-bold"></span></p>
-                    <button id="options-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300"  data-link="/options">
-                        Options
-                    </button>
-                </div>
-            </div>
-        </section>
+<!-- Profile Page -->
+<section class="profile-page hidden w-full max-w-md">
+  <div class="bg-gray-900 rounded-xl neon-border-pink p-8 text-center">
+    <div class="relative w-24 h-24 mx-auto mb-6">
+      <!-- ✅ DYNAMIC AVATAR - src boş bırakıldı -->
+      <img id="profile-avatar-img" src="" 
+           class="w-full h-full rounded-full object-cover border-2 border-pink-400"
+           onerror="handleAvatarError(this)"
+           alt="Profile Avatar">
+    </div>
+    
+    <h2 class="neon-text-pink text-2xl mb-6">My Profile</h2>
+    <div class="space-y-3 text-left max-w-xs mx-auto">
+      <p class="neon-text-yellow">Nick Name: <span id="profile-nickname" class="neon-text-blue font-bold">-</span></p>
+      <p class="neon-text-yellow">Email: <span id="profile-email" class="neon-text-blue font-bold">-</span></p>
+      <p class="neon-text-yellow">Last Game: <span id="profile-gamestatistics" class="neon-text-blue font-bold">-</span></p>
+      <p class="neon-text-yellow">Status: <span id="profile-status" class="neon-text-blue font-bold">-</span></p>
+      <p class="neon-text-yellow">Friends: <span id="profile-friends" class="neon-text-blue font-bold">-</span></p>
+      <button id="options-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300" data-link="/options">
+        Edit Profile
+      </button>
+    </div>
+  </div>
+</section>
 
 		
 		<!-- LIVE CHAT  View Other User Profile Page -->
@@ -542,6 +545,7 @@
 		
 		
         <!-- Options Page -->
+<!-- Options Page -->
 <section class="options-page hidden w-full max-w-2xl px-4">
   <div class="bg-gray-900 rounded-xl neon-border-blue p-8">
     <h2 class="neon-text-blue text-2xl mb-6 text-center">Profile Options</h2>
@@ -585,19 +589,7 @@
       </div>
     </div>
 
-     <div class="mt-8">
-      <h3 class="neon-text-yellow text-lg mb-4">Incoming Friend Requests</h3>
-      <div class="space-y-3" id="friend-requests-container">
-        <!-- Friend request'ler JavaScript ile doldurulacak -->
-      </div>
-    </div>
-    <!-- Friends Section -->
-    <div class="mt-8">
-      <h3 class="neon-text-yellow text-lg mb-4">Friends</h3>
-      <div class="space-y-3" id="friends-list">
-        <!-- Arkadaşlar JavaScript ile doldurulacak -->
-      </div>
-    </div>
+    <!-- Friend requests ve friends bölümleri KALDIRILDI -->
 
     <div class="mt-6 text-center">
       <button id="back-to-profile"
@@ -608,52 +600,44 @@
   </div>
 </section>
 
-<!-- User Search Page -->
-<section class="user-search-page hidden w-full max-w-2xl px-4">
-    <div class="bg-gray-900 rounded-xl neon-border-blue p-6">
-        <h2 class="neon-text-blue text-2xl mb-6 text-center">Search Users</h2>
-
-        <div class="mb-6">
-            <input type="text" id="user-search-input" placeholder="Search by nickname..."
-                   class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700">
-        </div>
-
-        <div id="search-results" class="space-y-3">
-            <!-- Arama sonuçları buraya gelecek -->
-        </div>
-    </div>
-</section>
-
-<!-- User Profile Page -->
-<section class="user-profile-page hidden w-full max-w-md px-4">
-    <div class="bg-gray-900 rounded-xl neon-border-green p-6">
-        <div class="text-center">
-            <img id="user-profile-avatar" src="" class="w-24 h-24 mx-auto rounded-full mb-4">
-            <h2 id="user-profile-nickname" class="neon-text-green text-2xl mb-2"></h2>
-            <p id="user-profile-status" class="text-gray-300 mb-4"></p>
-
-            <div id="user-profile-actions" class="space-y-2">
-                <!-- Friend request butonu vs -->
-            </div>
-        </div>
-    </div>
-</section>
 
         <!-- Game Page -->
-         <section class="newgame-page hidden w-full max-w-6xl px-4">
-            <div class="flex flex-col items-center gap-6">
-                <!-- Game Choosing -->
-                <div class="flex flex-wrap gap-4 justify-center">
-                    <button id="singlegame-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
-                        Single-Game
-                    </button>
-                    <button id="multiplayergame-remote-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
-                        Multi-Player Remote
-                    </button>
-                    <button id="multiplayergame-local-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
-                        Multi-Player Local
-                    </button>
-        </section>
+         <!-- Game Page -->
+<section class="newgame-page hidden w-full max-w-6xl px-4">
+  <div class="flex flex-col items-center gap-6">
+    
+    <!-- Game Choosing -->
+    <div class="flex flex-wrap gap-4 justify-center">
+      <button id="singlegame-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+        Single-Game
+      </button>
+      <button id="multiplayergame-remote-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+        Multi-Player Remote
+      </button>
+      <button id="multiplayergame-local-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+        Multi-Player Local
+      </button>
+    </div>
+
+    <!-- Instructions List -->
+    <div class="text-gray-300 text-sm max-w-md text-center">
+      <h3 class="text-lg font-semibold mb-2">How to play?</h3>
+      <ul class="list-disc list-inside space-y-1">
+        <li>First select the playing vs a friend or our AI</li>
+        <li>If you wish to play on one keyboard with your friend please choose Multi-Player Local</li>
+        <li>If you wish to play remotely with a friend you will be directed to a lobby, there you can create a room for a game and share room ID with your friend
+          or you can join an existing room to play.
+        </li>
+        <li>When you are in our Live-chat section you might also send a game invitation to your friends</li>
+        <li>If you are room owner in order to move paddle up and down simply use <kbd class="bg-gray-700 px-1 rounded">W</kbd>/<kbd class="bg-gray-700 px-1 rounded">S</kbd>.</li>
+        <li>Else please simply use <kbd class="bg-gray-700 px-1 rounded">↑</kbd>/<kbd class="bg-gray-700 px-1 rounded">↓</kbd> to move.</li>
+      </ul>
+        <h5 class="text-lg mb-2">Have Fun!</h3>
+    </div>
+
+  </div>
+</section>
+
         <section class="game-page hidden w-full max-w-6xl px-4">
             <div class="flex flex-col items-center gap-6">
                 <!-- Game Controls -->

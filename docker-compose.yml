@@ -41,6 +41,8 @@ services:
       - api-network
     volumes:
       - ./public:/app/public
+      - auth_uploads:/app/uploads/avatars  # TESTING
+
     restart: unless-stopped
 
   game-service:
@@ -65,6 +67,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./database:/app/database
+      - auth_uploads:/app/uploads/avatars  # ✅ Uploads volume ekleyin
+
 
   cli-client:
     build: ./cli
@@ -251,3 +255,5 @@ volumes:
   vault3-data: {}
   vault3-logs: {}
   vault3-runtime-certs: {}
+
+  auth_uploads: {} 

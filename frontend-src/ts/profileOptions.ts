@@ -1,306 +1,4 @@
-// import { navigateTo } from './router.js';
-
-// export class ProfileOptions {
-//   private currentAvatar: string = 'default';
-
-//   constructor() {
-//     this.initEventListeners();
-//   }
-
-//   public init() {
-//     this.loadAvatars();
-//     this.loadProfileData();
-//     this.loadFriends();
-//     this.loadFriendRequests(); // Yeni
-
-//   }
-
-//   private initEventListeners() {
-//     // Options butonu event listener
-//     document.getElementById('options-btn')?.addEventListener('click', () => {
-//       navigateTo('/options');
-//     });
-
-//     // Back to profile butonu
-//     document.getElementById('back-to-profile')?.addEventListener('click', () => {
-//       navigateTo('/profile');
-//     });
-
-//     // Form submit event
-//     document.getElementById('profile-form')?.addEventListener('submit', (e) => {
-//       e.preventDefault();
-//       this.saveProfileChanges();
-//     });
-//   }
-
-//   private async loadProfileData() {
-//     try {
-//       const token = localStorage.getItem('authToken');
-//       if (!token) return;
-
-//       const response = await fetch('/api/profile', {
-//         headers: {
-//           'Authorization': `Bearer ${token}`
-//         }
-//       });
-
-//       if (response.ok) {
-//         const data = await response.json();
-
-//         // Form alanlarını doldur
-//         (document.getElementById('options-nickname') as HTMLInputElement).value = data.nickname || '';
-//         (document.getElementById('options-status') as HTMLSelectElement).value = data.status || 'online';
-
-//         this.currentAvatar = data.avatar || 'default';
-//         this.highlightSelectedAvatar();
-//       }
-//     } catch (error) {
-//       console.error('Failed to load profile data:', error);
-//     }
-//   }
-
-//   private async loadAvatars() {
-//     try {
-//       const response = await fetch('/api/profile/avatars');
-//       if (response.ok) {
-//         const data = await response.json();
-//         this.renderAvatars(data.avatars);
-//       }
-//     } catch (error) {
-//       console.error('Failed to load avatars:', error);
-//     }
-//   }
-
-//   private renderAvatars(avatars: string[]) {
-//     const grid = document.getElementById('avatar-grid');
-//     if (!grid) return;
-
-//     grid.innerHTML = avatars.map(avatar => `
-//       <div class="avatar-item cursor-pointer p-2 rounded-lg border border-gray-700 hover:neon-border-blue transition-all duration-300 ${
-//         avatar === this.currentAvatar ? 'neon-border-yellow' : ''
-//       }" data-avatar="${avatar}">
-//         <img src="../public/imgs/avatars/${avatar}.png" alt="${avatar}"
-//              class="w-12 h-12 mx-auto object-cover rounded">
-//         <p class="text-center text-xs text-gray-300 mt-1">${avatar}</p>
-//       </div>
-//     `).join('');
-
-//     // Avatar seçim event listener'ları
-//     document.querySelectorAll('.avatar-item').forEach(item => {
-//       item.addEventListener('click', () => {
-//         const avatar = item.getAttribute('data-avatar');
-//         if (avatar) {
-//           this.selectAvatar(avatar);
-//         }
-//       });
-//     });
-//   }
-
-//   private selectAvatar(avatar: string) {
-//     this.currentAvatar = avatar;
-//     this.highlightSelectedAvatar();
-//     this.updateAvatar(avatar);
-//   }
-
-//   private highlightSelectedAvatar() {
-//     document.querySelectorAll('.avatar-item').forEach(item => {
-//       const avatar = item.getAttribute('data-avatar');
-//       if (avatar === this.currentAvatar) {
-//         item.classList.add('neon-border-yellow');
-//       } else {
-//         item.classList.remove('neon-border-yellow');
-//       }
-//     });
-//   }
-
-//   private async updateAvatar(avatar: string) {
-//     try {
-//       const token = localStorage.getItem('authToken');
-//       if (!token) return;
-
-//       const response = await fetch('/api/profile', {
-//         method: 'PUT',
-//         headers: {
-//           'Content-Type': 'application/json',
-//           'Authorization': `Bearer ${token}`
-//         },
-//         body: JSON.stringify({ avatar })
-//       });
-
-//       if (!response.ok) {
-//         throw new Error('Failed to update avatar');
-//       }
-//     } catch (error) {
-//       console.error('Avatar update failed:', error);
-//     }
-//   }
-
-//   private async saveProfileChanges() {
-//     const nickname = (document.getElementById('options-nickname') as HTMLInputElement).value;
-//     const status = (document.getElementById('options-status') as HTMLSelectElement).value;
-
-//     try {
-//         const token = localStorage.getItem('authToken');
-//         if (!token) return;
-
-//         const response = await fetch('/api/profile', {
-//             method: 'PUT',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Authorization': `Bearer ${token}`
-//             },
-//             body: JSON.stringify({ nickname, status })
-//         });
-
-//         if (response.ok) {
-//             console.log('Profile updated successfully!');
-//             // navigateTo yerine direkt olarak sayfayı kapat
-//             document.querySelector('.options-page')?.classList.add('hidden');
-//             document.querySelector('.profile-page')?.classList.remove('hidden');
-//         } else {
-//             throw new Error('Failed to update profile');
-//         }
-//     } catch (error) {
-//         console.error('Profile update failed:', error);
-//         alert('Failed to update profile');
-//     }
-// }
-
-//   private async loadFriends() {
-//     try {
-//       const token = localStorage.getItem('authToken');
-//       if (!token) return;
-
-//       const response = await fetch('/api/friends', {
-//         headers: {
-//           'Authorization': `Bearer ${token}`
-//         }
-//       });
-
-//       if (response.ok) {
-//         const data = await response.json();
-//         this.renderFriends(data.friends);
-//       }
-//     } catch (error) {
-//       console.error('Failed to load friends:', error);
-//     }
-//   }
-
-//   private renderFriends(friends: any[]) {
-//     const list = document.getElementById('friends-list');
-//     if (!list) return;
-
-//     if (friends.length === 0) {
-//       list.innerHTML = '<p class="text-gray-400 text-center">No friends yet</p>';
-//       return;
-//     }
-
-//     list.innerHTML = friends.map(friend => `
-//       <div class="friend-item flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-//         <div class="flex items-center space-x-3">
-//           <img src="/imgs/avatars/${friend.avatar || 'default'}.png" alt="${friend.nickname}"
-//                class="w-8 h-8 rounded-full object-cover">
-//           <div>
-//             <span class="text-gray-300">${friend.nickname}</span>
-//             <span class="text-xs block ${this.getStatusColor(friend.status)}">● ${friend.status}</span>
-//           </div>
-//         </div>
-//         <button class="text-red-400 hover:text-red-300 transition-colors duration-300"
-//                 onclick="ProfileOptions.removeFriend(${friend.id})">
-//           <i class="fas fa-times"></i>
-//         </button>
-//       </div>
-//     `).join('');
-//   }
-
-//   private getStatusColor(status: string): string {
-//     switch (status) {
-//       case 'online': return 'text-green-400';
-//       case 'away': return 'text-yellow-400';
-//       case 'busy': return 'text-red-400';
-//       case 'invisible': return 'text-gray-400';
-//       default: return 'text-gray-400';
-//     }
-//   }
-
-//   public static async removeFriend(friendId: number) {
-//     if (!confirm('Are you sure you want to remove this friend?')) {
-//       return;
-//     }
-
-//     try {
-//       const token = localStorage.getItem('authToken');
-//       if (!token) return;
-
-//       const response = await fetch(`/api/friends/${friendId}`, {
-//         method: 'DELETE',
-//         headers: {
-//           'Authorization': `Bearer ${token}`
-//         }
-//       });
-
-//       if (response.ok) {
-//         alert('Friend removed successfully');
-//         // Sayfayı yenile
-//         window.location.reload();
-//       } else {
-//         throw new Error('Failed to remove friend');
-//       }
-//     } catch (error) {
-//       console.error('Failed to remove friend:', error);
-//       alert('Failed to remove friend');
-//     }
-//   }
-//   private async loadFriendRequests() {
-//     try {
-//         const token = localStorage.getItem('authToken');
-//         const response = await fetch('/api/friends/requests', {
-//             headers: { 'Authorization': `Bearer ${token}` }
-//         });
-
-//         if (response.ok) {
-//             const data = await response.json();
-//             this.renderFriendRequests(data.requests);
-//         }
-//     } catch (error) {
-//         console.error('Failed to load friend requests:', error);
-//     }
-// }
-
-// private renderFriendRequests(requests: any[]) {
-//     const container = document.getElementById('friend-requests-container');
-//     if (!container) return;
-
-//     container.innerHTML = requests.map(request => `
-//         <div class="friend-request flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2">
-//             <div class="flex items-center space-x-3">
-//                 <img src="/imgs/avatars/${request.avatar || 'default'}.png"
-//                      class="w-10 h-10 rounded-full">
-//                 <span class="text-gray-300">${request.nickname}</span>
-//             </div>
-//             <div class="space-x-2">
-//                 <button class="px-2 py-1 bg-green-600 rounded accept-request"
-//                         data-request-id="${request.friendship_id}">✓</button>
-//                 <button class="px-2 py-1 bg-red-600 rounded decline-request"
-//                         data-request-id="${request.friendship_id}">✗</button>
-//             </div>
-//         </div>
-//     `).join('');
-// }
-// }
-
-// // Global erişim için
-// declare global {
-//   interface Window {
-//     ProfileOptions: typeof ProfileOptions;
-//   }
-// }
-
-// window.ProfileOptions = ProfileOptions;
-
-// profileOptions.ts - Friend request kabul/red sistemi ile güncellenmiş
-
-import { navigateTo, profilePage, showPage } from './router.js';
+import { navigateTo } from './router.js';
 
 export class ProfileOptions {
   private currentAvatar: string = 'default';
@@ -312,8 +10,7 @@ export class ProfileOptions {
   public init() {
     this.loadAvatars();
     this.loadProfileData();
-    this.loadFriends();
-    this.loadFriendRequests(); // Yeni eklendi
+    // Friend related functions removed
   }
 
   private initEventListeners() {
@@ -334,543 +31,468 @@ export class ProfileOptions {
     });
   }
 
-  private async loadProfileData() {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+private async loadProfileData() {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
 
-      const response = await fetch('/api/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    console.log('🔄 loadProfileData - currentAvatar:', this.currentAvatar);
 
-      if (response.ok) {
-        const data = await response.json();
+    const response = await fetch('/api/profile', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-        // Form alanlarını doldur
-        (document.getElementById('options-nickname') as HTMLInputElement).value =
-          data.nickname || '';
-        (document.getElementById('options-status') as HTMLSelectElement).value =
-          data.status || 'online';
+    if (response.ok) {
+      const data = await response.json();
+      
+      console.log('📦 Backend data received, currentAvatar remains:', this.currentAvatar);
 
-        this.currentAvatar = data.avatar || 'default';
-        this.highlightSelectedAvatar();
-      }
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
+      // Form alanlarını doldur (SADECE BUNU YAP)
+      (document.getElementById('options-nickname') as HTMLInputElement).value =
+        data.nickname || '';
+      (document.getElementById('options-status') as HTMLSelectElement).value =
+        data.status || 'online';
+
+      // Profil sayfasındaki bilgileri güncelle
+      this.updateProfileDisplay(data);
+      
+      // ✅ currentAvatar'ı ASLA değiştirme!
     }
+  } catch (error) {
+    console.error('Failed to load profile data:', error);
   }
+}
+
+private updateOptionsPageAvatar(avatar: string) {
+  const optionsAvatar = document.querySelector('.options-page .avatar-item.neon-border-yellow img') as HTMLImageElement;
+  if (optionsAvatar) {
+    optionsAvatar.src = `/imgs/avatars/${avatar}.png`;
+    optionsAvatar.onerror = () => {
+      optionsAvatar.src = '/imgs/avatars/default.png';
+    };
+  }
+}
+
+ private updateProfileDisplay(profileData: any) {
+  // ✅ Avatar görselini güncelle
+  const avatarElement = document.getElementById('profile-avatar-img') as HTMLImageElement;
+  if (avatarElement && profileData.avatar) {
+    avatarElement.src = `/imgs/avatars/${profileData.avatar}.png`;
+    avatarElement.onerror = () => {
+      avatarElement.src = '/imgs/avatars/default.png';
+    };
+  }
+
+  // Diğer profil bilgileri...
+  const nicknameElement = document.getElementById('profile-nickname');
+  const emailElement = document.getElementById('profile-email');
+  const statusElement = document.getElementById('profile-status');
+  const gameStatsElement = document.getElementById('profile-gamestatistics');
+  const friendsElement = document.getElementById('profile-friends');
+
+  if (nicknameElement) nicknameElement.textContent = profileData.nickname || 'N/A';
+  if (emailElement) emailElement.textContent = profileData.email || 'N/A';
+  if (statusElement) statusElement.textContent = profileData.status || 'online';
+  
+  if (gameStatsElement) {
+    gameStatsElement.textContent = profileData.gameStatistics ? 
+      `Played: ${profileData.gameStatistics.games_played || 0}, Won: ${profileData.gameStatistics.games_won || 0}` : 
+      'No games played';
+  }
+  
+  if (friendsElement) {
+    friendsElement.textContent = profileData.friendsCount !== undefined ? 
+      profileData.friendsCount.toString() : '0';
+  }
+}
 
   private async loadAvatars() {
-    try {
-      const response = await fetch('/api/profile/avatars');
-      if (response.ok) {
-        const data = await response.json();
-        this.renderAvatars(data.avatars);
-      }
-    } catch (error) {
-      console.error('Failed to load avatars:', error);
+  try {
+    console.log('🔄 Loading avatars...');
+    const response = await fetch('/api/profile/avatars');
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('📦 Avatars received:', data.avatars);
+      console.log('🎯 Rendering with currentAvatar:', this.currentAvatar);
+      this.renderAvatars(data.avatars);
     }
+  } catch (error) {
+    console.error('Failed to load avatars:', error);
   }
+}
 
-  private renderAvatars(avatars: string[]) {
+private getAvatarUrl(avatar: string): string {
+    console.log('🔗 getAvatarUrl called with:', avatar);
+    
+    if (!avatar || avatar === 'default' || avatar === 'default1') {
+      return `/imgs/avatars/${avatar || 'default'}.png`;
+    }
+    
+    // Custom avatar kontrolü
+    if (avatar.startsWith('custom_')) {
+      // Extension kontrol et
+      const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
+      const url = hasExtension 
+        ? `/uploads/avatars/${avatar}`
+        : `/uploads/avatars/${avatar}.jpg`;
+      
+      console.log('🔗 Custom avatar URL:', url);
+      return url;
+    }
+    
+    return `/imgs/avatars/${avatar}.png`;
+  }
+ private renderAvatars(avatars: string[]) {
     const grid = document.getElementById('avatar-grid');
     if (!grid) return;
 
+    console.log('🎨 Rendering avatars. Current:', this.currentAvatar);
+
     grid.innerHTML = avatars
-      .map(
-        (avatar) => `
-      <div class="avatar-item cursor-pointer p-2 rounded-lg border border-gray-700 hover:neon-border-blue transition-all duration-300 ${
-        avatar === this.currentAvatar ? 'neon-border-yellow' : ''
-      }" data-avatar="${avatar}">
-        <img src="/imgs/avatars/${avatar}.png" alt="${avatar}" 
-             class="w-12 h-12 mx-auto object-cover rounded"
-             onerror="this.src='/imgs/avatars/default.png'">
-        <p class="text-center text-xs text-gray-300 mt-1">${avatar}</p>
-      </div>
-    `
-      )
+      .map((avatar) => {
+        if (avatar === 'upload') {
+          return `
+            <div class="avatar-item cursor-pointer p-2 rounded-lg border-2 border-gray-700 transition-all duration-300" 
+                 data-avatar="upload">
+              <div class="w-12 h-12 mx-auto bg-gray-800 rounded flex items-center justify-center border-2 border-dashed border-green-400">
+                <i class="fas fa-upload text-green-400 text-lg"></i>
+              </div>
+              <p class="text-center text-xs text-gray-300 mt-1">Upload</p>
+            </div>
+          `;
+        }
+
+        const isCustomAvatar = avatar.startsWith('custom_');
+        const avatarSrc = this.getAvatarUrl(avatar); // ✅ getAvatarUrl kullan
+        const isSelected = avatar === this.currentAvatar;
+        
+        console.log('🖼️ Rendering avatar:', avatar, 'URL:', avatarSrc, 'Selected:', isSelected);
+        
+        return `
+          <div class="avatar-item cursor-pointer p-2 rounded-lg border-2 transition-all duration-300 ${
+            isSelected ? 'border-yellow-400 shadow-lg shadow-yellow-400/50' : 'border-gray-700'
+          }" data-avatar="${avatar}">
+            <div class="relative">
+              <img src="${avatarSrc}" alt="${avatar}" 
+                   class="w-12 h-12 mx-auto object-cover rounded"
+                   onerror="console.error('Failed to load:', this.src); this.src='/imgs/avatars/default.png'">
+              ${isCustomAvatar ? `
+                <button class="delete-custom-avatar absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
+                        data-avatar="${avatar}">
+                  ×
+                </button>
+              ` : ''}
+            </div>
+            <p class="text-center text-xs text-gray-300 mt-1">${this.getAvatarDisplayName(avatar)}</p>
+          </div>
+        `;
+      })
       .join('');
 
-    // Avatar seçim event listener'ları
+    this.addAvatarEventListeners();
+  }
+
+
+// ✅ EVENT LISTENER METODU EKLE
+private addAvatarEventListeners() {
     document.querySelectorAll('.avatar-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const avatar = item.getAttribute('data-avatar');
-        if (avatar) {
+      item.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        
+        // Delete butonuna tıklandıysa
+        if (target.classList.contains('delete-custom-avatar')) {
+          e.stopPropagation();
+          const avatar = target.getAttribute('data-avatar');
+          if (avatar) {
+            this.deleteCustomAvatar(avatar);
+          }
+          return;
+        }
+
+        const avatarItem = target.closest('.avatar-item') as HTMLElement;
+        const avatar = avatarItem?.getAttribute('data-avatar');
+        
+        if (avatar === 'upload') {
+          this.triggerFileUpload();
+        } else if (avatar) {
           this.selectAvatar(avatar);
         }
       });
     });
   }
 
-  private selectAvatar(avatar: string) {
-    this.currentAvatar = avatar;
-    this.highlightSelectedAvatar();
-    this.updateAvatar(avatar);
-  }
-
-  private highlightSelectedAvatar() {
-    document.querySelectorAll('.avatar-item').forEach((item) => {
-      const avatar = item.getAttribute('data-avatar');
-      if (avatar === this.currentAvatar) {
-        item.classList.add('neon-border-yellow');
-      } else {
-        item.classList.remove('neon-border-yellow');
-      }
-    });
-  }
-
-  private async updateAvatar(avatar: string) {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ avatar }),
+  private triggerFileUpload() {
+    let fileInput = document.getElementById('avatar-file-input') as HTMLInputElement;
+    
+    if (!fileInput) {
+      fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.id = 'avatar-file-input';
+      fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp';
+      fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
+      
+      fileInput.addEventListener('change', (e) => {
+        this.handleFileUpload(e);
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update avatar');
-      }
-    } catch (error) {
-      console.error('Avatar update failed:', error);
     }
+    
+    fileInput.click();
   }
 
-  private async saveProfileChanges() {
-    const nickname = (document.getElementById('options-nickname') as HTMLInputElement).value;
-    const status = (document.getElementById('options-status') as HTMLSelectElement).value;
+
+  private async handleFileUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    
+    // Dosya validasyonu
+    if (!this.validateFile(file)) {
+      return;
+    }
 
     try {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nickname, status }),
-      });
+      // Upload progress göstergesi
+      this.showUploadProgress();
 
-      if (response.ok) {
-        console.log('Profile updated successfully!');
-        // document.querySelector('.options-page')?.classList.add('hidden');
-        // document.querySelector('.profile-page')?.classList.remove('hidden');
-		showPage(profilePage);
-      } else {
-        throw new Error('Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Profile update failed:', error);
-      alert('Failed to update profile');
-    }
-  }
+      const formData = new FormData();
+      formData.append('avatar', file);
 
-  private async loadFriends() {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      const response = await fetch('/api/friends', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.renderFriends(data.friends);
-      }
-    } catch (error) {
-      console.error('Failed to load friends:', error);
-    }
-  }
-
-  private renderFriends(friends: any[]) {
-    const list = document.getElementById('friends-list');
-    if (!list) return;
-
-    if (friends.length === 0) {
-      list.innerHTML = '<p class="text-gray-400 text-center">No friends yet</p>';
-      return;
-    }
-
-    list.innerHTML = friends
-      .map(
-        (friend) => `
-      <div class="friend-item flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-        <div class="flex items-center space-x-3">
-          <img src="/imgs/avatars/${friend.avatar || 'default'}.png" alt="${friend.nickname}" 
-               class="w-8 h-8 rounded-full object-cover"
-               onerror="this.src='/imgs/avatars/default.png'">
-          <div>
-            <span class="text-gray-300">${friend.nickname}</span>
-            <span class="text-xs block ${this.getStatusColor(friend.status)}">● ${friend.status}</span>
-          </div>
-        </div>
-        <button class="text-red-400 hover:text-red-300 transition-colors duration-300 remove-friend-btn" 
-                data-friend-id="${friend.id}">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    `
-      )
-      .join('');
-
-    // Remove friend event listeners
-    document.querySelectorAll('.remove-friend-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const friendId = (e.target as HTMLElement).getAttribute('data-friend-id');
-        if (friendId) {
-          await ProfileOptions.removeFriend(parseInt(friendId));
-          this.loadFriends(); // Listeyi yenile
-        }
-      });
-    });
-  }
-
-  // YENİ: Friend request'leri yükleme
-  // private async loadFriendRequests() {
-  //   try {
-  //       const token = localStorage.getItem('authToken');
-  //       if (!token) {
-  //           console.error('No auth token for friend requests');
-  //           return;
-  //       }
-
-  //       console.log('Loading friend requests...');
-
-  //       // Birden fazla endpoint'i deneyelim
-  //       const endpoints = [
-  //           '/api/friends/requests',
-  //           '/api/friends/pending',
-  //           '/api/friend-requests',
-  //           '/api/friendships/requests'
-  //       ];
-
-  //       let requestsData = null;
-
-  //       for (const endpoint of endpoints) {
-  //           try {
-  //               console.log(`Trying endpoint: ${endpoint}`);
-
-  //               const response = await fetch(endpoint, {
-  //                   headers: {
-  //                       'Authorization': `Bearer ${token}`,
-  //                       'Content-Type': 'application/json'
-  //                   }
-  //               });
-
-  //               console.log(`${endpoint} response status:`, response.status);
-
-  //               if (response.ok) {
-  //                   const data = await response.json();
-  //                   console.log(`${endpoint} response data:`, data);
-  //                   requestsData = data;
-  //                   break;
-  //               } else {
-  //                   const errorText = await response.text();
-  //                   console.log(`${endpoint} error:`, errorText);
-  //               }
-  //           } catch (endpointError) {
-  //               console.log(`${endpoint} network error:`, endpointError);
-  //               continue;
-  //           }
-  //       }
-
-  //       if (requestsData) {
-  //           // Farklı response formatlarını handle edelim
-  //           let requests = [];
-  //           if (requestsData.requests) {
-  //               requests = requestsData.requests;
-  //           } else if (requestsData.data) {
-  //               requests = requestsData.data;
-  //           } else if (Array.isArray(requestsData)) {
-  //               requests = requestsData;
-  //           }
-
-  //           console.log('Processing friend requests:', requests);
-  //           this.renderFriendRequests(requests);
-  //       } else {
-  //           console.log('No friend requests endpoint worked, showing empty state');
-  //           this.renderFriendRequests([]);
-  //       }
-
-  //   } catch (error) {
-  //       console.error('Failed to load friend requests:', error);
-  //       this.renderFriendRequests([]);
-  //   }
-  // }
-  private async loadFriendRequests() {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.error('No auth token for friend requests');
-        return;
-      }
-
-      console.log('Loading friend requests from /api/friends/requests');
-
-      const response = await fetch('/api/friends/requests', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Friend requests response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Friend requests data:', data);
-        this.renderFriendRequests(data.requests || data);
-      } else {
-        console.log('Friend requests endpoint failed');
-        this.renderFriendRequests([]);
-      }
-    } catch (error) {
-      console.error('Failed to load friend requests:', error);
-      this.renderFriendRequests([]);
-    }
-  }
-
-  // YENİ: Friend request'leri render etme
-  private renderFriendRequests(requests: any[]) {
-    const container = document.getElementById('friend-requests-container');
-    if (!container) {
-      console.error('friend-requests-container element not found');
-      return;
-    }
-
-    console.log('Rendering friend requests:', requests);
-
-    if (!requests || requests.length === 0) {
-      container.innerHTML =
-        '<p class="text-gray-400 text-center py-4">No pending friend requests</p>';
-      return;
-    }
-
-    container.innerHTML = requests
-      .map((request, index) => {
-        console.log(`Processing request ${index}:`, request);
-
-        // Farklı field name'leri handle edelim
-        const friendshipId = request.friendship_id || request.id || request.request_id;
-        const nickname = request.nickname || request.sender_nickname || request.user_nickname;
-        const avatar = request.avatar || request.sender_avatar || 'default';
-
-        if (!friendshipId || !nickname) {
-          console.warn('Missing required fields in request:', request);
-          return '';
-        }
-
-        return `
-            <div class="friend-request flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2 border border-gray-700">
-                <div class="flex items-center space-x-3">
-                    <img src="/imgs/avatars/${avatar}.png" 
-                         class="w-10 h-10 rounded-full border-2 border-gray-600"
-                         onerror="this.src='/imgs/avatars/default.png'"
-                         alt="${nickname}">
-                    <div>
-                        <span class="text-gray-300 font-medium">${nickname}</span>
-                        <p class="text-xs text-gray-500">wants to be your friend</p>
-                    </div>
-                </div>
-                <div class="flex space-x-2">
-                    <button class="px-3 py-1 bg-green-600 rounded hover:bg-green-700 transition-colors accept-request text-white text-sm font-medium" 
-                            data-request-id="${friendshipId}"
-                            title="Accept friend request">
-                        Accept
-                    </button>
-                    <button class="px-3 py-1 bg-red-600 rounded hover:bg-red-700 transition-colors decline-request text-white text-sm font-medium"
-                            data-request-id="${friendshipId}"
-                            title="Decline friend request">
-                        Decline
-                    </button>
-                </div>
-            </div>
-        `;
-      })
-      .filter((html) => html !== '')
-      .join('');
-
-    // Event listener'ları ekle
-    this.addFriendRequestEventListeners();
-  }
-
-  // YENİ: Friend request event listener'ları
-  private addFriendRequestEventListeners() {
-    console.log('Adding friend request event listeners');
-
-    // Accept butonları
-    document.querySelectorAll('.accept-request').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        console.log('Accept button clicked');
-        e.preventDefault();
-
-        const button = e.target as HTMLElement;
-        const requestId = button.getAttribute('data-request-id');
-
-        if (!requestId) {
-          console.error('No request ID found');
-          return;
-        }
-
-        console.log('Accepting friend request:', requestId);
-
-        // Button'u disable et
-        button.textContent = 'Accepting...';
-        button.setAttribute('disabled', 'true');
-
-        const success = await this.respondToFriendRequest(parseInt(requestId), 'accept');
-        if (success) {
-          console.log('Friend request accepted successfully');
-          this.loadFriendRequests(); // Request listesini yenile
-          this.loadFriends(); // Friends listesini yenile
-        } else {
-          // Hata durumunda button'u eski haline çevir
-          button.textContent = 'Accept';
-          button.removeAttribute('disabled');
-        }
-      });
-    });
-
-    // Decline butonları
-    document.querySelectorAll('.decline-request').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        console.log('Decline button clicked');
-        e.preventDefault();
-
-        const button = e.target as HTMLElement;
-        const requestId = button.getAttribute('data-request-id');
-
-        if (!requestId) {
-          console.error('No request ID found');
-          return;
-        }
-
-        console.log('Declining friend request:', requestId);
-
-        // Button'u disable et
-        button.textContent = 'Declining...';
-        button.setAttribute('disabled', 'true');
-
-        const success = await this.respondToFriendRequest(parseInt(requestId), 'decline');
-        if (success) {
-          console.log('Friend request declined successfully');
-          this.loadFriendRequests(); // Request listesini yenile
-        } else {
-          // Hata durumunda button'u eski haline çevir
-          button.textContent = 'Decline';
-          button.removeAttribute('disabled');
-        }
-      });
-    });
-  }
-
-  // YENİ: Friend request'e cevap verme
-  private async respondToFriendRequest(
-    requestId: number,
-    action: 'accept' | 'decline'
-  ): Promise<boolean> {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.error('No auth token for friend request response');
-        alert('Please login again');
-        return false;
-      }
-
-      console.log(`${action}ing friend request ${requestId}`);
-      console.log('Auth token:', token); // Debug için
-
-      const endpoint = `/api/friends/request/${requestId}/${action}`;
-      console.log(`Trying ${action} endpoint: ${endpoint}`);
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/profile/avatar/upload', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          // Content-Type header'ını SİLİN veya eklemeyin
+          // Content-Type header'ını EKLEMEYİN - browser otomatik set eder
         },
-      });
-
-      console.log(`${endpoint} response status:`, response.status);
-      console.log(`${endpoint} response headers:`, response.headers);
-
-      if (response.ok) {
-        console.log(`Friend request ${action}ed successfully`);
-        return true;
-      } else {
-        const errorText = await response.text();
-        console.log(`${endpoint} error:`, errorText);
-
-        // Token expired veya invalid ise
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          alert('Session expired. Please login again.');
-          window.location.reload();
-        }
-
-        return false;
-      }
-    } catch (error) {
-      console.error(`Error ${action}ing friend request:`, error);
-      return false;
-    }
-  }
-
-  private getStatusColor(status: string): string {
-    switch (status) {
-      case 'online':
-        return 'text-green-400';
-      case 'away':
-        return 'text-yellow-400';
-      case 'busy':
-        return 'text-red-400';
-      case 'invisible':
-        return 'text-gray-400';
-      default:
-        return 'text-gray-400';
-    }
-  }
-
-  public static async removeFriend(friendId: number) {
-    if (!confirm('Are you sure you want to remove this friend?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      const response = await fetch(`/api/friends/${friendId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        body: formData,
       });
 
       if (response.ok) {
-        console.log('Friend removed successfully');
-        return true;
+        const result = await response.json();
+        console.log('✅ Avatar uploaded successfully:', result);
+        
+        // Avatar listesini yenile
+        await this.loadAvatars();
+        await this.loadProfileData();
+        
+        this.hideUploadProgress();
+        this.showNotification('Avatar uploaded successfully!', 'success');
       } else {
-        throw new Error('Failed to remove friend');
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
       }
+
     } catch (error) {
-      console.error('Failed to remove friend:', error);
-      alert('Failed to remove friend');
-      return false;
+      console.error('❌ Avatar upload failed:', error);
+      this.hideUploadProgress();
+      this.showNotification('Failed to upload avatar: ' + error, 'error');
+    } finally {
+      // Input'u temizle
+      input.value = '';
     }
   }
+
+  private async deleteCustomAvatar(avatarUrl: string) {
+  if (!confirm('Are you sure you want to delete this custom avatar?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    // ✅ Content-Type header'ını KALDIR veya body gönder
+    const response = await fetch('/api/profile/avatar', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ❌ 'Content-Type': 'application/json', // BU SATIRI KALDIR
+      },
+      // ✅ VEYA boş body gönder
+      // body: JSON.stringify({}) 
+    });
+
+    if (response.ok) {
+      this.showNotification('Avatar deleted successfully!', 'success');
+      await this.loadAvatars();
+      await this.loadProfileData();
+    } else {
+      throw new Error('Failed to delete avatar');
+    }
+
+  } catch (error) {
+    console.error('Avatar delete failed:', error);
+    this.showNotification('Failed to delete avatar', 'error');
+  }
+}
+private validateFile(file: File): boolean {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      this.showNotification('Please select a valid image file (JPEG, PNG, GIF, WebP)', 'error');
+      return false;
+    }
+
+    if (file.size > maxSize) {
+      this.showNotification('File size must be less than 5MB', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  private showUploadProgress() {
+    // Basit progress göstergesi
+    const progress = document.createElement('div');
+    progress.id = 'upload-progress';
+    progress.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg';
+    progress.textContent = 'Uploading avatar...';
+    document.body.appendChild(progress);
+  }
+
+  private hideUploadProgress() {
+    const progress = document.getElementById('upload-progress');
+    if (progress) {
+      progress.remove();
+    }
+  }
+
+  private showNotification(message: string, type: 'success' | 'error') {
+    // Basit notification sistemi - daha iyi bir sistem için kütüphane kullanabilirsiniz
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg ${
+      type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+    }`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  private getCustomAvatarUrl(avatarUrl: string): string {
+return `/uploads/avatars/${avatarUrl}`;
+  }
+
+  private getAvatarDisplayName(avatar: string): string {
+    if (avatar === 'upload') return 'Upload';
+    if (avatar.startsWith('custom_')) return 'Custom';
+    return avatar.charAt(0).toUpperCase() + avatar.slice(1);
+  }
+
+private async selectAvatar(avatar: string) {
+  console.log('🎯 Selecting avatar:', avatar);
+  
+  this.currentAvatar = avatar;
+  
+  // ✅ Sadece görsel güncelleme yap
+  this.highlightSelectedAvatar();
+  
+  // ✅ Backend'e gönder
+  await this.updateAvatar(avatar);
+  
+  // ❌ loadAvatars() ÇAĞIRMA - sonsuz döngü yaratır!
+  // await this.loadAvatars();
+  
+  console.log('✅ Avatar selection complete');
+}
+private highlightSelectedAvatar() {
+  console.log('🎨 highlightSelectedAvatar - currentAvatar:', this.currentAvatar);
+  
+  document.querySelectorAll('.avatar-item').forEach((item) => {
+    const avatar = item.getAttribute('data-avatar');
+    const isSelected = avatar === this.currentAvatar;
+    
+    // ✅ Data attribute'u güncelle
+    item.setAttribute('data-selected', isSelected.toString());
+    
+    // ✅ CSS class'larını güncelle
+    if (isSelected) {
+      item.classList.add('border-yellow-400', 'shadow-lg', 'shadow-yellow-400/50');
+      item.classList.remove('border-gray-700');
+    } else {
+      item.classList.remove('border-yellow-400', 'shadow-lg', 'shadow-yellow-400/50');
+      item.classList.add('border-gray-700');
+    }
+  });
+}
+
+  private async updateAvatar(avatar: string) {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    console.log('📡 Sending avatar update to backend:', avatar);
+
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ avatar }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update avatar');
+    }
+    
+    console.log('✅ Backend avatar update successful');
+    
+  } catch (error) {
+    console.error('Avatar update failed:', error);
+  }
+}
+
+ private async saveProfileChanges() {
+  const nickname = (document.getElementById('options-nickname') as HTMLInputElement).value;
+  const status = (document.getElementById('options-status') as HTMLSelectElement).value;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ nickname, status }),
+    });
+
+    if (response.ok) {
+      console.log('Profile updated successfully!');
+      
+      // ✅ currentAvatar ile profil görselini güncelle
+      this.updateProfileDisplay({
+        nickname: nickname,
+        status: status,
+        avatar: this.currentAvatar, // ✅ EN ÖNEMLİ SATIR
+        email: 'user@example.com', // Mevcut email veya boş bırakın
+        gameStatistics: { games_played: 0, games_won: 0 },
+        friendsCount: 0
+      });
+      
+      // ✅ Profil sayfasına dön
+      document.querySelector('.options-page')?.classList.add('hidden');
+      document.querySelector('.profile-page')?.classList.remove('hidden');
+      
+      console.log('✅ Profile page updated with avatar:', this.currentAvatar);
+    }
+  } catch (error) {
+    console.error('Profile update failed:', error);
+  }
+}
 }
 
 // Global erişim için
