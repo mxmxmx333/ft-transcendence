@@ -224,12 +224,6 @@ export class SocketManager {
     }
   });
 
-
-  this.socket.on('tournament_started', (data: any) => {
-    console.log('Tournament started:', data);
-    // Game start logic hier
-  });
-
   this.socket.on('tournament_match_start', (data: any) => {
     console.log('Current game instance:', this.gameInstance);
     // Reset game instance for new match
