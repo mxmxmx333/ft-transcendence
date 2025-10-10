@@ -132,7 +132,8 @@ export default class AuthController {
 
       this.fastify.log.error(user);
       const token = await this.signUserInfos(user);
-      const action_required = user.nickname === null ? 'nickname' : user.totp_secret !== null ? '2fa' : false;
+      const action_required =
+        user.nickname === null ? 'nickname' : user.totp_secret !== null ? '2fa' : false;
 
       if (action_required !== false) {
         return reply.send({
@@ -174,7 +175,7 @@ export default class AuthController {
 
     const callbackUrl = frontendUrl + '/oAuthCallback';
 
-    const url = new URL("https://api.intra.42.fr/oauth/authorize");
+    const url = new URL('https://api.intra.42.fr/oauth/authorize');
     url.searchParams.append('client_id', this.oAuthService.oauth_client_id!);
     url.searchParams.append('redirect_uri', callbackUrl);
     url.searchParams.append('scope', 'public');
@@ -254,49 +255,49 @@ export default class AuthController {
   }
 
   async signUserInfos(user: User) {
-      const token = await this.fastify.vAuth.sign({
-        sub: user.id?.toString(),
-        nickname: user.nickname,
-        nickname_required: user.nickname === null,
-        totp_required: user.totp_secret !== null,
-      });
+    const token = await this.fastify.vAuth.sign({
+      sub: user.id?.toString(),
+      nickname: user.nickname,
+      nickname_required: user.nickname === null,
+      totp_required: user.totp_secret !== null,
+    });
 
-      return token;
+    return token;
   }
 
   // ======= NEW PROFILE METHODS =======
   async getProfile(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const token = request.headers?.authorization?.split(' ')[1];
-    if (!token) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const extracted = await request.server.vAuth.verify(token);
+      const decoded = extracted as { sub: string; nickname: string };
+      const userId = parseInt(decoded.sub);
+
+      const user = this.authService.getUserById(userId);
+      if (!user) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+
+      const gameStats = await this.authService.getUserGameStats(userId);
+
+      console.log('🔍 getProfile - user avatar:', user.avatar); // ✅ DEBUG
+
+      return reply.send({
+        id: user.id,
+        nickname: user.nickname,
+        email: user.email,
+        avatar: user.avatar || 'default', // ✅ BU SATIRI KONTROL EDİN
+        status: user.status,
+        gameStatistics: gameStats,
+      });
+    } catch (err) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
-    
-    const extracted = await request.server.vAuth.verify(token);
-    const decoded = extracted as { sub: string; nickname: string };
-    const userId = parseInt(decoded.sub);
-    
-    const user = this.authService.getUserById(userId);
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found' });
-    }
-
-    const gameStats = await this.authService.getUserGameStats(userId);
-
-    console.log('🔍 getProfile - user avatar:', user.avatar); // ✅ DEBUG
-
-    return reply.send({
-      id: user.id,
-      nickname: user.nickname,
-      email: user.email,
-      avatar: user.avatar || 'default', // ✅ BU SATIRI KONTROL EDİN
-      status: user.status,
-      gameStatistics: gameStats,
-    });
-  } catch (err) {
-    return reply.status(401).send({ error: 'Unauthorized' });
   }
-}
 
   // === NEW METHODS PLS DONT DELETE THERE ARE STILL BUGS
   async getUserById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
@@ -370,97 +371,97 @@ export default class AuthController {
 
   // ============================================
 
- async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
-  try {
-    const token = request.headers?.authorization?.split(' ')[1];
-    if (!token) {
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-    
-    const extracted = await request.server.vAuth.verify(token);
-    const decoded = extracted as any;
-    const userId = decoded.id || parseInt(decoded.sub);
-    
-    if (!userId || isNaN(userId)) {
-      return reply.status(400).send({ error: 'Invalid user ID' });
-    }
+  async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-    const { nickname, avatar, status } = request.body;
-    let updated = false;
+      const extracted = await request.server.vAuth.verify(token);
+      const decoded = extracted as any;
+      const userId = decoded.id || parseInt(decoded.sub);
 
-    if (nickname) {
-      try {
-        const success = this.authService.updateUserNickname(userId, nickname);
-        if (!success) {
-          return reply.status(400).send({ error: 'Failed to update nickname' });
+      if (!userId || isNaN(userId)) {
+        return reply.status(400).send({ error: 'Invalid user ID' });
+      }
+
+      const { nickname, avatar, status } = request.body;
+      let updated = false;
+
+      if (nickname) {
+        try {
+          const success = this.authService.updateUserNickname(userId, nickname);
+          if (!success) {
+            return reply.status(400).send({ error: 'Failed to update nickname' });
+          }
+          updated = true;
+        } catch (error: any) {
+          if (error.message === 'Nickname already exists') {
+            return reply.status(409).send({ error: 'Nickname already exists' });
+          }
+          throw error;
         }
-        updated = true;
-      } catch (error: any) {
-        if (error.message === 'Nickname already exists') {
-          return reply.status(409).send({ error: 'Nickname already exists' });
+      }
+
+      if (avatar) {
+        // ✅ FIX: getAvailableAvatars'a userId parametresini ekle
+        const availableAvatars = this.authService.getAvailableAvatars(userId);
+        if (!availableAvatars.includes(avatar)) {
+          return reply.status(400).send({ error: 'Invalid avatar selection' });
         }
-        throw error;
+        const success = this.authService.updateUserAvatar(userId, avatar);
+        if (success) updated = true;
       }
-    }
 
-    if (avatar) {
-      // ✅ FIX: getAvailableAvatars'a userId parametresini ekle
-      const availableAvatars = this.authService.getAvailableAvatars(userId);
-      if (!availableAvatars.includes(avatar)) {
-        return reply.status(400).send({ error: 'Invalid avatar selection' });
+      if (status) {
+        const validStatuses = ['online', 'away', 'busy', 'invisible'];
+        if (!validStatuses.includes(status)) {
+          return reply.status(400).send({ error: 'Invalid status' });
+        }
+        const success = this.authService.updateUserStatus(userId, status);
+        if (success) updated = true;
       }
-      const success = this.authService.updateUserAvatar(userId, avatar);
-      if (success) updated = true;
-    }
 
-    if (status) {
-      const validStatuses = ['online', 'away', 'busy', 'invisible'];
-      if (!validStatuses.includes(status)) {
-        return reply.status(400).send({ error: 'Invalid status' });
+      if (!updated) {
+        return reply.status(400).send({ error: 'No valid updates provided' });
       }
-      const success = this.authService.updateUserStatus(userId, status);
-      if (success) updated = true;
-    }
 
-    if (!updated) {
-      return reply.status(400).send({ error: 'No valid updates provided' });
+      const updatedUser = this.authService.getUserById(userId);
+      return reply.send({
+        success: true,
+        user: {
+          id: updatedUser!.id,
+          nickname: updatedUser!.nickname,
+          email: updatedUser!.email,
+          avatar: updatedUser!.avatar,
+          status: updatedUser!.status,
+        },
+      });
+    } catch (error) {
+      this.fastify.log.error(error);
+      return reply.status(500).send({ error: 'Internal server error' });
     }
-
-    const updatedUser = this.authService.getUserById(userId);
-    return reply.send({
-      success: true,
-      user: {
-        id: updatedUser!.id,
-        nickname: updatedUser!.nickname,
-        email: updatedUser!.email,
-        avatar: updatedUser!.avatar,
-        status: updatedUser!.status,
-      },
-    });
-  } catch (error) {
-    this.fastify.log.error(error);
-    return reply.status(500).send({ error: 'Internal server error' });
   }
-}
 
-async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const token = request.headers?.authorization?.split(' ')[1];
-    if (!token) {
-      return reply.status(401).send({ error: 'Unauthorized' });
+  async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const extracted = await request.server.vAuth.verify(token);
+      const decoded = extracted as any;
+      const userId = decoded.id || parseInt(decoded.sub);
+
+      // ✅ Kullanıcıya özel avatarları getir
+      const avatars = this.authService.getAvailableAvatars(userId);
+      return reply.send({ avatars });
+    } catch (error) {
+      return reply.status(500).send({ error: 'Failed to get avatars' });
     }
-    
-    const extracted = await request.server.vAuth.verify(token);
-    const decoded = extracted as any;
-    const userId = decoded.id || parseInt(decoded.sub);
-    
-    // ✅ Kullanıcıya özel avatarları getir
-    const avatars = this.authService.getAvailableAvatars(userId);
-    return reply.send({ avatars });
-  } catch (error) {
-    return reply.status(500).send({ error: 'Failed to get avatars' });
   }
-}
   // ======= FRIEND SYSTEM METHODS =======
 
   async getFriends(request: FastifyRequest, reply: FastifyReply) {
@@ -507,17 +508,17 @@ async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
   }
 
   // TESTING
- async uploadAvatar(request: any, reply: FastifyReply) {
+  async uploadAvatar(request: any, reply: FastifyReply) {
     try {
       const token = request.headers?.authorization?.split(' ')[1];
       if (!token) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
-      
+
       const extracted = await request.server.vAuth.verify(token);
       const decoded = extracted as any;
       const userId = decoded.id || parseInt(decoded.sub);
-      
+
       // ✅ DÜZELTME: fastify-multipart'ın doğru kullanımı
       const data = await request.file();
       if (!data) {
@@ -527,8 +528,8 @@ async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
       // Dosya tipi kontrolü
       const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!allowedMimeTypes.includes(data.mimetype)) {
-        return reply.status(400).send({ 
-          error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' 
+        return reply.status(400).send({
+          error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.',
         });
       }
 
@@ -536,14 +537,14 @@ async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
       const fileBuffer = await data.toBuffer();
       const maxSize = 5 * 1024 * 1024;
       if (fileBuffer.length > maxSize) {
-        return reply.status(400).send({ 
-          error: 'File too large. Maximum size is 5MB.' 
+        return reply.status(400).send({
+          error: 'File too large. Maximum size is 5MB.',
         });
       }
 
       // Avatar'ı işle ve kaydet
       const avatarUrl = await this.authService.processAndSaveAvatar(
-        userId, 
+        userId,
         fileBuffer,
         data.mimetype
       );
@@ -551,40 +552,38 @@ async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
       return reply.send({
         success: true,
         avatar: avatarUrl,
-        message: 'Avatar uploaded successfully'
+        message: 'Avatar uploaded successfully',
       });
-
     } catch (error) {
       console.error('Avatar upload error:', error);
       return reply.status(500).send({ error: 'Failed to upload avatar' });
     }
   }
-async deleteCustomAvatar(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const token = request.headers?.authorization?.split(' ')[1];
-    if (!token) {
-      return reply.status(401).send({ error: 'Unauthorized' });
-    }
-    
-    const extracted = await request.server.vAuth.verify(token);
-    const decoded = extracted as any;
-    const userId = decoded.id || parseInt(decoded.sub);
+  async deleteCustomAvatar(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
 
-    const success = await this.authService.deleteUserAvatar(userId);
-    
-    if (success) {
-      return reply.send({
-        success: true,
-        message: 'Avatar deleted successfully',
-        avatar: 'default'
-      });
-    } else {
-      return reply.status(400).send({ error: 'Failed to delete avatar' });
-    }
+      const extracted = await request.server.vAuth.verify(token);
+      const decoded = extracted as any;
+      const userId = decoded.id || parseInt(decoded.sub);
 
-  } catch (error) {
-    console.error('Avatar delete error:', error);
-    return reply.status(500).send({ error: 'Failed to delete avatar' });
+      const success = await this.authService.deleteUserAvatar(userId);
+
+      if (success) {
+        return reply.send({
+          success: true,
+          message: 'Avatar deleted successfully',
+          avatar: 'default',
+        });
+      } else {
+        return reply.status(400).send({ error: 'Failed to delete avatar' });
+      }
+    } catch (error) {
+      console.error('Avatar delete error:', error);
+      return reply.status(500).send({ error: 'Failed to delete avatar' });
+    }
   }
-}
 }

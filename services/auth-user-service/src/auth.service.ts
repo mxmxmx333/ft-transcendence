@@ -90,11 +90,29 @@ export default class AuthService {
 
   // ======= EXISTING USER METHODS =======
   createUser(user: Omit<User, 'id' | 'created_at' | 'updated_at'>): User {
-    const { nickname, auth_method, email, password_hash, external_id, totp_secret, avatar = 'default', status = 'online' } = user;
+    const {
+      nickname,
+      auth_method,
+      email,
+      password_hash,
+      external_id,
+      totp_secret,
+      avatar = 'default',
+      status = 'online',
+    } = user;
     const stmt = this.db.prepare(
       'INSERT INTO users (nickname, auth_method, email, password_hash, external_id, totp_secret, avatar, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    const info = stmt.run(nickname, auth_method, email, password_hash, external_id, totp_secret, avatar, status);
+    const info = stmt.run(
+      nickname,
+      auth_method,
+      email,
+      password_hash,
+      external_id,
+      totp_secret,
+      avatar,
+      status
+    );
 
     // Create initial game statistics for the user
     const gameStatsStmt = this.db.prepare('INSERT INTO game_statistics (user_id) VALUES (?)');
@@ -189,7 +207,9 @@ export default class AuthService {
   }
 
   getUserByExternalId(id: number): User | null {
-    const stmt = this.db.prepare('SELECT * FROM users WHERE auth_method = \'remote\' AND external_id = ?');
+    const stmt = this.db.prepare(
+      "SELECT * FROM users WHERE auth_method = 'remote' AND external_id = ?"
+    );
     return stmt.get(id);
   }
 
@@ -368,7 +388,7 @@ export default class AuthService {
         ORDER BY mh.played_at DESC
         LIMIT ?
       `);
-      
+
       return stmt.all(userId, userId, userId, userId, userId, userId, userId, limit);
     } catch (error) {
       console.error('Failed to get match history:', error);
@@ -394,13 +414,13 @@ export default class AuthService {
         FROM match_history 
         WHERE player1_id = ? OR player2_id = ?
       `);
-      
+
       const stats = stmt.get(userId, userId, userId, userId, userId);
-      
+
       const gamesPlayed = stats.games_played || 0;
       const gamesWon = stats.games_won || 0;
       const gamesLost = stats.games_lost || 0;
-      
+
       return {
         user_id: userId,
         games_played: gamesPlayed,
@@ -409,7 +429,7 @@ export default class AuthService {
         win_rate: gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0,
         avg_score: gamesPlayed > 0 ? Math.round((stats.total_score || 0) / gamesPlayed) : 0,
         total_score: stats.total_score || 0,
-        last_game_date: stats.last_game_date
+        last_game_date: stats.last_game_date,
       };
     } catch (error) {
       console.error('Failed to get game stats:', error);
@@ -420,7 +440,7 @@ export default class AuthService {
         games_lost: 0,
         win_rate: 0,
         avg_score: 0,
-        total_score: 0
+        total_score: 0,
       };
     }
   }
@@ -464,168 +484,166 @@ export default class AuthService {
   }
 
   // ======= UTILITY METHODS =======
- getAvailableAvatars(userId: number): string[] {
-  const staticAvatars = ['default', 'default1'];
-  
-  try {
-    const uploadsDir = path.join(__dirname, '../../uploads/avatars');
-    console.log('📂 Checking avatars directory:', uploadsDir);
-    
-    if (fs.existsSync(uploadsDir)) {
-      const files = fs.readdirSync(uploadsDir);
-      console.log('📁 Files found:', files);
-      
-      // ✅ FIX: Sadece bu kullanıcıya ait custom avatarları göster
-      const customAvatars = files
-        .filter(file => {
-          const isUserAvatar = file.startsWith(`custom_${userId}_`);
-          const hasValidExtension = /\.(jpg|png|gif|webp)$/i.test(file);
-          return isUserAvatar && hasValidExtension;
-        })
-        .map(file => file.replace(/\.(jpg|png|gif|webp)$/i, ''));
-      
-      console.log('🎨 User custom avatars:', customAvatars);
-      return [...staticAvatars, ...customAvatars, 'upload'];
+  getAvailableAvatars(userId: number): string[] {
+    const staticAvatars = ['default', 'default1'];
+
+    try {
+      const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+      console.log('📂 Checking avatars directory:', uploadsDir);
+
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        console.log('📁 Files found:', files);
+
+        // ✅ FIX: Sadece bu kullanıcıya ait custom avatarları göster
+        const customAvatars = files
+          .filter((file) => {
+            const isUserAvatar = file.startsWith(`custom_${userId}_`);
+            const hasValidExtension = /\.(jpg|png|gif|webp)$/i.test(file);
+            return isUserAvatar && hasValidExtension;
+          })
+          .map((file) => file.replace(/\.(jpg|png|gif|webp)$/i, ''));
+
+        console.log('🎨 User custom avatars:', customAvatars);
+        return [...staticAvatars, ...customAvatars, 'upload'];
+      }
+    } catch (error) {
+      console.error('❌ Error reading custom avatars:', error);
     }
-  } catch (error) {
-    console.error('❌ Error reading custom avatars:', error);
+
+    return [...staticAvatars, 'upload'];
   }
-  
-  return [...staticAvatars, 'upload'];
-}
 
-//TESTING
-async processAndSaveAvatar(
-  userId: number, 
-  fileBuffer: Buffer, 
-  mimeType: string
-): Promise<string> {
-  try {
-    // Uploads dizinini oluştur
-    const uploadsDir = path.join(__dirname, '../../uploads/avatars');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+  //TESTING
+  async processAndSaveAvatar(
+    userId: number,
+    fileBuffer: Buffer,
+    mimeType: string
+  ): Promise<string> {
+    try {
+      // Uploads dizinini oluştur
+      const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Önceki custom avatarı temizle
+      const user = this.getUserById(userId);
+      if (user?.avatar && user.avatar.startsWith('custom_')) {
+        this.cleanupUserAvatars(uploadsDir, user.avatar);
+      }
+
+      // ✅ Dosya adını doğru oluştur
+      const extension = this.getFileExtension(mimeType);
+      const filename = `custom_${userId}_${Date.now()}${extension}`;
+      const filePath = path.join(uploadsDir, filename);
+
+      // Resmi kaydet
+      await this.processImage(fileBuffer, filePath, mimeType);
+
+      // ✅ Database'de avatar alanını güncelle - SADECE FILENAME
+      const avatarUrl = filename.replace(extension, ''); // Extension'sız
+      const updateStmt = this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
+      updateStmt.run(avatarUrl, userId);
+
+      console.log('✅ Avatar saved:', avatarUrl);
+      return avatarUrl;
+    } catch (error) {
+      console.error('❌ Error processing avatar:', error);
+      throw new Error('Failed to process avatar');
     }
-
-    // Önceki custom avatarı temizle
-    const user = this.getUserById(userId);
-    if (user?.avatar && user.avatar.startsWith('custom_')) {
-      this.cleanupUserAvatars(uploadsDir, user.avatar);
-    }
-
-    // ✅ Dosya adını doğru oluştur
-    const extension = this.getFileExtension(mimeType);
-    const filename = `custom_${userId}_${Date.now()}${extension}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    // Resmi kaydet
-    await this.processImage(fileBuffer, filePath, mimeType);
-
-    // ✅ Database'de avatar alanını güncelle - SADECE FILENAME
-    const avatarUrl = filename.replace(extension, ''); // Extension'sız
-    const updateStmt = this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
-    updateStmt.run(avatarUrl, userId);
-
-    console.log('✅ Avatar saved:', avatarUrl);
-    return avatarUrl;
-
-  } catch (error) {
-    console.error('❌ Error processing avatar:', error);
-    throw new Error('Failed to process avatar');
   }
-}
-private cleanupUserAvatars(uploadsDir: string, currentAvatar: string): void {
-  try {
-    if (fs.existsSync(uploadsDir)) {
+  private cleanupUserAvatars(uploadsDir: string, currentAvatar: string): void {
+    try {
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        files.forEach((file) => {
+          // Sadece eski custom avatarları sil
+          if (file.startsWith('custom_') && !file.includes(currentAvatar)) {
+            const filePath = path.join(uploadsDir, file);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log('🗑️ Deleted old avatar:', file);
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error cleaning up old avatars:', error);
+    }
+  }
+
+  private getFileExtension(mimeType: string): string {
+    const extensions: { [key: string]: string } = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+    };
+    return extensions[mimeType] || '.jpg';
+  }
+
+  private async processImage(buffer: Buffer, outputPath: string, mimeType: string): Promise<void> {
+    try {
+      // Sharp kütüphanesi kullan (eğer yüklüyse)
+      try {
+        const sharp = require('sharp');
+        await sharp(buffer)
+          .resize(200, 200, {
+            fit: 'cover',
+            position: 'center',
+          })
+          .jpeg({ quality: 80 })
+          .toFile(outputPath);
+      } catch (sharpError) {
+        // Sharp yoksa, basitçe dosyayı kaydet
+        console.log('Sharp not available, saving original file');
+        fs.writeFileSync(outputPath, buffer);
+      }
+    } catch (error) {
+      // Fallback: dosyayı olduğu gibi kaydet
+      fs.writeFileSync(outputPath, buffer);
+    }
+  }
+
+  async deleteUserAvatar(userId: number): Promise<boolean> {
+    try {
+      const user = this.getUserById(userId);
+      if (!user?.avatar || !user.avatar.startsWith('custom_')) {
+        return false;
+      }
+
+      const avatarToDelete = user.avatar; // ✅ Type-safe değişken
+
+      // Uploads dizininden avatarı sil
+      const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+
+      if (!fs.existsSync(uploadsDir)) {
+        console.warn('Uploads directory does not exist');
+        return false;
+      }
+
       const files = fs.readdirSync(uploadsDir);
-      files.forEach(file => {
-        // Sadece eski custom avatarları sil
-        if (file.startsWith('custom_') && !file.includes(currentAvatar)) {
+
+      files.forEach((file) => {
+        if (file.includes(avatarToDelete)) {
+          // ✅ Artık undefined olamaz
           const filePath = path.join(uploadsDir, file);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
-            console.log('🗑️ Deleted old avatar:', file);
+            console.log('🗑️ Deleted avatar:', file);
           }
         }
       });
-    }
-  } catch (error) {
-    console.error('Error cleaning up old avatars:', error);
-  }
-}
 
-private getFileExtension(mimeType: string): string {
-  const extensions: { [key: string]: string } = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/gif': '.gif',
-    'image/webp': '.webp'
-  };
-  return extensions[mimeType] || '.jpg';
-}
+      // Database'de default avatar'a dön
+      const updateStmt = this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
+      const info = updateStmt.run('default', userId);
 
-private async processImage(buffer: Buffer, outputPath: string, mimeType: string): Promise<void> {
-  try {
-    // Sharp kütüphanesi kullan (eğer yüklüyse)
-    try {
-      const sharp = require('sharp');
-      await sharp(buffer)
-        .resize(200, 200, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .jpeg({ quality: 80 })
-        .toFile(outputPath);
-    } catch (sharpError) {
-      // Sharp yoksa, basitçe dosyayı kaydet
-      console.log('Sharp not available, saving original file');
-      fs.writeFileSync(outputPath, buffer);
-    }
-  } catch (error) {
-    // Fallback: dosyayı olduğu gibi kaydet
-    fs.writeFileSync(outputPath, buffer);
-  }
-}
-
-async deleteUserAvatar(userId: number): Promise<boolean> {
-  try {
-    const user = this.getUserById(userId);
-    if (!user?.avatar || !user.avatar.startsWith('custom_')) {
+      return info.changes > 0;
+    } catch (error) {
+      console.error('Error deleting avatar:', error);
       return false;
     }
-
-    const avatarToDelete = user.avatar; // ✅ Type-safe değişken
-
-    // Uploads dizininden avatarı sil
-    const uploadsDir = path.join(__dirname, '../../uploads/avatars');
-    
-    if (!fs.existsSync(uploadsDir)) {
-      console.warn('Uploads directory does not exist');
-      return false;
-    }
-
-    const files = fs.readdirSync(uploadsDir);
-    
-    files.forEach(file => {
-      if (file.includes(avatarToDelete)) { // ✅ Artık undefined olamaz
-        const filePath = path.join(uploadsDir, file);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-          console.log('🗑️ Deleted avatar:', file);
-        }
-      }
-    });
-
-    // Database'de default avatar'a dön
-    const updateStmt = this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
-    const info = updateStmt.run('default', userId);
-
-    return info.changes > 0;
-
-  } catch (error) {
-    console.error('Error deleting avatar:', error);
-    return false;
   }
-}
-
 }

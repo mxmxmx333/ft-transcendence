@@ -105,10 +105,9 @@ export default fp(
 		sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		status TEXT NOT NULL DEFAULT 'not viewed',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`
-	);
+		)`);
 
-	db.exec(`
+      db.exec(`
 		CREATE TABLE IF NOT EXISTS match_history (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		player1_id INTEGER NOT NULL,
@@ -128,7 +127,6 @@ export default fp(
 		CREATE INDEX IF NOT EXISTS idx_match_history_player2 ON match_history(player2_id);
 		CREATE INDEX IF NOT EXISTS idx_match_history_played_at ON match_history(played_at);
 	`);
-
 
       fastify.decorate('db', db);
     } catch (err) {

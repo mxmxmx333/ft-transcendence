@@ -168,7 +168,7 @@ async function start() {
   });
 
   //TESTING
- 
+
   const authService = new AuthService(server);
 
   const oAuthService = new OAuthService();

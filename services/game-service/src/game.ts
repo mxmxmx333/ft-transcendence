@@ -268,7 +268,12 @@ export async function endGame(room: GameRoom) {
   };
 
   if ('players' in room) {
-    await saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner != null ? gameResult.winner : room.guest?.id, gameType: 'tournament' });
+    await saveGameResult({
+      ...gameResult,
+      player2: room.guest!.id,
+      winner: gameResult.winner != null ? gameResult.winner : room.guest?.id,
+      gameType: 'tournament',
+    });
     console.debug(`[Server] Tournament game result saved for room ${room.id}`);
     handleTournamentGameEnd(room, winner);
     return;
