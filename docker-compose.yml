@@ -454,6 +454,7 @@ services:
       - ./services/api-gateway/certs/:/certs/api-gateway/:rw             # RW für api-gateway
       - ./services/auth-user-service/certs/:/certs/auth-user-service/:rw # RW für auth-user-service
       - ./services/game-service/certs/:/certs/game-service/:rw           # RW für game-service
+      - ./services/live-chat/certs/:/certs/live-chat/:rw                  # RW für Live-chat
       - ./frontend-src/certs/:/certs/vite/:rw                           # RW für frontend
       - ./services/auth-user-service/certs/approle/:/approle/auth-user-service/:rw # RW für auth-user-service
       - ./services/api-gateway/certs/approle/:/approle/api-gateway/:rw             # RW für api-gateway

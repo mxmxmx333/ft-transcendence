@@ -8,15 +8,16 @@
     "services/game-service",
     "services/api-gateway",
     "services/auth-user-service",
-    "services/ai-opponent"
+    "services/ai-opponent",
+    "services/live-chat"
   ],
   "scripts": {
-    "dev": "concurrently -k -n auth-user-service,game-service,api-gateway,frontend,ai-opponent -c cyan,green,magenta,yellow \"npm:dev:auth-user-service\" \"npm:dev:game-service\" \"npm:dev:api-gateway\" \"npm:dev:frontend\" \"npm:dev:ai-opponent\"",
+    "dev": "concurrently -k -n auth-user-service,game-service,api-gateway,frontend,ai-opponent,live-chat -c cyan,green,magenta,yellow,blue,\"#FFA500\" \"npm:dev:auth-user-service\" \"npm:dev:game-service\" \"npm:dev:api-gateway\" \"npm:dev:frontend\" \"npm:dev:ai-opponent\" \"npm:dev:live-chat\"",
     "dev:auth-user-service": "NODE_ENV=development tsx watch services/auth-user-service/src/server.ts",
     "dev:game-service": "NODE_ENV=development tsx watch services/game-service/src/server.ts",
     "dev:api-gateway": "NODE_ENV=development tsx watch services/api-gateway/src/server.ts",
     "dev:frontend": "cd frontend-src && vite",
-    "dev:vault": "",
+    "dev:live-chat": "NODE_ENV=development tsx watch services/live-chat/src/server.ts",
     "dev:ai-opponent": "NODE_ENV=development tsx watch services/ai-opponent/src/server.ts",
     "docker:build:game-service": "docker compose build game-service",
     "docker:build:auth-user-service": "docker compose build auth-user-service",

@@ -171,6 +171,14 @@ vault write pki/roles/game-service-internal \
   server_flag=true client_flag=false \
   max_ttl="72h"
 
+  vault write pki/roles/live-chat-internal \
+    allowed_domains="live-chat,localhost" \
+    allow_bare_domains=true allow_subdomains=false \
+    allow_ip_sans=true \
+    key_type="ec" key_bits=256 \
+    server_flag=true client_flag=false \
+    max_ttl="72h"
+
 vault write pki/roles/ai-opponent-internal \
   allowed_domains="ai-opponent-service,localhost" \
   allow_bare_domains=true allow_subdomains=false \
@@ -220,6 +228,7 @@ issue_cert "localhost"          "api-gateway-internal"    "localhost"           
 issue_cert "localhost"          "auth-user-internal"      "localhost"           "127.0.0.1"   "/certs/auth-user-service"       "server"
 issue_cert "localhost"          "game-service-internal"   "localhost"           "127.0.0.1"   "/certs/game-service"            "server"
 issue_cert "localhost"          "ai-opponent-internal"    "localhost"           "127.0.0.1"   "/certs/ai-opponent"             "server"
+issue_cert "live-chat"          "live-chat-internal"      "localhost"           "127.0.0.1"   "certs/live-chat"                "server"
 issue_cert "localhost"          "vite-internal"           "localhost"           "127.0.0.1"   "/certs/vite"                    "server"
 issue_cert "api-gateway"        "vault-clients-internal"  ""                    ""            "/certs/api-gateway/vault"       "client"
 issue_cert "auth-user-service"  "vault-clients-internal"  ""                    ""            "/certs/auth-user-service/vault" "client"
