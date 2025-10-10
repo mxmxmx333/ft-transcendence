@@ -427,7 +427,7 @@ export default class AuthService {
 
   saveMatchResult(matchData: any): boolean {
     try {
-      console.log('🎯 Internal match result received:', matchData);
+      console.log('Internal match result received:', matchData);
 
       const player1Id = matchData.player1_id ? parseInt(matchData.player1_id) : null;
       const player2Id = matchData.player2_id ? parseInt(matchData.player2_id) : null;
