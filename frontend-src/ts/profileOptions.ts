@@ -36,8 +36,6 @@ private async loadProfileData() {
     const token = localStorage.getItem('authToken');
     if (!token) return;
 
-    console.log('🔄 loadProfileData - currentAvatar:', this.currentAvatar);
-
     const response = await fetch('/api/profile', {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -47,9 +45,15 @@ private async loadProfileData() {
     if (response.ok) {
       const data = await response.json();
       
-      console.log('📦 Backend data received, currentAvatar remains:', this.currentAvatar);
+      console.log('📦 Backend data received, avatar:', data.avatar);
+      
+      // ✅ CRITICAL FIX: currentAvatar'ı backend'den gelen veriyle güncelle
+      if (data.avatar) {
+        this.currentAvatar = data.avatar;
+        console.log('✅ currentAvatar updated to:', this.currentAvatar);
+      }
 
-      // Form alanlarını doldur (SADECE BUNU YAP)
+      // Form alanlarını doldur
       (document.getElementById('options-nickname') as HTMLInputElement).value =
         data.nickname || '';
       (document.getElementById('options-status') as HTMLSelectElement).value =
@@ -58,7 +62,8 @@ private async loadProfileData() {
       // Profil sayfasındaki bilgileri güncelle
       this.updateProfileDisplay(data);
       
-      // ✅ currentAvatar'ı ASLA değiştirme!
+      // ✅ Avatar grid'ini güncelle
+      this.highlightSelectedAvatar();
     }
   } catch (error) {
     console.error('Failed to load profile data:', error);
@@ -108,10 +113,16 @@ private updateOptionsPageAvatar(avatar: string) {
   }
 }
 
-  private async loadAvatars() {
+private async loadAvatars() {
   try {
     console.log('🔄 Loading avatars...');
-    const response = await fetch('/api/profile/avatars');
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch('/api/profile/avatars', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     
     if (response.ok) {
       const data = await response.json();
@@ -125,26 +136,25 @@ private updateOptionsPageAvatar(avatar: string) {
 }
 
 private getAvatarUrl(avatar: string): string {
-    console.log('🔗 getAvatarUrl called with:', avatar);
-    
-    if (!avatar || avatar === 'default' || avatar === 'default1') {
-      return `/imgs/avatars/${avatar || 'default'}.png`;
-    }
-    
-    // Custom avatar kontrolü
-    if (avatar.startsWith('custom_')) {
-      // Extension kontrol et
-      const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
-      const url = hasExtension 
-        ? `/uploads/avatars/${avatar}`
-        : `/uploads/avatars/${avatar}.jpg`;
-      
-      console.log('🔗 Custom avatar URL:', url);
-      return url;
-    }
-    
-    return `/imgs/avatars/${avatar}.png`;
+  console.log('🔗 getAvatarUrl called with:', avatar);
+  
+  let url: string;
+  
+  if (!avatar || avatar === 'default' || avatar === 'default1') {
+    url = `/imgs/avatars/${avatar || 'default'}.png`;
+  } else if (avatar.startsWith('custom_')) {
+    const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
+    url = hasExtension 
+      ? `/uploads/avatars/${avatar}`
+      : `/uploads/avatars/${avatar}.jpg`;
+  } else {
+    url = `/imgs/avatars/${avatar}.png`;
   }
+  
+  // ✅ Cache busting için timestamp ekle
+  const timestamp = new Date().getTime();
+  return `${url}?t=${timestamp}`;
+}
  private renderAvatars(avatars: string[]) {
     const grid = document.getElementById('avatar-grid');
     if (!grid) return;
@@ -244,60 +254,61 @@ private addAvatarEventListeners() {
   }
 
 
-  private async handleFileUpload(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
+ private async handleFileUpload(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
 
-    const file = input.files[0];
-    
-    // Dosya validasyonu
-    if (!this.validateFile(file)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      // Upload progress göstergesi
-      this.showUploadProgress();
-
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const response = await fetch('/api/profile/avatar/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Content-Type header'ını EKLEMEYİN - browser otomatik set eder
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Avatar uploaded successfully:', result);
-        
-        // Avatar listesini yenile
-        await this.loadAvatars();
-        await this.loadProfileData();
-        
-        this.hideUploadProgress();
-        this.showNotification('Avatar uploaded successfully!', 'success');
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Upload failed');
-      }
-
-    } catch (error) {
-      console.error('❌ Avatar upload failed:', error);
-      this.hideUploadProgress();
-      this.showNotification('Failed to upload avatar: ' + error, 'error');
-    } finally {
-      // Input'u temizle
-      input.value = '';
-    }
+  const file = input.files[0];
+  
+  if (!this.validateFile(file)) {
+    return;
   }
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    this.showUploadProgress();
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const response = await fetch('/api/profile/avatar/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Avatar uploaded successfully:', result);
+      
+      // ✅ CRITICAL FIX: Upload sonrası currentAvatar'ı güncelle
+      if (result.avatar) {
+        this.currentAvatar = result.avatar;
+      }
+      
+      // ✅ Tüm verileri yenile
+      await this.loadAvatars();
+      await this.loadProfileData(); // Bu artık currentAvatar'ı da güncelleyecek
+      
+      this.hideUploadProgress();
+      this.showNotification('Avatar uploaded successfully!', 'success');
+    } else {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+  } catch (error) {
+    console.error('❌ Avatar upload failed:', error);
+    this.hideUploadProgress();
+    this.showNotification('Failed to upload avatar: ' + error, 'error');
+  } finally {
+    input.value = '';
+  }
+}
 
   private async deleteCustomAvatar(avatarUrl: string) {
   if (!confirm('Are you sure you want to delete this custom avatar?')) {

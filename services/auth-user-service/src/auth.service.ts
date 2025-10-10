@@ -464,10 +464,9 @@ export default class AuthService {
   }
 
   // ======= UTILITY METHODS =======
- getAvailableAvatars(): string[] {
+ getAvailableAvatars(userId: number): string[] {
   const staticAvatars = ['default', 'default1'];
   
-  // Custom avatarları ekle
   try {
     const uploadsDir = path.join(__dirname, '../../uploads/avatars');
     console.log('📂 Checking avatars directory:', uploadsDir);
@@ -476,11 +475,16 @@ export default class AuthService {
       const files = fs.readdirSync(uploadsDir);
       console.log('📁 Files found:', files);
       
+      // ✅ FIX: Sadece bu kullanıcıya ait custom avatarları göster
       const customAvatars = files
-        .filter(file => file.startsWith('custom_') && /\.(jpg|png|gif|webp)$/i.test(file))
+        .filter(file => {
+          const isUserAvatar = file.startsWith(`custom_${userId}_`);
+          const hasValidExtension = /\.(jpg|png|gif|webp)$/i.test(file);
+          return isUserAvatar && hasValidExtension;
+        })
         .map(file => file.replace(/\.(jpg|png|gif|webp)$/i, ''));
       
-      console.log('🎨 Custom avatars:', customAvatars);
+      console.log('🎨 User custom avatars:', customAvatars);
       return [...staticAvatars, ...customAvatars, 'upload'];
     }
   } catch (error) {
