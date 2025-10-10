@@ -414,8 +414,7 @@ export class PongGame {
 public matchEnd(message: any) {
     this.gameRunning = false;
     console.log('Match end message:', message);
-    console.log('Match ended. Winner:', message.winnerName);
-    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
+    console.log('Winner:', message.winnerName);
     this.drawMatchOver(message.winnerName);
   }
 

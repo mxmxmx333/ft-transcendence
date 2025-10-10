@@ -1468,21 +1468,13 @@ export function handleTournamentMatchStart(data: any): void {
 }
 
 export function handleTournamentEnd(data: any): void {
-  console.log('Tournament completely finished:', data);
+  console.log('Tournament completely finished, winner:', data);
   hideAllPages();
   document.querySelector('.tournament-lobby')?.classList.remove('hidden');
 
   const status = document.getElementById('tournament-status');
   if (status) {
-    const winnerMessage = data.message || `Tournament finished!`;
-    const winnerName = data.winner;
-    
-    status.textContent = `🏆 ${winnerMessage}`;
-    
-    // Zusätzliche Winner-Info falls verfügbar
-    if (winnerName && typeof winnerName === 'string') {
-      status.textContent = `🏆 Tournament Winner: ${winnerName}!`;
-    }
+    status.textContent = `🏆 Tournament finished!\n${data.winner} won!`;
   }
 
   // NUR hier zur Tournament-Lobby zurück

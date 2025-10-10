@@ -251,8 +251,6 @@ export class SocketManager {
 
   this.socket.on('tournament_match_end', (data: any) => {
     console.log('Tournament match ended:', data);
-    // in multiplayer
-    // if (this.gameInstance && !data.isTournament)
     this.gameInstance?.matchEnd(data);
   });
 
