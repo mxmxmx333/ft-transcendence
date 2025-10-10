@@ -11,6 +11,11 @@ dotenv.config();
 
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
 
+const liveChatUpstream = process.env.LIVE_CHAT_UPSTREAM;
+if (!liveChatUpstream) {
+  throw new Error('LIVE_CHAT_UPSTREAM environment variable is not set');
+}
+
 const isDevelopment = process.env.NODE_ENV === 'development';
 let certDir = process.env.CERT_DIR || '../certs';
 if (isDevelopment) {
@@ -211,8 +216,9 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
+  // === ROUTE LIVE CHAT ===
   await server.register(proxy, {
-    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    upstream: liveChatUpstream || 'https://localhost:3004',
     prefix: '/socket.io/livechat',
     rewritePrefix: '/socket.io',
     websocket: true,
@@ -226,7 +232,7 @@ async function buildServer() {
         };
       },
     },
-    wsUpstream: 'wss://localhost:3002',
+    wsUpstream: liveChatUpstream || 'https://localhost:3004',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

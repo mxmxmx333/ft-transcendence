@@ -64,14 +64,12 @@ console.debug(`[vault] Using secret_id: ${secretIdPath}`);
 const vaultClient: FastifyPluginAsync = async (fastify) => {
   const { VAULT_ADDR, VAULT_TOKEN_MARGIN_SEC = '30' } = process.env;
 
-  
   if (!VAULT_ADDR) throw new Error('VAULT_ADDR is required in .env');
 
   let enabled = false;
 
   function createDispatcher() {
     if (filesReady([caPath, crtPath, keyPath])) {
-      
       const ca = mustRead(caPath, 'Vault CA');
       const cert = mustRead(crtPath, 'Client certificate');
       const key = mustRead(keyPath, 'Client key');

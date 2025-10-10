@@ -1,12 +1,12 @@
 import { server } from './server';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { UserChatInfo } from './types/types';
-
+import { authUserServiceUpstream } from './server';
 const tournamentID = 0;
 const activeUsers = new Map<number, UserChatInfo>();
 
-export function registerIoHandlers(io: SocketIOServer) {
-  io.on('connection', (socket) => {
+export async function registerIoHandlers(io: SocketIOServer) {
+  io.on('connection', async (socket) => {
     console.log(
       `[Live Chat Socket] New connection from ${socket.id} by user ${socket.user?.nickname || 'unknown'}`
     );
@@ -18,6 +18,16 @@ export function registerIoHandlers(io: SocketIOServer) {
     }
 
     const userID = Number(socket.user!.id);
+    try {
+      const resp = await fetch(`${authUserServiceUpstream}/someroute`, {
+        method: 'GET',
+        headers: { "x-user-id": userID.toString() }, // Convert number to string
+      });
+
+      const interfaceData = await resp.json(); // or resp.text(), resp.blob(), etc.
+    } catch (error) {
+      console.error('Fetch error:', error);
+    }
     const info: UserChatInfo = {
       socket: socket,
       activeChatID: null,

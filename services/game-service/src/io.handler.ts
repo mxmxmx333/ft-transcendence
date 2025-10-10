@@ -145,20 +145,20 @@ export function registerIoHandlers(io: Server) {
 
     // start-pause
     socket.on('game_pause', (isPaused: boolean) => {
-    try {
-      if (!socket.room) return;
-      
-      const room = socket.room;
-      console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
-      
-      // Oyun durumunu güncelle
-      room.isPaused = isPaused;
-      // Tüm oyunculara bildir
-      if (!isPaused) room.gameState.lastUpdate = Date.now();
-      io.to(room.id).emit('game_pause_state', isPaused);
-    } catch (error) {
-      console.error('[Socket] Error in game_pause handler:', error);
-    }
-  });
+      try {
+        if (!socket.room) return;
+
+        const room = socket.room;
+        console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
+
+        // Oyun durumunu güncelle
+        room.isPaused = isPaused;
+        // Tüm oyunculara bildir
+        if (!isPaused) room.gameState.lastUpdate = Date.now();
+        io.to(room.id).emit('game_pause_state', isPaused);
+      } catch (error) {
+        console.error('[Socket] Error in game_pause handler:', error);
+      }
+    });
   });
 }

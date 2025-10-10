@@ -9,9 +9,6 @@ import vaultClient from './vault-client';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
-import { Server as SocketIOServer } from 'socket.io';
-import { AuthPayload } from './types/types';
-import { registerIoHandlers } from './io.handler';
 import { MatchResultBody } from './user';
 import tlsReloadPlugin from './tls-reload';
 
@@ -61,44 +58,6 @@ export const server = fastify({
   },
   ...httpsOptions,
 });
-
-export const io = new SocketIOServer(server.server, {
-  cors: {
-    origin: frontendUrl,
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  transports: ['websocket', 'polling'],
-  allowEIO3: true,
-});
-
-// --- Authentication middleware for sockets ---
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) return next(new Error('No token provided'));
-
-  try {
-    let decoded: AuthPayload = {} as AuthPayload;
-    decoded.id = socket.request.headers['x-user-id']?.toString() as string;
-    decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
-    console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
-
-    socket.user = {
-      id: decoded.id,
-      nickname: decoded.nickname,
-    };
-    console.log(`[LiveChat] User ${socket.user.nickname} connected`);
-    next();
-  } catch (err) {
-    console.error('[LiveChat] Invalid token', err);
-    next(new Error('Missing or invalid token'));
-  }
-});
-
-//   return server;
-// }
-
-registerIoHandlers(io);
 
 // Error handling
 server.setErrorHandler((error, request, reply) => {
@@ -169,7 +128,7 @@ async function start() {
   });
 
   //TESTING
- 
+
   const authService = new AuthService(server);
 
   const oAuthService = new OAuthService();
@@ -268,10 +227,10 @@ async function start() {
   });
 
   server.register(require('@fastify/static'), {
-  root: uploadsBaseDir,
-  prefix: '/uploads/',
-  decorateReply: false // Önemli: reply.send'i override etme
-});
+    root: uploadsBaseDir,
+    prefix: '/uploads/',
+    decorateReply: false, // Önemli: reply.send'i override etme
+  });
   //TESTING
   server.post<{ Body: { nickname: string } }>(
     '/api/profile/set-nickname',

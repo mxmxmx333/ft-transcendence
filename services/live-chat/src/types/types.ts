@@ -11,3 +11,9 @@ export interface UserChatInfo {
   currentTargetID: number;
   invitations: { sent: number[]; received: number[] };
 }
+
+export interface TournamentInfo {
+  playerA: string;
+  playerB: string;
+  timeToStart: number;
+}
