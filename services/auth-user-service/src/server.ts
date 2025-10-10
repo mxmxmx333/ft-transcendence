@@ -16,6 +16,7 @@ import { MatchResultBody } from './user';
 import tlsReloadPlugin from './tls-reload';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
+const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
 
 export const frontendUrl = process.env.FRONTEND_URL;
 if (!frontendUrl) {
@@ -267,9 +268,10 @@ async function start() {
   });
 
   server.register(require('@fastify/static'), {
-    root: path.join(__dirname, '../uploads'),
-    prefix: '/uploads/',
-  });
+  root: uploadsBaseDir,
+  prefix: '/uploads/',
+  decorateReply: false // Önemli: reply.send'i override etme
+});
   //TESTING
   server.post<{ Body: { nickname: string } }>(
     '/api/profile/set-nickname',

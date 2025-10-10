@@ -11,7 +11,7 @@ services:
       APPROLE_DIRS: "/waf/approle /apigw/approle-agent /apigw/approle-service /game/approle-agent /auth/approle-agent /auth/approle-service /ai/approle-agent /vault1/approle-agent /vault2/approle-agent /vault3/approle-agent"
       RAFT_DIRS: "/vault1/raft /vault2/raft /vault3/raft"
       LOG_DIRS: "/vault1/logs /vault2/logs /vault3/logs"
-      EXTRA_DIRS: "/shared/keys /auth/database /ai/ai_model"
+      EXTRA_DIRS: "/shared/keys /auth/database /ai/ai_model /waf/avatars /auth/uploads/avatars"
     command: ["sh","-lc","/scripts/setup_volume_ownerships.sh"]
     volumes:
       - ./services/vault/scripts/setup_volume_ownerships.sh:/scripts/setup_volume_ownerships.sh:ro
@@ -19,6 +19,7 @@ services:
       - web-application-firewall-certs:/waf/service-certs
       - web-application-firewall-agent-certs:/waf/agent-certs
       - web-application-firewall-agent-approle:/waf/approle
+      - avatar-uploads:/waf/avatars
       # API Gateway
       - api-gateway-service-certs:/apigw/service-certs
       - api-gateway-agent-certs:/apigw/agent-certs
@@ -34,6 +35,7 @@ services:
       - auth-user-service-agent-approle:/auth/approle-agent
       - auth-user-service-approle:/auth/approle-service
       - database:/auth/database
+      - database-upload:/auth/uploads/avatars
 
       # AI Opponent
       - ai-opponent-agent-approle:/ai/approle-agent
@@ -84,6 +86,7 @@ services:
       - ./services/web-application-firewall/modsecurity.d:/etc/modsecurity.d:ro
       - ./services/web-application-firewall/html:/usr/share/nginx/html:ro
       - web-application-firewall-certs:/etc/nginx/certs:ro
+      - avatar-uploads:/usr/share/nginx/html/imgs/avatars:rw
     security_opt:
       - no-new-privileges:true
     networks:
@@ -328,8 +331,11 @@ services:
       APPROLE_DIR: /approle-service
       VAULT_ADDR: "https://vault-1:8200"
       FRONTEND_URL: "web-application-firewall:8443"
+      AVATAR_UPLOAD_DIR: /app/uploads/avatars
     volumes:
       - database:/app/database
+      - database-upload:/app/uploads/avatars:rw
+
       - auth-user-service-certs:/app/certs:ro
       - auth-user-service-approle:/approle-service:ro
     security_opt:
@@ -725,7 +731,8 @@ volumes:
   ai-opponent-certs: {}
   ai-opponent-agent-certs: {}
   ai-opponent-model: {}
-
+  avatar-uploads: {}
+  database-upload: {}
 # VAULT
   vault-dev-config: {}
   vault-dev-data: {}
