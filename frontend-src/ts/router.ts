@@ -713,6 +713,8 @@ function showStatistics() {
   document.querySelector('.oauth-result-page')?.classList.add('hidden');
   document.querySelector('.nickname-page')?.classList.add('hidden');
   document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  document.querySelector('.live-chat')?.classList.add('hidden');
+
 
 }
 
