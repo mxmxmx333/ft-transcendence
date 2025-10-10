@@ -45,14 +45,7 @@ export function registerIoHandlers(io: Server) {
         // Tournament Room Check
         if ('players' in socket.room) {
           const tournamentRoom = socket.room as TournamentRoom;
-          
-          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) {
-            abortGame(tournamentRoom as any);
-            deleteRoom(tournamentRoom.id);
-            console.log(`[Socket] No active match in tournament room ${tournamentRoom.id}`);
-            return;
-          }
-          
+          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) return;          
           gameRoom = tournamentRoom as any;
         } 
         // Regular GameRoom

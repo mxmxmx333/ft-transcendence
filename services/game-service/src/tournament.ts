@@ -24,7 +24,7 @@ function startMatch(room: TournamentRoom) {
     if (room.players.length < 1) {
         console.log(`[Server] Tournament in room ${room.id} finished - no more players left`);
         try {
-            io.to(room.id).emit('tournament_winner', {winner: room.lastWinner?.id, message: `Tournament over! ${room.lastWinner?.nickname} wins!`});
+            io.to(room.id).emit('tournament_winner', {winner: room.lastWinner?.nickname, message: `Tournament over! ${room.lastWinner?.nickname} wins!`});
         } catch (error) {
             console.log(`[Server] Tournament over broadcast failed for room ${room.id}:`, error);
         }
@@ -76,10 +76,10 @@ function startMatch(room: TournamentRoom) {
             player1: owner.nickname,
             player2: guest.nickname,
             roomId: room.id,
-            owner: cleanPlayerForSocket(room.owner),
-            guest: cleanPlayerForSocket(room.guest),
+            owner: cleanPlayerForSocket(owner),
+            guest: cleanPlayerForSocket(guest),
             matchNumber: room.matchCount,
-            message: `Match ${room.matchCount}: ${room.owner.nickname} vs ${room.guest.nickname}`
+            message: `Match ${room.matchCount}: ${owner.nickname} vs ${guest.nickname}`
         });
         console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
     } catch (error) {
@@ -110,10 +110,10 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
     let winnerPlayer: Player | null = null;
     let loserPlayer: Player | null = null;
 
-    if (winner === 'owner') {
+    if (winner === room.owner?.nickname) {
         winnerPlayer = room.owner;
         loserPlayer = room.guest;
-    } else if (winner === 'guest') {
+    } else if (winner === room.guest?.nickname) {
         winnerPlayer = room.guest;
         loserPlayer = room.owner;
     } else {
@@ -155,6 +155,7 @@ export function handleTournamentGameEnd(room: GameRoom, winner: string) {
             loserName: loserPlayer.nickname,
             message: `🎉 ${winnerPlayer.nickname} defeated ${loserPlayer.nickname}!`
         });
+        console.log(`[Server] Tournament match end broadcasted for room ${room.id}`);
     } catch (error) {
         console.log(`[Server] Tournament match end broadcast failed:`, error);
     }

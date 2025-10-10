@@ -241,21 +241,21 @@ export function abortGame(room: GameRoom) {
   console.log(`[Server] Game aborted for room ${room.id}`);
 }
 
-export function endGame(room: GameRoom) {
+export async function endGame(room: GameRoom) {
   if (room.gameLoop) {
     clearInterval(room.gameLoop);
     room.gameLoop = undefined;
     console.log(`[Server] Game loop stopped for room ${room.id}`);
   }
-  const winner = room.owner!.score >= 10 ? 'owner' : 'guest';
+  const winner = room.owner!.score >= 10 ? room.owner!.nickname : room.guest!.nickname;
   console.log(`[Server] Game ended in room ${room.id}. Winner: ${winner}`);
 
-  const winnerNickname = winner === 'owner' ? room.owner!.nickname : room.guest!.nickname;
+  const winnerNickname = winner === room.owner!.nickname ? room.owner!.nickname : room.guest!.nickname;
 
   let gameResult = {
     player1: room.owner!.id,
     player2: room.gameType === 'single' ? null : room.guest!.id,
-    winner: winner === 'owner' ? room.owner!.id : room.gameType === 'single' ? null : room.guest!.id,
+    winner: winner === room.owner!.nickname ? room.owner!.id : room.gameType === 'single' ? null : room.guest!.id,
     scores: {
       player1: room.owner!.score,
       player2: room.guest!.score
@@ -266,12 +266,13 @@ export function endGame(room: GameRoom) {
 
   
   if ('players' in room) {
-    saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner ?? room.guest?.id, gameType: 'tournament' });
+    await saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner ?? room.guest?.id, gameType: 'tournament' });
+    console.debug(`[Server] Tournament game result saved for room ${room.id}`);
     handleTournamentGameEnd(room, winner);
     return;
   }
 
-  saveGameResult({...gameResult });
+  await saveGameResult({...gameResult });
   
   io.to(room.id).emit('game_over', {
     winner,
@@ -312,8 +313,8 @@ async function saveGameResult(gameData: {
   scores: { player1: number, player2: number },
   gameType: string,
   roomId?: string
-}) {
-  
+}): Promise<boolean> {
+
   const matchData = {
     player1_id: gameData.player1,
     player2_id: gameData.player2,

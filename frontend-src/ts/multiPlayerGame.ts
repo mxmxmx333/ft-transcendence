@@ -406,47 +406,17 @@ export class PongGame {
   public handleGameOver(message: any) {
     this.gameRunning = false;
     console.log('Game over message:', message);
-    let winner =
-      message.winner === 'owner'
-        ? this.isPlayer1
-          ? 'YOU'
-          : 'YOUR OPPONENT'
-        : this.isPlayer1
-          ? 'YOUR OPPONENT'
-          : 'YOU';
-    if (!this.isRemote && !this.isSinglePlayer) {
-      if (winner === 'YOU') {
-        winner = 'Player1';
-      } else {
-        winner = 'Player2';
-      }
-    }
-    console.log('Game over. Winner:', winner);
+    console.log('Game over. Winner:', message.winner);
     console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
-    this.drawGameOver(winner);
+    this.drawGameOver(message.winner);
   }
 
 public matchEnd(message: any) {
     this.gameRunning = false;
     console.log('Match end message:', message);
-    let winner =
-      message.winner === 'owner'
-        ? this.isPlayer1
-          ? 'YOU'
-          : this.opponentNickname
-        : this.isPlayer1
-          ? this.opponentNickname
-          : 'YOU';
-    if (!this.isRemote && !this.isSinglePlayer) {
-      if (winner === 'YOU') {
-        winner = 'Player1';
-      } else {
-        winner = 'Player2';
-      }
-    }
-    console.log('Match ended. Winner:', winner);
+    console.log('Match ended. Winner:', message.winnerName);
     console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
-    this.drawMatchOver(winner);
+    this.drawMatchOver(message.winnerName);
   }
 
   public handleOpponentDisconnected() {
