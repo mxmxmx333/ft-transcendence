@@ -1314,8 +1314,8 @@ export function handleTournamentMatchStart(data: any): void {
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
 
-  const ownernickname = data.owner.nickname || data.player1;
-  const guestnickname = data.guest.nickname || data.player2;
+  const ownernickname = data.player1;
+  const guestnickname = data.player2;
   if (ownernickname && guestnickname) {
     const statusElement = document.getElementById('tournament-status');
     if (statusElement) {

@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import path from 'path';
-import dbConnector, { createMatchHistoryTable } from './db';
+import dbConnector from './db';
 import AuthService from './auth.service';
 import fastifyMultipart from '@fastify/multipart';
 import AuthController from './auth.controller';
@@ -155,8 +155,6 @@ async function start() {
   await server.register(vaultClient);
   await server.register(vAuth);
   const authService = new AuthService(server);
-
-  createMatchHistoryTable(server.db);
 
   const oAuthService = new OAuthService();
   const authController = new AuthController(authService, oAuthService, server);
@@ -315,7 +313,7 @@ server.register(require('@fastify/static'), {
 
   server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
     try {
-      console.log('🎯 Internal match result received:', req.body);
+      console.log('Internal match result received:', req.body);
       const success = authService.saveMatchResult(req.body);
       
       req.log.info({ matchData: req.body }, 'Match result saved internally');
