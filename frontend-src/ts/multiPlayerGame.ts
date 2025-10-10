@@ -17,10 +17,6 @@ export class PongGame {
   private myNickname = 'Player';
   private socketManager?: SocketManager;
 
-  // TODO: Fix Lobby message (w/s, up/down )
-
-  // TODO: fix Game Over (on reset game)
-
   // Constants - normalized for 800x600
   private paddleHeight = 100;
   private paddleWidth = 15;

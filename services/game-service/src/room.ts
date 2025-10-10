@@ -233,7 +233,7 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   });
   io.to(roomId).emit('tournament_player_joined', {
     roomId: room.id,
-    message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
+    message: `Player ${player.nickname} has joined the TournamentRoom`,
     players: cleanPlayers,
     totalPlayers: cleanPlayers.length,
     success: true,

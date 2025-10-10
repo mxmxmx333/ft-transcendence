@@ -33,7 +33,6 @@ export function showPage(pageToShow: HTMLElement)
 }
 
 const socketManager = SocketManager.getInstance();
-// socketManager.connect();
 const chatSocketManager = ChatSocketManager.getInstance();
 
 type Route = {
@@ -723,6 +722,14 @@ function showGamePage() {
     return;
   }
   manageNavbar();
+  if (socketManager.isConnected()) {
+    const game = socketManager.getGameInstance();
+    if (game) {
+      game.resume();
+      showPage(gamePage);
+      return;
+    }
+  }
   showPage(newgamePage);
 }
 
@@ -1285,8 +1292,17 @@ async function showTournamentPage(): Promise<void> {
     navigateTo('/');
     return;
   }
+
+  if (socketManager.isConnected()) {
+    const game = socketManager.getGameInstance();
+    if (game) {
+      game.resume();
+      showPage(gamePage);
+      return;
+    }
+  }
+
   showTournamentLobby();
-  
   try {
     await socketManager.ensureConnection();
     document.getElementById('tournament-status')!.textContent = 'Connected to server - Ready for tournament';
