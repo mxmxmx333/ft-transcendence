@@ -130,10 +130,9 @@ prod: vault-deps-prod
 	$(COMPOSE) --profile "prod" up -d vault-1
 	$(COMPOSE) --profile "prod" up --exit-code-from setup-volume-ownerships setup-volume-ownerships
 	$(COMPOSE) --profile "prod" up --exit-code-from vault-bootstrap-prod vault-bootstrap-prod
-	$(COMPOSE) --profile "prod" up -d api-gateway auth-user-service game-service web-application-firewall
-	$(COMPOSE) --profile "prod" up -d api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent
+	$(COMPOSE) --profile "prod" up -d api-gateway auth-user-service game-service web-application-firewall ai-opponent
+	$(COMPOSE) --profile "prod" up -d api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent
 	$(COMPOSE) --profile "prod" up -d vault-2 vault-2-agent vault-3 vault-3-agent vault-1-agent
-
 
 clean-networks:
 	@echo "🌐 Cleaning Docker networks…"

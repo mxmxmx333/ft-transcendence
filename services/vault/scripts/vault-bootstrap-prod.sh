@@ -12,6 +12,9 @@ VAULT_ADDR="${VAULT_ADDR:-https://vault-1:8200}"
 export VAULT_ADDR
 export VAULT_SKIP_VERIFY="${VAULT_SKIP_VERIFY:-1}"   # solange self-signed
 
+# PUBLIC CERT DIR
+WEB_APPLICATION_FIREWALL_CERT_DIR="${WEB_APPLICATION_FIREWALL_CERT_DIR:-/certs/web-application-firewall}"
+
 # VAULT AND VAULT AGENT CERT DIRS
 VAULT_1_CERT_DIR="${VAULT_1_CERT_DIR:-/certs/vault-1}"
 VAULT_2_CERT_DIR="${VAULT_2_CERT_DIR:-/certs/vault-2}"
@@ -19,6 +22,12 @@ VAULT_3_CERT_DIR="${VAULT_3_CERT_DIR:-/certs/vault-3}"
 VAULT_AGENT_1_APPROLE_DIR="${VAULT_AGENT_1_APPROLE_DIR:-/approle/vault-1-agent}"
 VAULT_AGENT_2_APPROLE_DIR="${VAULT_AGENT_2_APPROLE_DIR:-/approle/vault-2-agent}"
 VAULT_AGENT_3_APPROLE_DIR="${VAULT_AGENT_3_APPROLE_DIR:-/approle/vault-3-agent}"
+
+# SERVICE CERT DIRS
+API_GATEWAY_CERT_DIR="${API_GATEWAY_CERT_DIR:-/certs/api-gateway}"
+AUTH_USER_SERVICE_CERT_DIR="${AUTH_USER_SERVICE_CERT_DIR:-/certs/auth-user-service}"
+GAME_SERVICE_CERT_DIR="${GAME_SERVICE_CERT_DIR:-/certs/game-service}"
+AI_OPPONENT_CERT_DIR="${AI_OPPONENT_CERT_DIR:-/certs/ai-opponent}"
 
 # VAULT SERVICE AGENT CERT DIRS
 VAULT_AGENT_API_GATEWAY_CERT_DIR="${VAULT_AGENT_API_GATEWAY_CERT_DIR:-/certs/api-gateway-agent}"
@@ -251,10 +260,9 @@ define_pki_roles() {
     server_flag=true client_flag=false \
     max_ttl="72h"
 
-  # Optional: falls du ai-opponent in Prod nutzt, lass die Rolle aktiv
   echo ">> write pki role ai-opponent-internal (server)"
   vault write pki/roles/ai-opponent-internal \
-    allowed_domains="ai-opponent-service" \
+    allowed_domains="ai-opponent" \
     allow_bare_domains=true allow_subdomains=false \
     allow_ip_sans=false \
     key_type="ec" key_bits=256 \
@@ -283,10 +291,19 @@ issue_cert() {
   umask 077
   mkdir -p "$outdir"
   chmod 700 "$outdir" || true
-  ISSUE="$(vault write -format=json "pki/issue/$role" common_name="$cn" alt_names="$alt" ip_sans="$ips" ttl="720h")"
-  printf '%s' "$ISSUE" | jq -r '.data.private_key' > "$outdir/$key"
-  printf '%s' "$ISSUE" | jq -r '.data.certificate' > "$outdir/$crt"
-  printf '%s' "$ISSUE" | jq -r '.data.issuing_ca'  > "$outdir/ca.crt"
+
+  ISSUE="$(vault write -format=json "pki/issue/$role" \
+    common_name="$cn" alt_names="$alt" ip_sans="$ips" ttl="720h")"
+
+  # Private Key (ensure trailing LF)
+  printf '%s\n' "$(printf '%s' "$ISSUE" | jq -r '.data.private_key')" > "$outdir/$key"
+
+  # Fullchain for crt: leaf + ca_chain (fallback to issuing_ca); ensure LFs between blocks and at end
+  printf '%s\n' "$(printf '%s' "$ISSUE" | jq -r '[.data.certificate] + (.data.ca_chain // [.data.issuing_ca]) | join("\n")')" > "$outdir/$crt"
+
+  # CA file (issuing CA only, with trailing LF)
+  printf '%s\n' "$(printf '%s' "$ISSUE" | jq -r '.data.issuing_ca')" > "$outdir/ca.crt"
+
   chmod 600 "$outdir/$key"
   chmod 644 "$outdir/$crt" "$outdir/ca.crt"
   chown "$VAULT_UID:$VAULT_GID" "$outdir" "$outdir/$key" "$outdir/$crt" "$outdir/ca.crt" 2>/dev/null || true
@@ -299,7 +316,14 @@ issue_vault_certs(){
   issue_cert "api-gateway-agent"              "vault-clients-internal"  "api-gateway-agent"                    ""            "$VAULT_AGENT_API_GATEWAY_CERT_DIR"                "client"
   issue_cert "auth-user-service-agent"        "vault-clients-internal"  "auth-user-service-agent"              ""            "$VAULT_AGENT_AUTH_USER_SERVICE_CERT_DIR"          "client"
   issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
+  issue_cert "ai-opponent-agent"              "vault-clients-internal"  "ai-opponent-agent"                    ""            "$VAULT_AGENT_AI_OPPONENT_CERT_DIR"                "client"
   issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
+  issue_cert "ft-transcendence.at"            "ft-transcendence"        "ft-transcendence.at,localhost"        ""            "$WEB_APPLICATION_FIREWALL_CERT_DIR"               "server"
+  issue_cert "api-gateway"                    "api-gateway-internal"    "api-gateway"                          ""            "$API_GATEWAY_CERT_DIR"                            "server"
+  issue_cert "auth-user-service"              "auth-user-service-internal" "auth-user-service"                 ""            "$AUTH_USER_SERVICE_CERT_DIR"                      "server"
+  issue_cert "game-service"                   "game-service-internal"   "game-service"                         ""            "$GAME_SERVICE_CERT_DIR"                           "server"
+  issue_cert "ai-opponent"                    "ai-opponent-internal"    "ai-opponent"                          ""            "$AI_OPPONENT_CERT_DIR"                            "server"
+
 }
 
 # ------- Phase 8: Policies & App-Roles -------
@@ -349,6 +373,7 @@ enable_policies_and_approles() {
   vault policy write api-gateway-rotator                policies/pki-rotate-api-gateway.hcl
   vault policy write auth-user-service-rotator          policies/pki-rotate-auth-user-service.hcl
   vault policy write game-service-rotator               policies/pki-rotate-game-service.hcl
+  vault policy write ai-opponent-rotator                policies/pki-rotate-ai-opponent.hcl
   vault policy write web-application-firewall-rotator   policies/pki-rotate-web-application-firewall.hcl
   vault policy write pki-rotate-node-1                  policies/pki-rotate-node-1.hcl
   vault policy write pki-rotate-node-2                  policies/pki-rotate-node-2.hcl
@@ -392,8 +417,7 @@ enable_policies_and_approles() {
   render_approle_id_and_secret "auth-user-service-rotator"            "$VAULT_AGENT_AUTH_USER_SERVICE_APPROLE_DIR"           "$VAULT_UID" "$VAULT_GID"
   render_approle_id_and_secret "game-service-rotator"                 "$VAULT_AGENT_GAME_SERVICE_APPROLE_DIR"                "$VAULT_UID" "$VAULT_GID"
   render_approle_id_and_secret "web-application-firewall-rotator"     "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR"    "$VAULT_UID" "$VAULT_GID"
-  # render_approle_id_and_secret "ai-opponent-rotator"                  "$VAULT_AGENT_AI_OPPONENT_APPROLE_DIR"                 "$VAULT_UID" "$VAULT_GID"
-  # render_approle_id_and_secret "cli-rotator"                          "$VAULT_AGENT_CLI_APPROLE_DIR"                         "$VAULT_UID" "$VAULT_GID"
+  render_approle_id_and_secret "ai-opponent-rotator"                  "$VAULT_AGENT_AI_OPPONENT_APPROLE_DIR"                 "$VAULT_UID" "$VAULT_GID"
 }
 
 enable_node_mtls() {

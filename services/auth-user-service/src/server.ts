@@ -18,10 +18,13 @@ if (!frontendUrl) {
 }
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-const certDir = process.env.CERT_DIR || '../certs';
-const keyPath = path.join(__dirname, certDir, 'server.key');
-const certPath = path.join(__dirname, certDir, 'server.crt');
-const caPath = path.join(__dirname, certDir, 'ca.crt');
+let certDir = process.env.CERT_DIR || '../certs';
+if (isDevelopment) {
+  certDir = path.join(__dirname, certDir);
+}
+const keyPath = path.join(certDir, 'server.key');
+const certPath = path.join(certDir, 'server.crt');
+const caPath = path.join(certDir, 'ca.crt');
 
 async function buildServer() {
   let httpsOptions: Record<string, any> = {};

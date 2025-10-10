@@ -46,10 +46,11 @@ template {
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
                (printf "common_name=%s-agent" (env "SERVICE_NAME"))
                "ttl=720h" -}}
-{{ .Data.certificate }}
-{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- printf "%s\n" .Data.certificate -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ printf "%s\n" . }}{{ end }}{{ else }}{{ printf "%s\n" .Data.issuing_ca }}{{ end -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 template {
@@ -59,9 +60,10 @@ template {
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
                (printf "common_name=%s-agent" (env "SERVICE_NAME"))
                "ttl=720h" -}}
-{{ .Data.private_key }}
+{{- printf "%s\n" .Data.private_key -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 # SERVICE ROTATIONS
@@ -76,11 +78,11 @@ template {
                (printf "common_name=%s" $cn)
                (printf "alt_names=%s"   $alt)
                "ttl=720h" -}}
-{{ .Data.certificate }}
-{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- printf "%s\n" .Data.certificate -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ printf "%s\n" . }}{{ end }}{{ else }}{{ printf "%s\n" .Data.issuing_ca }}{{ end -}}
 {{- end -}}
 EOH
-  # command = "/bin/sh -c 'kill -HUP 1 || true'"
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 template {
@@ -91,9 +93,10 @@ template {
                (printf "common_name=%s" (env "SERVICE_DNS"))
                (printf "alt_names=%s"   (env "SERVICE_ALT_NAMES"))
                "ttl=720h" -}}
-{{ .Data.private_key }}
+{{- printf "%s\n" .Data.private_key -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 # -------- 4) Service: SecretID (für den Service-Prozess) --------
@@ -106,6 +109,7 @@ template {
 {{ .Data.secret_id }}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 template {
@@ -116,6 +120,7 @@ template {
 {{ .Data.role_id }}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 # -------- 5) Service: Client mTLS (zu Vault) --------
@@ -126,10 +131,11 @@ template {
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
                (printf "common_name=%s" (env "SERVICE_NAME"))
                "ttl=720h" -}}
-{{ .Data.certificate }}
-{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+{{- printf "%s\n" .Data.certificate -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ printf "%s\n" . }}{{ end }}{{ else }}{{ printf "%s\n" .Data.issuing_ca }}{{ end -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 template {
@@ -139,9 +145,10 @@ template {
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
                (printf "common_name=%s" (env "SERVICE_NAME"))
                "ttl=720h" -}}
-{{ .Data.private_key }}
+{{- printf "%s\n" .Data.private_key -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
 
 # -------- Trust-Bundle (Agent) --------
@@ -151,11 +158,13 @@ template {
   contents = <<EOH
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_CLIENT"))
                (printf "common_name=%s-agent" (env "SERVICE_NAME"))
-               "ttl=720h" -}}
-{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+               "ttl=72h" -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ printf "%s\n" . }}{{ end }}{{ else }}{{ printf "%s\n" .Data.issuing_ca }}{{ end -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }
+
 # -------- Trust-Bundle (Service) --------
 template {
   destination = "/service/certs/ca.crt"
@@ -163,9 +172,10 @@ template {
   contents = <<EOH
 {{- with secret (printf "pki/issue/%s" (env "PKI_ROLE_SERVER"))
                (printf "common_name=%s" (env "SERVICE_DNS"))
-               (printf "alt_names=%s"   (env "SERVICE_ALT_NAMES"))
-               "ttl=720h" -}}
-{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ . }}{{ end }}{{ else }}{{ .Data.issuing_ca }}{{ end }}
+               (printf "alt_names=%s" (env "SERVICE_ALT_NAMES"))
+               "ttl=72h" -}}
+{{- if .Data.ca_chain }}{{ range .Data.ca_chain }}{{ printf "%s\n" . }}{{ end }}{{ else }}{{ printf "%s\n" .Data.issuing_ca }}{{ end -}}
 {{- end -}}
 EOH
+  command = "/bin/sh -c '/agent/hup/debounce_hup.sh' "
 }

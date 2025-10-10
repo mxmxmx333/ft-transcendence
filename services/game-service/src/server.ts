@@ -6,14 +6,16 @@ import { AuthPayload } from './types/types';
 import fs from 'fs';
 import path from 'path';
 import tlsReloadPlugin from './tls-reload';
-
+import httpsAgent from './https-client-plugin';
 
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3000';
-const certDir = process.env.CERT_DIR || '../certs';
-
+let certDir = process.env.CERT_DIR || '../certs';
+if (isDevelopment) {
+  certDir = path.join(__dirname, certDir);
+}
 export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM;
 if (!apiGatewayUpstream) {
   throw new Error('API_GATEWAY_UPSTREAM environment variable is not set');
@@ -23,9 +25,9 @@ if (!aiUpstream) {
   throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
 }
 
-const keyPath = path.join(__dirname, certDir, 'server.key');
-const certPath = path.join(__dirname, certDir, 'server.crt');
-const caPath = path.join(__dirname, certDir, 'ca.crt');
+const keyPath = path.join(certDir, 'server.key');
+const certPath = path.join(certDir, 'server.crt');
+const caPath = path.join(certDir, 'ca.crt');
 let httpsOptions: Record<string, any> = {};
 if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
   httpsOptions = { https: { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath), ca: fs.readFileSync(caPath) } };
@@ -119,6 +121,7 @@ async function start() {
     signal: 'SIGHUP',
     debounceMs: 300,
   });
+  server.register(httpsAgent);
   await server.listen({ port: 3001, host: '0.0.0.0' });
   console.log('Server backend is listening: https://localhost:3001 adresinde çalışıyor');
 }

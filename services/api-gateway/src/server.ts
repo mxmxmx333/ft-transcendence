@@ -3,7 +3,7 @@ import path from 'path';
 import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import fastifyStatic from '@fastify/static';
+import fastifyStatic from '@fastify/static'; // IMPORTANT FOR SENDFILE
 import vaultClient from './vault-client';
 import vAuth from './auth';
 import tlsReloadPlugin from './tls-reload';
@@ -12,7 +12,10 @@ dotenv.config();
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const certDir = process.env.CERT_DIR || '../certs';
+let certDir = process.env.CERT_DIR || '../certs';
+if (isDevelopment) {
+  certDir = path.join(__dirname, certDir);
+}
 
 const aiServiceUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
 if (!aiServiceUpstream) {
@@ -31,9 +34,9 @@ if (!upstreamAuthAndUserService) {
 
 async function buildServer() {
   let httpsOptions: Record<string, any> = {};
-  const keyPath = path.join(__dirname, certDir, 'server.key');
-  const certPath = path.join(__dirname, certDir, 'server.crt');
-  const caPath = path.join(__dirname, certDir, 'ca.crt');
+  const keyPath = path.join( certDir, 'server.key');
+  const certPath = path.join( certDir, 'server.crt');
+  const caPath = path.join( certDir, 'ca.crt');
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
       https: {
@@ -166,7 +169,7 @@ async function buildServer() {
         };
       },
     },
-    wsUpstream: 'wss://localhost:3001',
+    wsUpstream: upstreamGameService || 'https://localhost:3001',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

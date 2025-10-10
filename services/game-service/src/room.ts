@@ -5,39 +5,6 @@ import { Socket } from 'socket.io';
 import { PaddleMovePayload, CreateRoomPayload } from './types/types';
 import { apiGatewayUpstream, aiUpstream } from './server';
 import { startTournament } from './tournament';
-import fs from 'node:fs';
-import path from 'path';
-
-
-// Neu: Undici für TLS/Dispatcher
-import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
-import { start } from 'node:repl';
-import { clear } from 'node:console';
-import { abort } from 'node:process';
-
-// === TLS / Custom CA für fetch ===
-const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
-const caPath = path.join(certDir, 'ca.crt');
-
-try {
-  if (fs.existsSync(caPath)) {
-    const vaultca = fs.readFileSync(caPath, 'utf8');
-    // Globalen Dispatcher setzen – gilt für alle fetch()-Calls
-    const dispatcher = new UndiciAgent({
-      connect: {
-        ca: vaultca, // eigene CA als PEM-String
-      },
-    });
-    setGlobalDispatcher(dispatcher);
-    console.log(`[TLS] Using custom CA for outgoing HTTPS via Undici dispatcher: ${caPath}`);
-  } else {
-    console.warn(
-      `[TLS] CA file not found at ${caPath}. Outgoing HTTPS will use default trust store.`
-    );
-  }
-} catch (e) {
-  console.warn(`[TLS] Failed to initialize Undici dispatcher with CA ${caPath}:`, e);
-}
 
 // === Room Management ===
 
