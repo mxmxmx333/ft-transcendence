@@ -4,6 +4,7 @@ import { handleLeaveRoom } from './room';
 import type { GameStartPayload, Player } from './types/types';
 import { setMaxIdleHTTPParsers } from 'http';
 import { handleTournamentGameEnd } from './tournament';
+import { authUserServiceUpstream } from './server';
 
 export function startGame(room: GameRoom) {
   if (!room.owner || !room.guest) {
@@ -102,7 +103,7 @@ function gameLoop(room: GameRoom) {
   room.gameLoop = setInterval(() => {
     if (!room.gameLoop) {
       console.log(`[Server] Game loop already cleared for room ${room.id}`);
-      return; 
+      return;
     }
     if (!gameRooms[room.id] && !tournamentRooms[room.id]) {
       console.log(`[Server] Room ${room.id} no longer exists - stopping game loop`);
@@ -252,16 +253,20 @@ export async function endGame(room: GameRoom) {
   let gameResult = {
     player1: room.owner!.id,
     player2: room.gameType === 'single' ? null : room.guest!.id,
-    winner: winner === room.owner!.nickname ? room.owner!.id : room.gameType === 'single' ? null : room.guest!.id,
+    winner:
+      winner === room.owner!.nickname
+        ? room.owner!.id
+        : room.gameType === 'single'
+          ? null
+          : room.guest!.id,
     scores: {
       player1: room.owner!.score,
-      player2: room.guest!.score
+      player2: room.guest!.score,
     },
     gameType: room.gameType,
-    roomId: room.id
-  }
+    roomId: room.id,
+  };
 
-  
   if ('players' in room) {
     await saveGameResult({...gameResult, player2: room.guest!.id, winner: gameResult.winner != null ? gameResult.winner : room.guest?.id, gameType: 'tournament' });
     console.debug(`[Server] Tournament game result saved for room ${room.id}`);
@@ -269,8 +274,8 @@ export async function endGame(room: GameRoom) {
     return;
   }
 
-  await saveGameResult({...gameResult });
-  
+  await saveGameResult({ ...gameResult });
+
   io.to(room.id).emit('game_over', {
     winner,
     finalScore: {
@@ -302,14 +307,13 @@ export async function endGame(room: GameRoom) {
 }
 
 async function saveGameResult(gameData: {
-  player1: any,
-  player2?: any,
-  winner?: any,
-  scores: { player1: number, player2: number },
-  gameType: string,
-  roomId?: string
+  player1: any;
+  player2?: any;
+  winner?: any;
+  scores: { player1: number; player2: number };
+  gameType: string;
+  roomId?: string;
 }): Promise<boolean> {
-
   const matchData = {
     player1_id: gameData.player1,
     player2_id: gameData.player2,
@@ -317,20 +321,17 @@ async function saveGameResult(gameData: {
     player1_score: gameData.scores.player1,
     player2_score: gameData.scores.player2,
     game_type: gameData.gameType,
-    room_id: gameData.roomId
+    room_id: gameData.roomId,
   };
 
   try {
-    const response = await fetch('https://localhost:3002/api/match-result', {
+    const response = await fetch(`${authUserServiceUpstream}/api/match-result`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(matchData),
       // @ts-ignore
-      agent: new (await import('https')).Agent({
-        rejectUnauthorized: false
-      })
     });
 
     if (response.ok) {

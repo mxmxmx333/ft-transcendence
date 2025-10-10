@@ -5,11 +5,9 @@ export interface AuthPayload {
   nickname: string;
 }
 
-export interface UserChatInfo
-{
-	socket: Socket;
-	activeChatID: number | null;
-	currentTargetID: number;
-	invitations: {sent: number[], received: number[]};
+export interface UserChatInfo {
+  socket: Socket;
+  activeChatID: number | null;
+  currentTargetID: number;
+  invitations: { sent: number[]; received: number[] };
 }
-

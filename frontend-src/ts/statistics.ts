@@ -30,10 +30,14 @@ export class StatisticsManager {
   public async loadStatistics() {
     try {
       console.log('Loading statistics...');
-    
+
       const [statsResponse, matchesResponse] = await Promise.all([
-        fetch('/api/my-statistics', {headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }}),
-        fetch('/api/my-matches?limit=50', {headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }})
+        fetch('/api/my-statistics', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+        }),
+        fetch('/api/my-matches?limit=50', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+        }),
       ]);
 
       if (!statsResponse.ok) throw new Error(`Stats API failed: ${statsResponse.status}`);
@@ -49,7 +53,6 @@ export class StatisticsManager {
       this.displayStatistics();
       this.drawCharts();
       this.displayMatchHistory();
-
     } catch (error) {
       console.error('Failed to load statistics:', error);
       this.showErrorMessage('Failed to load statistics. Please try again.');
@@ -59,8 +62,10 @@ export class StatisticsManager {
   private displayStatistics() {
     if (!this.stats) return;
 
-    const winRate = this.stats.games_played > 0 ? ((this.stats.games_won / this.stats.games_played) * 100) : 0;
-    const avgScore = this.stats.games_played > 0 ? (this.stats.total_score / this.stats.games_played) : 0;
+    const winRate =
+      this.stats.games_played > 0 ? (this.stats.games_won / this.stats.games_played) * 100 : 0;
+    const avgScore =
+      this.stats.games_played > 0 ? this.stats.total_score / this.stats.games_played : 0;
 
     // Grundlegende Stats
     this.updateElement('win-rate-percentage', `${winRate.toFixed(1)}%`);
@@ -71,12 +76,12 @@ export class StatisticsManager {
     this.updateElement('win-loss-text', winLossText);
 
     // Letztes Spiel
-    if (this.stats.last_game_date) {
-      const lastGame = new Date(this.stats.last_game_date);
-      this.updateElement('last-game', lastGame.toLocaleDateString());
-    } else {
-      this.updateElement('last-game', 'Never');
-    }
+    // if (this.stats.last_game_date) {
+    //   const lastGame = new Date(this.stats.last_game_date);
+    //   this.updateElement('last-game', lastGame.toLocaleDateString());
+    // } else {
+    //   this.updateElement('last-game', 'Never');
+    // }
   }
 
   private drawCharts() {
@@ -98,9 +103,8 @@ export class StatisticsManager {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const winRate = this.stats.games_played > 0 
-      ? (this.stats.games_won / this.stats.games_played)
-      : 0;
+    const winRate =
+      this.stats.games_played > 0 ? this.stats.games_won / this.stats.games_played : 0;
 
     // Background circle
     ctx.beginPath();
@@ -112,7 +116,7 @@ export class StatisticsManager {
     // Win rate arc
     if (winRate > 0) {
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, -Math.PI / 2, (2 * Math.PI * winRate) - Math.PI / 2);
+      ctx.arc(centerX, centerY, radius, -Math.PI / 2, 2 * Math.PI * winRate - Math.PI / 2);
       ctx.strokeStyle = '#10B981'; // emerald-500
       ctx.lineWidth = 8;
       ctx.lineCap = 'round';
@@ -140,9 +144,8 @@ export class StatisticsManager {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const avgScore = this.stats.games_played > 0 
-      ? (this.stats.total_score / this.stats.games_played)
-      : 0;
+    const avgScore =
+      this.stats.games_played > 0 ? this.stats.total_score / this.stats.games_played : 0;
 
     const scoreRatio = Math.min(avgScore / 10, 1); // Max score is 10
 
@@ -156,13 +159,14 @@ export class StatisticsManager {
     // Score arc
     if (scoreRatio > 0) {
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, -Math.PI / 2, (2 * Math.PI * scoreRatio) - Math.PI / 2);
-      
+      ctx.arc(centerX, centerY, radius, -Math.PI / 2, 2 * Math.PI * scoreRatio - Math.PI / 2);
+
       // Color gradient based on score
       let color = '#EF4444'; // red-500 (low score)
-      if (scoreRatio > 0.7) color = '#10B981'; // emerald-500 (high score)
+      if (scoreRatio > 0.7)
+        color = '#10B981'; // emerald-500 (high score)
       else if (scoreRatio > 0.4) color = '#F59E0B'; // amber-500 (medium score)
-      
+
       ctx.strokeStyle = color;
       ctx.lineWidth = 8;
       ctx.lineCap = 'round';
@@ -190,7 +194,7 @@ export class StatisticsManager {
       return;
     }
 
-    container.innerHTML = this.matches.map(match => this.renderMatchCard(match)).join('');
+    container.innerHTML = this.matches.map((match) => this.renderMatchCard(match)).join('');
   }
 
   private renderMatchCard(match: MatchHistory): string {
@@ -246,10 +250,14 @@ export class StatisticsManager {
 
   private getScoreColor(result: string): string {
     switch (result) {
-      case 'won': return 'text-green-400';
-      case 'lost': return 'text-red-400';
-      case 'draw': return 'text-yellow-400';
-      default: return 'text-gray-400';
+      case 'won':
+        return 'text-green-400';
+      case 'lost':
+        return 'text-red-400';
+      case 'draw':
+        return 'text-yellow-400';
+      default:
+        return 'text-gray-400';
     }
   }
 
@@ -291,8 +299,8 @@ export class StatisticsManager {
 let statisticsManager: StatisticsManager;
 
 // Export functions for router
-export function getStatistics() {    
-    // Initialize manager if not exists
+export function getStatistics() {
+  // Initialize manager if not exists
   if (!statisticsManager) {
     statisticsManager = new StatisticsManager();
     statisticsManager.loadStatistics();

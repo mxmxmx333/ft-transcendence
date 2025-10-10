@@ -24,10 +24,14 @@ NODE_CN="${NODE_CN:-vault-dev}"
 NODE_ALT_NAMES="${NODE_ALT_NAMES:-localhost}"
 NODE_IP_SANS="${NODE_IP_SANS:-127.0.0.1}"
 
+AUTH_USER_APPROLE_DIR="${AUTH_USER_APPROLE_DIR:-/approle/auth-user-service}"
+API_GATEWAY_APPROLE_DIR="${API_GATEWAY_APPROLE_DIR:-/approle/api-gateway}"
 # mTLS am Ende automatisch zuschalten? (true/false)
 ENABLE_MTLS_AT_END="${ENABLE_MTLS_AT_END:-false}"
 
 KEYS_JSON="$VAULT_LOGS_DIR/keys.json"
+HOST_GID="${HOST_GID:-1000}"
+HOST_UID="${HOST_UID:-1000}"
 
 # ------- Phase 0: warten bis HTTP bereit -------
 echo ">> wait for DNS vault-dev ..."
@@ -36,6 +40,23 @@ for i in $(seq 1 60); do
   sleep 1
 done
 [ "${ok:-0}" = "1" ] || { echo "!! DNS for vault-dev not found"; exit 2; }
+
+wait_for_vault_api() {
+  # Akzeptiere Health-Codes, die bedeuten „Vault läuft, Zustand egal“
+  local ok_codes="200 429 501 503"
+  echo ">> wait for Vault API at $VAULT_ADDR ..."
+  for i in $(seq 1 60); do
+    code="$(curl -sk -o /dev/null -w '%{http_code}' "$VAULT_ADDR/v1/sys/health" || true)"
+    for c in $ok_codes; do
+      [ "$code" = "$c" ] && echo ">> API up (HTTP $code)" && return 0
+    done
+    sleep 1
+  done
+  echo "!! Vault API not reachable at $VAULT_ADDR"
+  return 3
+}
+
+wait_for_vault_api || exit 3
 
 # ------- Phase 1: init (einmalig) -------
 if ! vault status -format=json | jq -e '.initialized == true' >/dev/null; then
@@ -207,8 +228,8 @@ issue_cert "auth-user-service"  "vault-clients-internal"  ""                    
 
 vault auth enable approle 2>/dev/null || true
 
-vault policy write api-gateway   policies/common/api-gateway.hcl
-vault policy write auth-user-service  policies/common/auth-user-service.hcl
+vault policy write api-gateway   policies/api-gateway.hcl
+vault policy write auth-user-service  policies/auth-user-service.hcl
 
 vault write auth/approle/role/api-gateway \
   token_policies="api-gateway" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
@@ -216,18 +237,18 @@ vault write auth/approle/role/api-gateway \
 vault write auth/approle/role/auth-user-service \
   token_policies="auth-user-service" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0
 
-mkdir -p /certs/api-gateway/approle /certs/auth-user-service/approle
-umask 077
+mkdir -p "$AUTH_USER_APPROLE_DIR" "$API_GATEWAY_APPROLE_DIR"
+chown "${HOST_UID:-0}:${HOST_GID:-0}" "$AUTH_USER_APPROLE_DIR" "$API_GATEWAY_APPROLE_DIR" 2>/dev/null || true
 
-vault read  -field=role_id  auth/approle/role/api-gateway/role-id            > /certs/api-gateway/approle/role_id
-vault write -f -format=json auth/approle/role/api-gateway/secret-id | jq -r '.data.secret_id' > /certs/api-gateway/approle/secret_id
-chmod 600 /certs/api-gateway/approle/role_id /certs/api-gateway/approle/secret_id
-chown "${HOST_UID:-0}:${HOST_GID:-0}" /certs/api-gateway/approle/* 2>/dev/null || true
+vault read  -field=role_id  auth/approle/role/api-gateway/role-id            > ${API_GATEWAY_APPROLE_DIR}/role_id
+vault write -f -format=json auth/approle/role/api-gateway/secret-id | jq -r '.data.secret_id' > ${API_GATEWAY_APPROLE_DIR}/secret_id
+chmod 600 ${API_GATEWAY_APPROLE_DIR}/role_id ${API_GATEWAY_APPROLE_DIR}/secret_id
+chown "${HOST_UID:-0}:${HOST_GID:-0}" ${API_GATEWAY_APPROLE_DIR}/* 2>/dev/null || true
 
-vault read  -field=role_id  auth/approle/role/auth-user-service/role-id      > /certs/auth-user-service/approle/role_id
-vault write -f -format=json auth/approle/role/auth-user-service/secret-id | jq -r '.data.secret_id' > /certs/auth-user-service/approle/secret_id
-chmod 600 /certs/auth-user-service/approle/role_id /certs/auth-user-service/approle/secret_id
-chown "${HOST_UID:-0}:${HOST_GID:-0}" /certs/auth-user-service/approle/* 2>/dev/null || true
+vault read  -field=role_id  auth/approle/role/auth-user-service/role-id      > ${AUTH_USER_APPROLE_DIR}/role_id
+vault write -f -format=json auth/approle/role/auth-user-service/secret-id | jq -r '.data.secret_id' > ${AUTH_USER_APPROLE_DIR}/secret_id
+chmod 600 ${AUTH_USER_APPROLE_DIR}/role_id ${AUTH_USER_APPROLE_DIR}/secret_id
+chown "${HOST_UID:-0}:${HOST_GID:-0}" ${AUTH_USER_APPROLE_DIR}/* 2>/dev/null || true
 
 
 # ------- Phase 9: (optional) mTLS per Zusatz-HCL aktivieren -------

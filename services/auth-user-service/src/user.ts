@@ -23,7 +23,7 @@ export interface MatchHistory {
   game_mode?: string;
   room_id?: string;
   played_at?: string;
-  
+
   opponent_nickname?: string;
   opponent_avatar?: string;
   my_score?: number;
@@ -51,7 +51,7 @@ export interface UserProfileWithHistory {
   avatar: string;
   status: string;
   game_stats: GameStatistics;
-  recent_matches: MatchHistory[];  // LETZTE 10 MATCHES
+  recent_matches: MatchHistory[]; // LETZTE 10 MATCHES
   friendship_status?: string;
 }
 

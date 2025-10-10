@@ -57,8 +57,7 @@ export interface ServerToClientEvents {
     message: string;
     success: boolean;
   };
-  game_pause_state: (isPaused: boolean) => void;  // YENİ
-
+  game_pause_state: (isPaused: boolean) => void; // YENİ
 }
 
 export interface ClientToServerEvents {

@@ -26,7 +26,7 @@ export async function handleSignup(formData: {
 
     const data = await responseClone.json();
     localStorage.setItem('authToken', data.token);
-	initLiveChat(ChatSocketManager.getInstance());
+    initLiveChat(ChatSocketManager.getInstance());
     return data;
   } catch (error) {
     console.error('Signup error:', error);
@@ -70,7 +70,7 @@ export async function handleLogin(formData: { email: string; password: string })
     }
 
     navigateTo('/profile');
-	initLiveChat(ChatSocketManager.getInstance());
+    initLiveChat(ChatSocketManager.getInstance());
     return data;
   } catch (error) {
     console.error('Login error:', error);
@@ -79,7 +79,6 @@ export async function handleLogin(formData: { email: string; password: string })
     throw error;
   }
 }
-
 
 export async function handleSetNickname(formData: { nickname: string }) {
   try {
@@ -93,7 +92,7 @@ export async function handleSetNickname(formData: { nickname: string }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + preAuthToken,
+        Authorization: 'Bearer ' + preAuthToken,
       },
       body: JSON.stringify(formData),
     });

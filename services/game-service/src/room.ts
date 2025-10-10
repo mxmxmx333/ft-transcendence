@@ -1,40 +1,17 @@
-import { Player, GameRoom, activeConnections, gameRooms, TournamentRoom, tournamentRooms } from './types/types';
+import {
+  Player,
+  GameRoom,
+  activeConnections,
+  gameRooms,
+  TournamentRoom,
+  tournamentRooms,
+} from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { CreateRoomPayload } from './types/types';
 import { aiUpstream } from './server';
 import { startTournament } from './tournament';
-import fs from 'node:fs';
-import path from 'path';
-
-
-// Neu: Undici für TLS/Dispatcher
-import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
-
-// === TLS / Custom CA für fetch ===
-const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
-const caPath = path.join(certDir, 'ca.crt');
-
-try {
-  if (fs.existsSync(caPath)) {
-    const vaultca = fs.readFileSync(caPath, 'utf8');
-    // Globalen Dispatcher setzen – gilt für alle fetch()-Calls
-    const dispatcher = new UndiciAgent({
-      connect: {
-        ca: vaultca, // eigene CA als PEM-String
-      },
-    });
-    setGlobalDispatcher(dispatcher);
-    console.log(`[TLS] Using custom CA for outgoing HTTPS via Undici dispatcher: ${caPath}`);
-  } else {
-    console.warn(
-      `[TLS] CA file not found at ${caPath}. Outgoing HTTPS will use default trust store.`
-    );
-  }
-} catch (e) {
-  console.warn(`[TLS] Failed to initialize Undici dispatcher with CA ${caPath}:`, e);
-}
 
 // === Room Management ===
 
@@ -145,7 +122,10 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
   }
 }
 
-export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPayload['create_tournament_room']) {
+export function handleCreateTournamentRoom(
+  player: Player,
+  payload: CreateRoomPayload['create_tournament_room']
+) {
   console.log(`[Server] handleCreateTournamentRoom called by player ${player.id}`);
   if (player.roomId) {
     console.log(`[Server] Player ${player.id} is already in a room`);
@@ -156,7 +136,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   }
   const socket = player.conn;
   console.log(`[Server] Player ${player.nickname} is creating a TournamentRoom`);
-  const roomId = 'T'+generateUniqueRoomId();
+  const roomId = 'T' + generateUniqueRoomId();
   console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
   try {
     const room: TournamentRoom = {
@@ -185,7 +165,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   player.roomId = roomId;
   player.conn.emit('tournament_room_created', {
     roomId: player.roomId,
-    players: [{id: player.id, nickname: player.nickname}],
+    players: [{ id: player.id, nickname: player.nickname }],
     owner: tournamentRooms[roomId].owner?.nickname,
     success: true,
   });
@@ -216,7 +196,7 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   room.players.push(player);
   console.log(`Player ${player.nickname} joining TournamentRoom ${roomId}`);
 
-  const cleanPlayers = room.players.map(player => ({
+  const cleanPlayers = room.players.map((player) => ({
     id: player.id,
     nickname: player.nickname,
   }));
@@ -250,7 +230,9 @@ export function checkStartTournament(player: Player, roomId: string) {
     return;
   }
   if (room.players.length < 3) {
-    player.conn.emit('room_error', {message: 'At least 3 players are required to start the tournament',});
+    player.conn.emit('room_error', {
+      message: 'At least 3 players are required to start the tournament',
+    });
     return;
   }
   startTournament(roomId);
@@ -262,17 +244,17 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
     player.conn.emit('room_error', { message: 'Tournament not found' });
     return;
   }
-  
+
   // Player aus der Liste entfernen
-  room.players = room.players.filter(p => p.id !== player.id);  
+  room.players = room.players.filter((p) => p.id !== player.id);
   player.roomId = undefined;
   player.conn.leave(roomId);
-  
+
   // Update an alle senden
   if (room.players.length > 0) {
     broadcastTournamentUpdate(room);
   }
-  
+
   // Room löschen wenn leer
   if (room.players.length === 0) {
     abortGame(room as any);
@@ -280,7 +262,7 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
     console.log(`[Server] Tournament room ${roomId} deleted - no players left`);
   } else if (room.players.length < 3 && room.gameLoop) {
     io.to(roomId).emit('room_error', {
-      message: 'Tournament aborted - not enough players remaining'
+      message: 'Tournament aborted - not enough players remaining',
     });
     abortGame(room as any);
     deleteRoom(roomId);
@@ -290,11 +272,11 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
 }
 
 function broadcastTournamentUpdate(room: TournamentRoom) {
-  const playerData = room.players.map(p => ({
+  const playerData = room.players.map((p) => ({
     id: p.id,
     nickname: p.nickname,
   }));
-  
+
   io.to(room.id).emit('tournament_players_updated', {
     players: playerData,
     playerCount: room.players.length,
@@ -379,7 +361,8 @@ export function handleDisconnect(player: Player) {
   console.log(`[Server] Player ${player.id} disconnected`);
   if (player.roomId && tournamentRooms[player.roomId]) {
     leaveTournamentRoom(player, player.roomId);
-  } if (player.roomId && gameRooms[player.roomId]) {
+  }
+  if (player.roomId && gameRooms[player.roomId]) {
     handleLeaveRoom(player.conn);
   }
   activeConnections.delete(player.conn.id);
@@ -408,11 +391,11 @@ export function deleteTournamentRoom(roomId: string) {
   if (!room) {
     return;
   }
-  room.players.forEach(player => {
+  room.players.forEach((player) => {
     player.roomId = undefined;
     player.conn.leave(roomId);
   });
-  room.lostPlayers.forEach(player => {
+  room.lostPlayers.forEach((player) => {
     player.roomId = undefined;
     player.conn.leave(roomId);
   });

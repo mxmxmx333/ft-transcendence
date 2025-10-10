@@ -5,14 +5,17 @@ import dotenv from 'dotenv';
 import { AuthPayload } from './types/types';
 import fs from 'fs';
 import path from 'path';
-
+import tlsReloadPlugin from './tls-reload';
+import httpsAgent from './https-client-plugin';
 
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3000';
-const certDir = process.env.CERT_DIR || '../certs';
-
+let certDir = process.env.CERT_DIR || '../certs';
+if (isDevelopment) {
+  certDir = path.join(__dirname, certDir);
+}
 export const apiGatewayUpstream = process.env.API_GATEWAY_UPSTREAM;
 if (!apiGatewayUpstream) {
   throw new Error('API_GATEWAY_UPSTREAM environment variable is not set');
@@ -21,11 +24,16 @@ export const aiUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
 if (!aiUpstream) {
   throw new Error('AI_OPPONENT_SERVICE_UPSTREAM environment variable is not set');
 }
-let httpsOptions;
 
-const keyPath = path.join(__dirname, certDir, 'server.key');
-const certPath = path.join(__dirname, certDir, 'server.crt');
-const caPath = path.join(__dirname, certDir, 'ca.crt');
+export const authUserServiceUpstream = process.env.AUTH_USER_SERVICE_UPSTREAM;
+if (!authUserServiceUpstream) {
+  throw new Error('AUTH_USER_SERVICE_UPSTREAM environment variable is not set');
+}
+
+const keyPath = path.join(certDir, 'server.key');
+const certPath = path.join(certDir, 'server.crt');
+const caPath = path.join(certDir, 'ca.crt');
+let httpsOptions: Record<string, any> = {};
 if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
   httpsOptions = {
     https: {
@@ -34,9 +42,9 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
       ca: fs.readFileSync(caPath),
     },
   };
-  console.log('Api-Gateway: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  console.log('Game-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
-  console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
+  console.warn('Game-Service: SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
 
 const server = fastify({
@@ -88,7 +96,7 @@ io.use((socket, next) => {
       return next(new Error('Authentication error: No token provided'));
     }
 
-    let decoded: AuthPayload= {} as AuthPayload;
+    let decoded: AuthPayload = {} as AuthPayload;
     decoded.id = socket.request.headers['x-user-id']?.toString() as string;
     decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
     console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
@@ -117,6 +125,14 @@ server.setErrorHandler((error, request, reply) => {
 });
 
 async function start() {
+  server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
+  server.register(httpsAgent);
   await server.listen({ port: 3001, host: '0.0.0.0' });
   console.log('Server backend is listening: https://localhost:3001 adresinde çalışıyor');
 }

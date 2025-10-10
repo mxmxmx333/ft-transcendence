@@ -1,10 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
 import type { SerializedWeights, PerformanceStats, AIModelFile } from './types';
+import env from 'dotenv';
+env.config();
 
 export class AIFilePersistenceManager {
-  private readonly MODEL_DIR = 'services/ai-opponent/ai_model';
-  private readonly GLOBAL_MODEL_FILE = 'global_ai_model.json';
+  private readonly modelDir = process.env.MODEL_DIR || 'services/ai-opponent/ai_model';
+  private readonly globalModelFile = process.env.GLOBAL_MODEL_FILE || 'global_ai_model.json';
   private initialized = false;
 
   constructor() {
@@ -16,7 +18,7 @@ export class AIFilePersistenceManager {
 
     try {
       // Create directories if they don't exist
-      await fs.mkdir(this.MODEL_DIR, { recursive: true });
+      await fs.mkdir(this.modelDir, { recursive: true });
 
       this.initialized = true;
       console.log('[AIFilePersistence] Directories initialized');
@@ -38,7 +40,7 @@ export class AIFilePersistenceManager {
         performanceStats,
       };
 
-      const filePath = path.join(this.MODEL_DIR, this.GLOBAL_MODEL_FILE);
+      const filePath = path.join(this.modelDir, this.globalModelFile);
       await fs.writeFile(filePath, JSON.stringify(modelData, null, 2));
 
       console.log(
@@ -57,7 +59,7 @@ export class AIFilePersistenceManager {
     try {
       await this.initialize();
 
-      const filePath = path.join(this.MODEL_DIR, this.GLOBAL_MODEL_FILE);
+      const filePath = path.join(this.modelDir, this.globalModelFile);
 
       // Check if file exists
       try {

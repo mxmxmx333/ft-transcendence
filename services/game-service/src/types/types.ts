@@ -67,9 +67,9 @@ export interface GameRoom {
 
 export interface TournamentRoom {
   id: string;
-  owner?: Player;     // Optional - nur während aktuellem Match
-  guest?: Player;     // Optional - nur während aktuellem Match
-  players: Player[];  // Wartende Spieler
+  owner?: Player; // Optional - nur während aktuellem Match
+  guest?: Player; // Optional - nur während aktuellem Match
+  players: Player[]; // Wartende Spieler
   lostPlayers: Player[];
   lastWinner: Player | null;
   matchCount: number;

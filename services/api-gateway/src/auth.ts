@@ -128,11 +128,16 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     if (typeof payload.iat !== 'number') throw new Error('missing in token: iat claim');
     if (typeof payload.sub !== 'string' || !payload.sub.trim())
       throw new Error('missing in token: sub claim');
-    if (typeof payload.nickname_required !== 'boolean' || typeof payload.totp_required !== 'boolean') {
+    if (
+      typeof payload.nickname_required !== 'boolean' ||
+      typeof payload.totp_required !== 'boolean'
+    ) {
       throw new Error('missing in token: nickname_required or totp_required');
     }
-    if (typeof payload.nickname !== 'string' && payload.nickname !== null) throw new Error('missing in token: nickname claim');
-    if ((payload.nickname === null) !== payload.nickname_required) throw new Error("Mismatch between nickname and nickname_required");
+    if (typeof payload.nickname !== 'string' && payload.nickname !== null)
+      throw new Error('missing in token: nickname claim');
+    if ((payload.nickname === null) !== payload.nickname_required)
+      throw new Error('Mismatch between nickname and nickname_required');
     if (typeof payload.exp !== 'number') throw new Error('missing in token: exp claim');
     if (typeof payload.iss !== 'string') throw new Error('missing in token: iss claim');
 

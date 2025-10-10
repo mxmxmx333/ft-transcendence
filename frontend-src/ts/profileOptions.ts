@@ -1,4 +1,4 @@
-import { navigateTo } from './router.js';
+import { navigateTo } from './router';
 
 export class ProfileOptions {
   private currentAvatar: string = 'default';

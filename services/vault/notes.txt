@@ -1,63 +1,59 @@
-vault verification:
+8) „Done-Checkliste“ für Prod
 
-function b64urlToB64(u) {
-  let s = u.replace(/-/g, '+').replace(/_/g, '/');
-  while (s.length % 4) s += '=';
-  return s;
-}
+Vault HCL für 3 Nodes 
 
-async function verifyWithVault({ jwt, kid = '1', vaultAddr, token }) {
-  const [hdr, pay, sigUrl] = jwt.split('.');
-  const signed = `${hdr}.${pay}`;
-  const sigB64 = b64urlToB64(sigUrl);
+Seed-Zerts pro Node (einmalig) + Start Vault.
 
-  const res = await fetch(`${vaultAddr}/v1/transit/verify/jwt-issuer`, {
-    method: 'POST',
-    headers: { 'X-Vault-Token': token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      input: Buffer.from(signed, 'ascii').toString('base64'),
-      signature: `vault:v${kid}:${sigB64}`,
-      marshaling_algorithm: 'jws'
-    })
-  });
-  const data = await res.json();
-  if (!data.data || data.data.valid !== true) throw new Error('invalid signature');
-  return true;
-}
+Init+Unseal Node 1 (und 2/3) — oder Auto-Unseal aktivieren.
 
-Beim Signieren im Auth-Service:
+Bootstrap einmalig: Audit, Transit, PKI (Intermediate), Rollen, Policies, AppRoles (gehärtet).
 
-Transit-Key: type=ecdsa-p256
+Root-Token entziehen/wegschließen.
 
-marshaling_algorithm="jws" verwenden → Signatur ist JWS-kompatibel (R||S).
+Vault Agent Sidecars je Service (AppRole Files rein, Template out).
 
-Vault liefert signature mit Prefix vault:v1:....
-Für das JWT nimmst du nur den Base64url-Teil (ohne Prefix) als token.signature.
+Services auf HTTPS + interne DNS umstellen, CA-Trust setzen.
 
-Beim Verifizieren im API-Gateway (Online via Vault):
+Healthchecks & depends_on sauber.
 
-Du musst aus dem JWT
+CRL/PKI Tidy Job einplanen.
 
-signed_content = base64url(header) + "." + base64url(payload) bilden,
-
-die token.signature von base64url → base64 konvertieren (Alphabet + Padding),
-
-und Vaults Prefix wieder dranpacken: vault:v<version>:<base64sig>.
-(Die <version> kannst du als kid im JWT-Header speichern, z. B. „1“.)
-
-Request an transit/verify/jwt-issuer:
-headers:
-{
-  "input": "<base64(signed_content)>",
-  "signature": "vault:v1:<base64(sig)>",
-  "marshaling_algorithm": "jws"
-}
+Runbook: Unseal/Failover/Backup/Restore (Raft Snapshots).
 
 
 
+git log:
+ugrade to vault 1:20
 
-TODO: Ich habe pki roles, certs, policies und app roles im bootstrap-dev konfiguriert.
-        Damit sollte ich soweit sein, dass ich die einzelnen services an https mit vault anbinden kann.
-WICHTIG: bevor das bootstrap läuft muss make setup-env aufgerufen werden, damit HOST_UID und HOST_GID korrekt gesetzt sind.
+todo:
+tls reloader für die node module bauen. 
+
+ai-opponent als service
+-----
+DONE bootstrap fertigstellen:
+
+DONE pki rollen hinterfragen,
+
+DONE dann certs issuen
+
+DONE policies und approles fertigstellen. 
+
+DONE: ca bei den agents placen. 
+-----
+
+DONE env. update in den services. 
+
+DONE chown all docker-volumes 1000:1000
 
 
+PENDING!!!
+
+reload plugin funktioniert nicht. 
+
+":1760030404287,"pid":1,"hostname":"77c028d6c558","ttl":3600,"renewable":true,"msg":"[vault] approle login ok"}
+api-gateway-1  | {"level":30,"time":1760030404287,"pid":1,"hostname":"77c028d6c558","msg":"[vault] enabled mTLS after files appeared"}
+api-gateway-1  | {"level":50,"time":1760030434396,"pid":1,"hostname":"77c028d6c558","msg":"[tls-reload] Retry timeout reached; certificate bundle still not found"}
+api-gateway-1  | {"level":40,"time":1760030744817,"pid":1,"hostname":"77c028d6c558","msg":"[tls-reload] Skipping immediate reload: certificate bundle not found"}
+api-gateway-1  | {"level":40,"time":1760030744817,"pid":1,"hostname":"77c028d6c558","retryIntervalMs":500,"retryTimeoutMs":30000,"msg":"[tls-reload] Bundle missing; starting retry loop"}
+api-gateway-1  | {"level":30,"time":1760030744820,"pid":1,"hostname":"77c028d6c558","msg":"[vault] mTLS dispatcher reloaded"}
+api-gateway-1  | {"level":50,"time":1760030775075,"pid":1,"hostname":"77c028d6c558","msg":"[tls-reload] Retry timeout reached; certificate bundle still not found"}

@@ -37,11 +37,10 @@ export default defineConfig({
       },
       '/api': { target: 'https://localhost:3000', changeOrigin: true, secure: false },
       '/uploads': {
-        target: 'https://localhost:3000',  // API Gateway
+        target: 'https://localhost:3000', // API Gateway
         changeOrigin: true,
         secure: false,
       },
     },
   },
-  
 });

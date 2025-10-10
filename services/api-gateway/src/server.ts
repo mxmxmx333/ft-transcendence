@@ -3,15 +3,19 @@ import path from 'path';
 import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import fastifyStatic from '@fastify/static';
+import fastifyStatic from '@fastify/static'; // IMPORTANT FOR SENDFILE
 import vaultClient from './vault-client';
 import vAuth from './auth';
+import tlsReloadPlugin from './tls-reload';
 dotenv.config();
 
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const certDir = process.env.CERT_DIR || '../certs';
+let certDir = process.env.CERT_DIR || '../certs';
+if (isDevelopment) {
+  certDir = path.join(__dirname, certDir);
+}
 
 const aiServiceUpstream = process.env.AI_OPPONENT_SERVICE_UPSTREAM;
 if (!aiServiceUpstream) {
@@ -29,10 +33,10 @@ if (!upstreamAuthAndUserService) {
 }
 
 async function buildServer() {
-  let httpsOptions;
-  const keyPath = path.join(__dirname, certDir, 'server.key');
-  const certPath = path.join(__dirname, certDir, 'server.crt');
-  const caPath = path.join(__dirname, certDir, 'ca.crt');
+  let httpsOptions: Record<string, any> = {};
+  const keyPath = path.join(certDir, 'server.key');
+  const certPath = path.join(certDir, 'server.crt');
+  const caPath = path.join(certDir, 'ca.crt');
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
       https: {
@@ -66,6 +70,13 @@ async function buildServer() {
   // Register plugins
   await server.register(vaultClient);
   await server.register(vAuth);
+  await server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
 
   server.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/socket.io')) {
@@ -76,20 +87,20 @@ async function buildServer() {
       server.log.info(`Auth Header: ${request.headers.authorization || 'MISSING'}`);
     }
 
-     const publicRoutes = [
-    '/api/signup',
-    '/api/login',
-    '/api/auth/42', 
-    '/api/auth/42/callback',
-    '/api/logout',
-    '/api/health',
-    '/api/profile/avatars',  // ✅ BU SATIRI EKLEYİN
-    '/uploads/'
-  ];
-  if (publicRoutes.some(route => request.url.startsWith(route))) {
-    server.log.info(`✅ Public route: ${request.url}`);
-    return;
-  }
+    const publicRoutes = [
+      '/api/signup',
+      '/api/login',
+      '/api/auth/42',
+      '/api/auth/42/callback',
+      '/api/logout',
+      '/api/health',
+      '/api/profile/avatars', // ✅ BU SATIRI EKLEYİN
+      '/uploads/',
+    ];
+    if (publicRoutes.some((route) => request.url.startsWith(route))) {
+      server.log.info(`✅ Public route: ${request.url}`);
+      return;
+    }
     // Definiere welche Routen Auth benötigen
     const protectedRoutes = [
       '/api/profile',
@@ -106,34 +117,34 @@ async function buildServer() {
       return;
     }
 
-  let token = null;
+    let token = null;
 
-  // 1. Versuche Authorization Header (für HTTP API Calls)
-  const authHeader = request.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.slice(7);
-    server.log.info('🔍 Token from Authorization header');
-  }
+    // 1. Versuche Authorization Header (für HTTP API Calls)
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+      server.log.info('🔍 Token from Authorization header');
+    }
 
-  // 2. Für Socket.IO: Token aus Query Parameter
-  if (!token && request.url.startsWith('/socket.io')) {
-    const url = new URL(request.url, 'http://localhost');
-    token = url.searchParams.get('token');
-    server.log.info(`🔍 Socket.IO token from query: ${token ? 'FOUND' : 'MISSING'}`);
-  }
+    // 2. Für Socket.IO: Token aus Query Parameter
+    if (!token && request.url.startsWith('/socket.io')) {
+      const url = new URL(request.url, 'http://localhost');
+      token = url.searchParams.get('token');
+      server.log.info(`🔍 Socket.IO token from query: ${token ? 'FOUND' : 'MISSING'}`);
+    }
 
-  if (!token) {
-    server.log.warn(`No token found for ${request.url}`);
-    return reply.code(401).send({
-      error: 'Authorization token missing',
-      message: 'Please provide a valid Bearer token or token query parameter',
-    });
-  }
+    if (!token) {
+      server.log.warn(`No token found for ${request.url}`);
+      return reply.code(401).send({
+        error: 'Authorization token missing',
+        message: 'Please provide a valid Bearer token or token query parameter',
+      });
+    }
     try {
       const user = await server.vAuth.verify(token);
-        console.debug('Token:', token);
-        console.debug('ID:', user.sub);
-        console.debug('Nickname:', user.nickname);
+      console.debug('Token:', token);
+      console.debug('ID:', user.sub);
+      console.debug('Nickname:', user.nickname);
       if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
         throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
       }
@@ -173,7 +184,7 @@ async function buildServer() {
         };
       },
     },
-    wsUpstream: 'wss://localhost:3001',
+    wsUpstream: upstreamGameService || 'https://localhost:3001',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
@@ -199,7 +210,7 @@ async function buildServer() {
     rewritePrefix: '/api/auth',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
-  
+
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/socket.io/livechat',
@@ -221,35 +232,35 @@ async function buildServer() {
 
   // NEW ADDED PLEASE DONT DELETE, I FORGOT EDDING THESE ROUTES AND IT COST ME A DAY ABOUT FRIEND REQUEST FEATURE :((
   // ==============================================
-// await server.register(fastifyStatic, {
-//     root: path.join(__dirname, '../uploads/avatars'),
-//     prefix: '/uploads/avatars/',
-//     decorateReply: false
-//   });
-// const uploadsBasePath = path.resolve(__dirname, '../../uploads');
-// await server.register(fastifyStatic, {
-//   root: uploadsBasePath,  // ✅ Tüm uploads dizini
-//   prefix: '/uploads/',    // ✅ Tüm /uploads/ path'i
-//   decorateReply: false,
-//   serve: true,           // ✅ Serving aktif
-//   preCompressed: false,
-//   allowedPath: (pathName: string, root: string) => {
-//     // Güvenlik: sadece images ve avatars'a izin ver
-//     return pathName.startsWith(path.join(root, 'avatars'));
-//   }
-// });
-await server.register(proxy, {
+  // await server.register(fastifyStatic, {
+  //     root: path.join(__dirname, '../uploads/avatars'),
+  //     prefix: '/uploads/avatars/',
+  //     decorateReply: false
+  //   });
+  // const uploadsBasePath = path.resolve(__dirname, '../../uploads');
+  // await server.register(fastifyStatic, {
+  //   root: uploadsBasePath,  // ✅ Tüm uploads dizini
+  //   prefix: '/uploads/',    // ✅ Tüm /uploads/ path'i
+  //   decorateReply: false,
+  //   serve: true,           // ✅ Serving aktif
+  //   preCompressed: false,
+  //   allowedPath: (pathName: string, root: string) => {
+  //     // Güvenlik: sadece images ve avatars'a izin ver
+  //     return pathName.startsWith(path.join(root, 'avatars'));
+  //   }
+  // });
+  await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/profile/avatar/upload',
     rewritePrefix: '/api/profile/avatar/upload',
     httpMethods: ['POST'],
   });
-await server.register(fastifyStatic, {
-  root: path.join(__dirname, '../../uploads'),
-  prefix: '/uploads/',
-  decorateReply: false
-});
-   await server.register(proxy, {
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../../uploads'),
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
+  await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/profile/avatar',
     rewritePrefix: '/api/profile/avatar',
@@ -257,11 +268,11 @@ await server.register(fastifyStatic, {
   });
   // === More New added
   await server.register(proxy, {
-  upstream: upstreamAuthAndUserService || 'https://localhost:3002',
-  prefix: '/api/profile/avatars',
-  rewritePrefix: '/api/profile/avatars',
-  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-});
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatars',
+    rewritePrefix: '/api/profile/avatars',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
 
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',

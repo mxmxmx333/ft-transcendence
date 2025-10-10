@@ -1,5 +1,15 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom, deleteRoom } from './room';
+import {
+  handleCreateRoom,
+  joinRoom,
+  handleLeaveRoom,
+  handleDisconnect,
+  handleCreateTournamentRoom,
+  joinTournamentRoom,
+  checkStartTournament,
+  leaveTournamentRoom,
+  deleteRoom,
+} from './room';
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload, GameRoom, TournamentRoom } from './types/types';
 import { abortGame } from './game';
@@ -44,15 +54,16 @@ export function registerIoHandlers(io: Server) {
         // Tournament Room Check
         if ('players' in socket.room) {
           const tournamentRoom = socket.room as TournamentRoom;
-          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) return;          
+          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) return;
           gameRoom = tournamentRoom as any;
-        } 
+        }
         // Regular GameRoom
         else if ('gameState' in socket.room) {
           gameRoom = socket.room as GameRoom;
-        }
-        else {
-          console.error(`[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`);
+        } else {
+          console.error(
+            `[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`
+          );
           abortGame(socket.room as any);
           deleteRoom(socket.room.id);
           return;
