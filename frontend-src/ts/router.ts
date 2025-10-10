@@ -20,6 +20,7 @@ const oauthResultPage = document.querySelector('.oauth-result-page') as HTMLElem
 const nicknamePage = document.querySelector('.nickname-page') as HTMLElement;
 const tournamentLobby = document.querySelector('.tournament-lobby') as HTMLElement;
 const liveChatPage = document.querySelector('.live-chat') as HTMLElement;
+const statisticsPage = document.querySelector('.statistics-page') as HTMLElement;
 let currentPage = loginPage;
 
 export function showPage(pageToShow: HTMLElement)
@@ -202,11 +203,8 @@ function showStatistics() {
     navigateTo('/');
     return;
   }
-
   manageNavbar();
-  hideAllPages();
-
-  document.querySelector('.statistics-page')?.classList.remove('hidden');
+  showPage(statisticsPage);
   getStatistics();
 }
 
@@ -702,11 +700,6 @@ function showLiveChat() {
   manageNavbar();
   showPage(liveChatPage);
   displayLiveChat();
-}
-
-function showStatistics() {
-  manageNavbar();
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////showPage(
 }
 
 function showAuthPage() {
@@ -1339,8 +1332,7 @@ export function handleTournamentMatchStart(data: any): void {
 
 export function handleTournamentEnd(data: any): void {
   console.log('Tournament completely finished, winner:', data);
-  hideAllPages();
-  document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+  showPage(tournamentLobby);
 
   const status = document.getElementById('tournament-status');
   if (status) {
