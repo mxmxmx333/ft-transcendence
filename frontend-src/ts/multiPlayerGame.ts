@@ -1,6 +1,7 @@
 import { Server } from 'http';
 import { SocketManager } from './socketManager.js';
 import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces.js';
+import { gamePage, newgamePage, showPage } from './router.js';
 
 export class PongGame {
   public isSinglePlayer = false;
@@ -142,9 +143,10 @@ export class PongGame {
 
   // New returning new game page
    private returnToNewGamePage() {
-    document.querySelector('.game-page')?.classList.add('hidden');
-    document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-    document.querySelector('.newgame-page')?.classList.remove('hidden');
+    // document.querySelector('.game-page')?.classList.add('hidden');
+    // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+    // document.querySelector('.newgame-page')?.classList.remove('hidden');
+	showPage(newgamePage);
   }
   // till here
 
@@ -345,8 +347,9 @@ export class PongGame {
   this.updateStatus(`You are playing on the ${this.isPlayer1 ? 'left with W/S keys' : 'right with arrow keys'}. Game starting!`);
 
   // Sayfa geçişi
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.remove('hidden');
+//   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
+//   document.querySelector('.game-page')?.classList.remove('hidden');
+	showPage(gamePage);
 
   this.startCountdown();
   }

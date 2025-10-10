@@ -75,6 +75,21 @@ async function buildServer() {
       server.log.info(`Method: ${request.method}`);
       server.log.info(`Auth Header: ${request.headers.authorization || 'MISSING'}`);
     }
+
+     const publicRoutes = [
+    '/api/signup',
+    '/api/login',
+    '/api/auth/42', 
+    '/api/auth/42/callback',
+    '/api/logout',
+    '/api/health',
+    '/api/profile/avatars',  // ✅ BU SATIRI EKLEYİN
+    '/uploads/'
+  ];
+  if (publicRoutes.some(route => request.url.startsWith(route))) {
+    server.log.info(`✅ Public route: ${request.url}`);
+    return;
+  }
     // Definiere welche Routen Auth benötigen
     const protectedRoutes = [
       '/api/profile',
@@ -184,11 +199,70 @@ async function buildServer() {
     rewritePrefix: '/api/auth',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+  
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/socket.io/livechat',
+    rewritePrefix: '/socket.io',
+    websocket: true,
+    wsClientOptions: {
+      rejectUnauthorized: false,
+      rewriteRequestHeaders: (headers: any, request: any) => {
+        headers['x-user-id'] = request.headers['x-user-id'];
+        headers['x-user-nickname'] = request.headers['x-user-nickname'];
+        return {
+          ...headers,
+        };
+      },
+    },
+    wsUpstream: 'wss://localhost:3002',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
 
   // NEW ADDED PLEASE DONT DELETE, I FORGOT EDDING THESE ROUTES AND IT COST ME A DAY ABOUT FRIEND REQUEST FEATURE :((
   // ==============================================
-
+// await server.register(fastifyStatic, {
+//     root: path.join(__dirname, '../uploads/avatars'),
+//     prefix: '/uploads/avatars/',
+//     decorateReply: false
+//   });
+// const uploadsBasePath = path.resolve(__dirname, '../../uploads');
+// await server.register(fastifyStatic, {
+//   root: uploadsBasePath,  // ✅ Tüm uploads dizini
+//   prefix: '/uploads/',    // ✅ Tüm /uploads/ path'i
+//   decorateReply: false,
+//   serve: true,           // ✅ Serving aktif
+//   preCompressed: false,
+//   allowedPath: (pathName: string, root: string) => {
+//     // Güvenlik: sadece images ve avatars'a izin ver
+//     return pathName.startsWith(path.join(root, 'avatars'));
+//   }
+// });
+await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatar/upload',
+    rewritePrefix: '/api/profile/avatar/upload',
+    httpMethods: ['POST'],
+  });
+await server.register(fastifyStatic, {
+  root: path.join(__dirname, '../../uploads'),
+  prefix: '/uploads/',
+  decorateReply: false
+});
+   await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatar',
+    rewritePrefix: '/api/profile/avatar',
+    httpMethods: ['DELETE'],
+  });
   // === More New added
+  await server.register(proxy, {
+  upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+  prefix: '/api/profile/avatars',
+  rewritePrefix: '/api/profile/avatars',
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/user',

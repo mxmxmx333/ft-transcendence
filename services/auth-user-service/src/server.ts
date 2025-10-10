@@ -2,12 +2,16 @@ import fastify from 'fastify';
 import path from 'path';
 import dbConnector, { createMatchHistoryTable } from './db';
 import AuthService from './auth.service';
+import fastifyMultipart from '@fastify/multipart';
 import AuthController from './auth.controller';
 import fs from 'fs';
 import vaultClient from './vault-client';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
+import { Server as SocketIOServer } from 'socket.io';
+import { AuthPayload } from './types/types';
+import { registerIoHandlers } from './io.handler';
 import { MatchResultBody } from './user';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
@@ -23,7 +27,8 @@ const keyPath = path.join(__dirname, certDir, 'server.key');
 const certPath = path.join(__dirname, certDir, 'server.crt');
 const caPath = path.join(__dirname, certDir, 'ca.crt');
 
-async function buildServer() {
+
+// async function buildServer() {
   let httpsOptions;
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
@@ -37,7 +42,7 @@ async function buildServer() {
   } else {
     console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
   }
-  const server = fastify({
+  export const server = fastify({
     logger: {
       level: 'debug',
       ...(isDevelopment
@@ -55,10 +60,49 @@ async function buildServer() {
     ...httpsOptions,
   });
 
-  // Register plugins
-  await server.register(dbConnector);
-  await server.register(vaultClient);
-  await server.register(vAuth);
+
+  export const io = new SocketIOServer(server.server, {
+	cors: {
+	  origin: frontendUrl,
+	  methods: ['GET', 'POST'],
+	  credentials: true,
+	},
+	transports: ['websocket', 'polling'],
+	allowEIO3: true,
+  });
+  
+  
+  // --- Authentication middleware for sockets ---
+  io.use((socket, next) => {
+	const token = socket.handshake.auth.token;
+	if (!token)
+		return next(new Error('No token provided'));
+
+	try
+	{
+		let decoded: AuthPayload= {} as AuthPayload;
+    	decoded.id = socket.request.headers['x-user-id']?.toString() as string;
+    	decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
+    	console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
+
+    	socket.user = {
+			id: decoded.id,
+			nickname: decoded.nickname
+   		};
+		console.log(`[LiveChat] User ${socket.user.nickname} connected`);
+		next();
+	}
+	catch (err)
+	{
+		console.error('[LiveChat] Invalid token', err);
+		next(new Error('Missing or invalid token'));
+	}
+  });
+  
+//   return server;
+// }
+
+registerIoHandlers(io);
 
   // Error handling
   server.setErrorHandler((error, request, reply) => {
@@ -66,8 +110,6 @@ async function buildServer() {
     reply.status(500).send({ error: 'Internal Server Error' });
   });
 
-  return server;
-}
 
 interface SignupBody {
   nickname: string;
@@ -97,7 +139,21 @@ interface FriendResponseBody {
 }
 
 async function start() {
-  const server = await buildServer();
+//   const server = await buildServer();
+  // Register plugins
+
+  //TESTING
+  await server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+      files: 1 // Maksimum 1 dosya
+    }
+  });
+
+  //TESTING
+  await server.register(dbConnector);
+  await server.register(vaultClient);
+  await server.register(vAuth);
   const authService = new AuthService(server);
 
   createMatchHistoryTable(server.db);
@@ -162,6 +218,10 @@ async function start() {
     }
   });
 
+  server.get('/api/profile/avatars', async (req, reply) => {
+  return authController.getAvailableAvatars(req, reply);
+});
+
   server.get('/api/profile', async (req, reply) => {
     req.log.info({ headers: req.headers }, 'Incoming profile request');
     req.log.info({ auth: req.headers.authorization }, 'Auth header');
@@ -184,6 +244,21 @@ async function start() {
     }
   });
 
+
+  //TESTING
+server.post('/api/profile/avatar/upload', async (req, reply) => {
+  return authController.uploadAvatar(req, reply);
+});
+
+server.delete('/api/profile/avatar', async (req, reply) => {
+  return authController.deleteCustomAvatar(req, reply);
+});
+
+server.register(require('@fastify/static'), {
+  root: path.join(__dirname, '../uploads'),
+  prefix: '/uploads/',
+});
+  //TESTING
   server.post<{ Body: { nickname: string } }>('/api/profile/set-nickname', async (request, reply) => {
     request.log.info({ headers: request.headers }, 'Incoming profile request');
     try {
@@ -237,43 +312,6 @@ async function start() {
     return authController.getFriendRequests(req, reply);
   });
 
-  // Friend request'e cevap verme endpoint'i
-  server.post('/api/friends/request/:id/accept', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'accept' } } as any,
-      reply
-    );
-  });
-
-  server.post('/api/friends/request/:id/decline', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'decline' } } as any,
-      reply
-    );
-  });
-
-  server.post<{ Params: { id: string }; Body: { action: 'accept' | 'decline' } }>(
-    '/api/friends/request/:id/:action?',
-    async (req, reply) => {
-      // URL parametresinden action'ı al veya body'den
-      const actionFromUrl = (req.params as any).action;
-      const actionFromBody = (req.body as any)?.action;
-      const action = actionFromUrl || actionFromBody;
-
-      if (!action) {
-        return reply.status(400).send({ error: 'Action parameter required' });
-      }
-
-      return authController.respondToFriendRequestById(
-        {
-          ...req,
-          params: req.params,
-          body: { action },
-        } as any,
-        reply
-      );
-    }
-  );
 
   server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
     try {
@@ -328,19 +366,6 @@ async function start() {
     return authController.updateProfile(req, reply);
   });
 
-  server.get<{ Querystring: { q: string } }>('/api/users/search', async (req, reply) => {
-    req.log.info({ query: req.query }, 'Incoming search request');
-    return authController.searchUsers(req, reply);
-  });
-
-  server.post<{ Body: FriendRequestBody }>('/api/friends/request', async (req, reply) => {
-    return authController.sendFriendRequest(req, reply);
-  });
-
-  server.put<{ Body: FriendResponseBody }>('/api/friends/respond', async (req, reply) => {
-    return authController.respondToFriendRequest(req, reply);
-  });
-
   server.get('/api/friends', async (req, reply) => {
     return authController.getFriends(req, reply);
   });
@@ -365,6 +390,7 @@ async function start() {
 
   await server.listen({ port: 3002, host: '0.0.0.0' });
   console.log('Server "auth-user-service" is listening: https://localhost:3002 ');
+  
 }
 
 start().catch((err) => {

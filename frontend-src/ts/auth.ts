@@ -1,5 +1,7 @@
 import { navigateTo } from './router.js';
 import { SocketManager } from './socketManager.js';
+import { ChatSocketManager } from './LiveChat/chatSocketManager.js';
+import { initLiveChat } from './LiveChat/liveChat.js';
 
 export async function handleSignup(formData: {
   nickname: string;
@@ -24,6 +26,7 @@ export async function handleSignup(formData: {
 
     const data = await responseClone.json();
     localStorage.setItem('authToken', data.token);
+	initLiveChat(ChatSocketManager.getInstance());
     return data;
   } catch (error) {
     console.error('Signup error:', error);
@@ -67,7 +70,7 @@ export async function handleLogin(formData: { email: string; password: string })
     }
 
     navigateTo('/profile');
-
+	initLiveChat(ChatSocketManager.getInstance());
     return data;
   } catch (error) {
     console.error('Login error:', error);

@@ -5,8 +5,35 @@ import { ProfileOptions } from './profileOptions.js';
 import { setupMobileMenu } from './mobilMenu';
 import { getStatistics } from './statistics';
 
+import { displayLiveChat, initLiveChat } from './LiveChat/liveChat.js';
+import { ChatSocketManager } from './LiveChat/chatSocketManager.js';
+
+const loginPage = document.querySelector('.login-page') as HTMLElement;
+export const profilePage = document.querySelector('.profile-page') as HTMLElement;
+export const gamePage = document.querySelector('.game-page') as HTMLElement;
+export const newgamePage = document.querySelector('.newgame-page') as HTMLElement;
+const multiplayerLobby = document.querySelector('.multiplayer-lobby') as HTMLElement;
+const optionsPage = document.querySelector('.options-page') as HTMLElement;
+const userSearchPage = document.querySelector('.user-search-page') as HTMLElement;
+const userProfilePage = document.querySelector('.user-profile-page') as HTMLElement;
+const oauthResultPage = document.querySelector('.oauth-result-page') as HTMLElement;
+const nicknamePage = document.querySelector('.nickname-page') as HTMLElement;
+const tournamentLobby = document.querySelector('.tournament-lobby') as HTMLElement;
+const liveChatPage = document.querySelector('.live-chat') as HTMLElement;
+let currentPage = loginPage;
+
+export function showPage(pageToShow: HTMLElement)
+{
+	if (currentPage === pageToShow)
+		return;
+	currentPage.classList.add('hidden');
+	pageToShow.classList.remove('hidden');
+	currentPage = pageToShow;
+}
+
 const socketManager = SocketManager.getInstance();
 // socketManager.connect();
+const chatSocketManager = ChatSocketManager.getInstance();
 
 type Route = {
   path: string;
@@ -104,8 +131,7 @@ async function saveProfileChanges() {
       // Alert yerine daha zarif bir bildirim kullanın
       console.log('Profile updated successfully!');
       // navigateTo yerine direkt olarak sayfayı kapat
-      document.querySelector('.options-page')?.classList.add('hidden');
-      document.querySelector('.profile-page')?.classList.remove('hidden');
+      showPage(profilePage);
 
       // Profil verilerini yenile
       await loadProfileData();
@@ -122,8 +148,7 @@ function setupOptionsPageListeners() {
   // Back to profile butonu - sadece sayfayı gizle, yönlendirme yapma
   document.getElementById('back-to-profile')?.addEventListener('click', (e) => {
     e.preventDefault();
-    document.querySelector('.options-page')?.classList.add('hidden');
-    document.querySelector('.profile-page')?.classList.remove('hidden');
+    showPage(profilePage);
   });
 
   // Options form submit
@@ -140,19 +165,7 @@ function showOptionsPage() {
   }
 
   manageNavbar();
-  hideAllPages();
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.remove('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(optionsPage);
 
   loadOptionsData();
   setupOptionsPageListeners(); // Bu satırı ekleyin
@@ -178,28 +191,13 @@ function showUserSearchPage() {
   }
 
   manageNavbar();
-  hideAllPages();
-  // TÜM sayfaları gizle
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
   // Search sayfasını göster
-  document.querySelector('.user-search-page')?.classList.remove('hidden');
-
+  showPage(userSearchPage);
   // Setup fonksiyonunu çağır
   setupUserSearch();
 }
 
 function showStatistics() {
-
   if (!isAuthenticated()) {
     navigateTo('/');
     return;
@@ -503,19 +501,8 @@ function showUserProfilePage() {
   }
 
   manageNavbar();
-  hideAllPages();
   // Tüm sayfaları gizle
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.remove('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
+  showPage(userProfilePage);
 
   // URL'den user ID'yi al ve profil verilerini yükle
   const userId = window.location.pathname.split('/').pop();
@@ -533,17 +520,6 @@ async function showOAuthResultPage() {
   const state = urlParams.get('state');
 
   manageNavbar();
-  hideAllPages();
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
   const oauth_result_header = document.getElementById('oauth-result-header');
   const oauth_result_text= document.getElementById('oauth-result-text');
@@ -584,24 +560,12 @@ async function showOAuthResultPage() {
     oauth_result_text.innerText = text;
   }
 
-  document.querySelector('.oauth-result-page')?.classList.remove('hidden');
+  showPage(oauthResultPage);
 }
 
 function showNicknamePage() {
   manageNavbar();
-  hideAllPages();
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.remove('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-  
+  showPage(nicknamePage);
 }
 
 async function loadUserProfileData(userId: number) {
@@ -735,64 +699,19 @@ function addUserProfileEventListeners(userId: number) {
 }
 
 function showLiveChat() {
-  // const loginPage = document.querySelector('.login-page');
-  // const profilePage = document.querySelector('.profile-page');
-  // const gamePage = document.querySelector('.game-page');
-  // const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
   manageNavbar();
-  hideAllPages();
-  // loginPage?.classList.add('hidden');
-  // profilePage?.classList.add('hidden');
-  // gamePage?.classList.add('hidden');
-  // multiPGamePage?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(liveChatPage);
+  displayLiveChat();
 }
 
-// function showStatistics() {
-//   const loginPage = document.querySelector('.login-page');
-//   const profilePage = document.querySelector('.profile-page');
-//   const gamePage = document.querySelector('.game-page');
-//   const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
-//   manageNavbar();
-//   loginPage?.classList.add('hidden');
-//   profilePage?.classList.add('hidden');
-//   gamePage?.classList.add('hidden');
-//   multiPGamePage?.classList.add('hidden');
-//   document.querySelector('.options-page')?.classList.add('hidden');
-//   document.querySelector('.user-search-page')?.classList.add('hidden');
-//   document.querySelector('.user-profile-page')?.classList.add('hidden');
-//   document.querySelector('.oauth-result-page')?.classList.add('hidden');
-//   document.querySelector('.nickname-page')?.classList.add('hidden');
-//   document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
-// }
+function showStatistics() {
+  manageNavbar();
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////showPage(
+}
 
 function showAuthPage() {
-  const loginPage = document.querySelector('.login-page');
-  // const profilePage = document.querySelector('.profile-page');
-  // const gamePage = document.querySelector('.game-page');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-
   manageNavbar();
-  hideAllPages();
-  loginPage?.classList.remove('hidden');
-  // profilePage?.classList.add('hidden');
-  // gamePage?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(loginPage);
 }
 
 function showProfilePage() {
@@ -800,25 +719,8 @@ function showProfilePage() {
     navigateTo('/');
     return;
   }
-
-  if (document.querySelector('.profile-page')?.classList.contains('hidden') === false) {
-    return;
-  }
-
   manageNavbar();
-  hideAllPages();
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.remove('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  // document.querySelector('.newgame-page')?.classList.add('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(profilePage);
   loadProfileData();
 }
 
@@ -828,19 +730,7 @@ function showGamePage() {
     return;
   }
   manageNavbar();
-  hideAllPages();
-  // document.querySelector('.login-page')?.classList.add('hidden');
-  // document.querySelector('.profile-page')?.classList.add('hidden');
-  // document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.remove('hidden');
-  // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  // document.querySelector('.options-page')?.classList.add('hidden');
-  // document.querySelector('.user-search-page')?.classList.add('hidden');
-  // document.querySelector('.user-profile-page')?.classList.add('hidden');
-  // document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  // document.querySelector('.nickname-page')?.classList.add('hidden');
-  // document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(newgamePage);
 }
 
 export function navigateTo(path: string) {
@@ -890,6 +780,7 @@ window.addEventListener('popstate', handleRouting);
 // Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', () => {
   manageNavbar();
+  initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-link]')) {
@@ -1099,15 +990,11 @@ async function handleLogout() {
 
     manageNavbar();
     navigateTo('/');
+	chatSocketManager.disconnect();
   } catch (error) {
     localStorage.removeItem('authToken');
     navigateTo('/');
   }
-}
-
-function showMultiplayerLobby() {
-  hideAllPages();
-  document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
@@ -1125,7 +1012,7 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
   }
 
   if (!singlePlayer && remote) {
-    showMultiplayerLobby();
+	showPage(multiplayerLobby);
     setupLobbyUI(singlePlayer, remote);
     try {
       await socketManager.ensureConnection();
@@ -1135,8 +1022,7 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
     }
   }
   else {
-    document.querySelector('.newgame-page')?.classList.add('hidden');
-    document.querySelector('.game-page')?.classList.remove('hidden');
+    showPage(gamePage);
     setupLobbyUI(singlePlayer, remote);
   }
 }
@@ -1145,8 +1031,7 @@ function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: bo
   try {
     const roomId = socketManager.createRoom();
     socketManager.onGameStart = () => {
-      hideAllPages();
-      document.querySelector('.game-page')?.classList.remove('hidden');
+      showPage(gamePage);
       startMultiplayerGame(game);
     };
   } catch (error) {
@@ -1187,8 +1072,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
         statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
 
         socketManager.onGameStart = () => {
-          document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-          document.querySelector('.game-page')?.classList.remove('hidden');
+          showPage(gamePage);
           startMultiplayerGame(game);
         };
       } else {
@@ -1215,8 +1099,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
       if (success) {
         statusElement.textContent = 'Joined successfully! Starting game...';
         socketManager.onGameStart = () => {
-          document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-          document.querySelector('.game-page')?.classList.remove('hidden');
+          showPage(gamePage);
           startMultiplayerGame(game);
         };
       } else {
@@ -1247,22 +1130,9 @@ function startMultiplayerGame(game: PongGame) {
 
 // TOURNAMENT
 function showTournamentLobby(): void {
-  hideAllPages();
-  document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+//   hideAllPages();
+  showPage(tournamentLobby);
   resetTournamentUI();
-}
-
-function hideAllPages(): void {
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.statistics-page')?.classList.add('hidden');
 }
 
 function resetTournamentUI(): void {
@@ -1436,8 +1306,8 @@ async function showTournamentPage(): Promise<void> {
 export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
-  hideAllPages();
-  document.querySelector('.game-page')?.classList.remove('hidden');
+//   hideAllPages();
+  showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) {
