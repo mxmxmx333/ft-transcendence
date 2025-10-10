@@ -370,7 +370,7 @@ export default class AuthController {
 
   // ============================================
 
-  async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
+ async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
   try {
     const token = request.headers?.authorization?.split(' ')[1];
     if (!token) {
@@ -378,8 +378,6 @@ export default class AuthController {
     }
     
     const extracted = await request.server.vAuth.verify(token);
-    
-    // ✅ Mevcut kodunuza uyumlu - hem id hem sub
     const decoded = extracted as any;
     const userId = decoded.id || parseInt(decoded.sub);
     
@@ -406,7 +404,8 @@ export default class AuthController {
     }
 
     if (avatar) {
-      const availableAvatars = this.authService.getAvailableAvatars();
+      // ✅ FIX: getAvailableAvatars'a userId parametresini ekle
+      const availableAvatars = this.authService.getAvailableAvatars(userId);
       if (!availableAvatars.includes(avatar)) {
         return reply.status(400).send({ error: 'Invalid avatar selection' });
       }
@@ -444,15 +443,24 @@ export default class AuthController {
   }
 }
 
-  async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const avatars = this.authService.getAvailableAvatars();
-      return reply.send({ avatars });
-    } catch (error) {
-      return reply.status(500).send({ error: 'Failed to get avatars' });
+async getAvailableAvatars(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const token = request.headers?.authorization?.split(' ')[1];
+    if (!token) {
+      return reply.status(401).send({ error: 'Unauthorized' });
     }
+    
+    const extracted = await request.server.vAuth.verify(token);
+    const decoded = extracted as any;
+    const userId = decoded.id || parseInt(decoded.sub);
+    
+    // ✅ Kullanıcıya özel avatarları getir
+    const avatars = this.authService.getAvailableAvatars(userId);
+    return reply.send({ avatars });
+  } catch (error) {
+    return reply.status(500).send({ error: 'Failed to get avatars' });
   }
-
+}
   // ======= FRIEND SYSTEM METHODS =======
 
   async getFriends(request: FastifyRequest, reply: FastifyReply) {
