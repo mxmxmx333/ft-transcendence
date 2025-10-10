@@ -81,10 +81,10 @@ private updateOptionsPageAvatar(avatar: string) {
 }
 
  private updateProfileDisplay(profileData: any) {
-  // ✅ Avatar görselini güncelle
   const avatarElement = document.getElementById('profile-avatar-img') as HTMLImageElement;
   if (avatarElement && profileData.avatar) {
-    avatarElement.src = `/imgs/avatars/${profileData.avatar}.png`;
+        const avatarUrl = this.getAvatarUrl(profileData.avatar); // I assign it to a variable to get correct avatar ex. name it was hard coded before.
+    avatarElement.src = avatarUrl;
     avatarElement.onerror = () => {
       avatarElement.src = '/imgs/avatars/default.png';
     };
