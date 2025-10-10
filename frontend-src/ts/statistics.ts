@@ -31,39 +31,30 @@ export class StatisticsManager {
     try {
       console.log('Loading statistics...');
     
-        const [statsResponse, matchesResponse] = await Promise.all([
-        fetch('/api/my-statistics', {
-            headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
-        }),
-        fetch('/api/my-matches?limit=50', {
-            headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
-        })
-        ]);
+      const [statsResponse, matchesResponse] = await Promise.all([
+        fetch('/api/my-statistics', {headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }}),
+        fetch('/api/my-matches?limit=50', {headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }})
+      ]);
 
-        if (!statsResponse.ok) {
-        throw new Error(`Stats API failed: ${statsResponse.status}`);
-        }
-        
-        if (!matchesResponse.ok) {
-        throw new Error(`Matches API failed: ${matchesResponse.status}`);
-        }
+      if (!statsResponse.ok) throw new Error(`Stats API failed: ${statsResponse.status}`);
+      if (!matchesResponse.ok) throw new Error(`Matches API failed: ${matchesResponse.status}`);
 
-        this.stats = await statsResponse.json();
-        const matchesData = await matchesResponse.json();
-        this.matches = matchesData.matches || [];
+      this.stats = await statsResponse.json();
+      const matchesData = await matchesResponse.json();
+      this.matches = matchesData.matches || [];
 
-        console.log('Statistics loaded:', this.stats);
-        console.log('Matches loaded:', this.matches.length);
+      console.log('Statistics loaded:', this.stats);
+      console.log('Matches loaded:', this.matches.length);
 
-        this.displayStatistics();
-        this.drawCharts();
-        this.displayMatchHistory();
+      this.displayStatistics();
+      this.drawCharts();
+      this.displayMatchHistory();
 
     } catch (error) {
-        console.error('Failed to load statistics:', error);
-        this.showErrorMessage('Failed to load statistics. Please try again.');
+      console.error('Failed to load statistics:', error);
+      this.showErrorMessage('Failed to load statistics. Please try again.');
     }
-    }
+  }
 
   private displayStatistics() {
     if (!this.stats) return;
@@ -227,7 +218,7 @@ export class StatisticsManager {
           <!-- Score -->
           <div class="text-center">
             <div class="text-2xl font-bold ${this.getScoreColor(match.result)}">
-              ${match.my_score} - ${match.opponent_score}
+              ${match.opponent_score} - ${match.my_score}
             </div>
           </div>
 
@@ -247,9 +238,9 @@ export class StatisticsManager {
     const element = document.getElementById(id);
     if (element) {
       element.textContent = value;
-      console.log(`✅ Updated ${id}:`, value);
+      console.log(`Updated ${id}:`, value);
     } else {
-      console.warn(`⚠️ Element not found: ${id}`);
+      console.warn(`Element not found: ${id}`);
     }
   }
 

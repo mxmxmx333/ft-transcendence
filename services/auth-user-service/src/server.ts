@@ -275,7 +275,7 @@ async function start() {
     }
   );
 
-  server.post<{ Body: MatchResultBody }>('/api/internal/match-result', async (req, reply) => {
+  server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
     try {
       console.log('🎯 Internal match result received:', req.body);
       const success = authService.saveMatchResult(req.body);
@@ -320,36 +320,6 @@ async function start() {
     } catch (error) {
       req.log.error(error);
       return reply.status(500).send({ error: 'Failed to get statistics' });
-    }
-  });
-
-  server.get<{ Params: { id: string } }>('/api/profile/:id', async (req, reply) => {
-    try {
-      const token = req.headers.authorization?.split(' ')[1];
-      if (!token) {
-        return reply.status(401).send({ error: 'Unauthorized' });
-      }
-      
-      const decoded = await req.server.vAuth.verify(token);
-      const userId = parseInt(req.params.id);
-      const profile = authService.getUserProfileWithHistory(userId, Number(decoded.sub));
-      
-      return reply.send(profile);
-    } catch (error) {
-      req.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get profile' });
-    }
-  });
-
-  server.get<{ Querystring: { limit?: string } }>('/api/leaderboard', async (req, reply) => {
-    try {
-      const limit = parseInt(req.query.limit || '10');
-      const leaderboard = authService.getLeaderboard(limit);
-      
-      return reply.send({ leaderboard });
-    } catch (error) {
-      req.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get leaderboard' });
     }
   });
 

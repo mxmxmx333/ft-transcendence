@@ -325,7 +325,7 @@ async function saveGameResult(gameData: {
   };
 
   try {
-    const response = await fetch('https://localhost:3002/api/internal/match-result', {
+    const response = await fetch('https://localhost:3002/api/match-result', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

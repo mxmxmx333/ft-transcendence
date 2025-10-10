@@ -285,13 +285,6 @@ async function buildServer() {
     httpMethods: ['GET'],
   });
 
-  await server.register(proxy, {
-    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
-    prefix: '/api/leaderboard',
-    rewritePrefix: '/api/leaderboard',
-    httpMethods: ['GET'],
-  });
-
   server.setNotFoundHandler((request, reply) => {
     if (request.raw.method === 'GET' && !request.raw.url?.startsWith('/api')) {
       reply.sendFile('index.html');

@@ -62,7 +62,6 @@ export function createMatchHistoryTable(db: any) {
       player1_score INTEGER NOT NULL,
       player2_score INTEGER DEFAULT 0,
       game_type TEXT NOT NULL,
-      game_mode TEXT,
       room_id TEXT,
       played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (player1_id) REFERENCES users(id) ON DELETE CASCADE,
