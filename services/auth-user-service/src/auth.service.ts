@@ -157,12 +157,6 @@ export default class AuthService {
   deleteAccount(id: number) {
     let stmt = this.db.prepare('DELETE FROM users WHERE id = ?');
     stmt.run(id);
-
-    stmt = this.db.prepare('DELETE FROM game_statistics WHERE user_id = ?');
-    stmt.run(id);
-
-    stmt = this.db.prepare('DELETE FROM friendships WHERE requester_id = ? OR addressee_id = ?');
-    stmt.run(id, id);
   }
 
   getUserByEmail(email: string): User | null {
