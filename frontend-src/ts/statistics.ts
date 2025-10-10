@@ -211,7 +211,7 @@ export class StatisticsManager {
       <div class="match-card ${match.result} bg-gray-800 rounded-lg p-4 border-l-4 hover:bg-gray-750 transition-colors">
         <div class="flex items-center justify-between">
           <!-- Opponent Info -->
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-3 w-1/3 overflow-hidden">
             <img src="/imgs/avatars/${match.opponent_avatar || 'default'}.png" 
                  alt="${opponent}" 
                  class="w-12 h-12 rounded-full border-2 border-gray-600"
@@ -232,7 +232,7 @@ export class StatisticsManager {
           </div>
 
           <!-- Result & Date -->
-          <div class="text-right">
+          <div class="text-right w-1/3">
             <div class="result-badge ${match.result} px-3 py-1 rounded-full text-xs font-bold uppercase">
               ${match.result}
             </div>
