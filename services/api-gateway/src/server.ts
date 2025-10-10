@@ -34,9 +34,9 @@ if (!upstreamAuthAndUserService) {
 
 async function buildServer() {
   let httpsOptions: Record<string, any> = {};
-  const keyPath = path.join( certDir, 'server.key');
-  const certPath = path.join( certDir, 'server.crt');
-  const caPath = path.join( certDir, 'ca.crt');
+  const keyPath = path.join(certDir, 'server.key');
+  const certPath = path.join(certDir, 'server.crt');
+  const caPath = path.join(certDir, 'ca.crt');
   if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
     httpsOptions = {
       https: {
@@ -86,6 +86,21 @@ async function buildServer() {
       server.log.info(`Method: ${request.method}`);
       server.log.info(`Auth Header: ${request.headers.authorization || 'MISSING'}`);
     }
+
+    const publicRoutes = [
+      '/api/signup',
+      '/api/login',
+      '/api/auth/42',
+      '/api/auth/42/callback',
+      '/api/logout',
+      '/api/health',
+      '/api/profile/avatars', // ✅ BU SATIRI EKLEYİN
+      '/uploads/',
+    ];
+    if (publicRoutes.some((route) => request.url.startsWith(route))) {
+      server.log.info(`✅ Public route: ${request.url}`);
+      return;
+    }
     // Definiere welche Routen Auth benötigen
     const protectedRoutes = [
       '/api/profile',
@@ -102,34 +117,34 @@ async function buildServer() {
       return;
     }
 
-  let token = null;
+    let token = null;
 
-  // 1. Versuche Authorization Header (für HTTP API Calls)
-  const authHeader = request.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.slice(7);
-    server.log.info('🔍 Token from Authorization header');
-  }
+    // 1. Versuche Authorization Header (für HTTP API Calls)
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+      server.log.info('🔍 Token from Authorization header');
+    }
 
-  // 2. Für Socket.IO: Token aus Query Parameter
-  if (!token && request.url.startsWith('/socket.io')) {
-    const url = new URL(request.url, 'http://localhost');
-    token = url.searchParams.get('token');
-    server.log.info(`🔍 Socket.IO token from query: ${token ? 'FOUND' : 'MISSING'}`);
-  }
+    // 2. Für Socket.IO: Token aus Query Parameter
+    if (!token && request.url.startsWith('/socket.io')) {
+      const url = new URL(request.url, 'http://localhost');
+      token = url.searchParams.get('token');
+      server.log.info(`🔍 Socket.IO token from query: ${token ? 'FOUND' : 'MISSING'}`);
+    }
 
-  if (!token) {
-    server.log.warn(`❌ No token found for ${request.url}`);
-    return reply.code(401).send({
-      error: 'Authorization token missing',
-      message: 'Please provide a valid Bearer token or token query parameter',
-    });
-  }
+    if (!token) {
+      server.log.warn(`No token found for ${request.url}`);
+      return reply.code(401).send({
+        error: 'Authorization token missing',
+        message: 'Please provide a valid Bearer token or token query parameter',
+      });
+    }
     try {
       const user = await server.vAuth.verify(token);
-        console.debug('Token:', token);
-        console.debug('ID:', user.sub);
-        console.debug('Nickname:', user.nickname);
+      console.debug('Token:', token);
+      console.debug('ID:', user.sub);
+      console.debug('Nickname:', user.nickname);
       if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
         throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
       }
@@ -145,7 +160,7 @@ async function buildServer() {
 
       server.log.info(`✅ Authorized user: ${user.nickname} (${user.sub})`);
     } catch (error) {
-      server.log.warn(`❌ Auth failed: ${error}`);
+      server.log.warn(`Auth failed: ${error}`);
       return reply.code(401).send({
         error: 'Invalid token',
         message: 'Token verification failed',
@@ -196,10 +211,69 @@ async function buildServer() {
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/socket.io/livechat',
+    rewritePrefix: '/socket.io',
+    websocket: true,
+    wsClientOptions: {
+      rejectUnauthorized: false,
+      rewriteRequestHeaders: (headers: any, request: any) => {
+        headers['x-user-id'] = request.headers['x-user-id'];
+        headers['x-user-nickname'] = request.headers['x-user-nickname'];
+        return {
+          ...headers,
+        };
+      },
+    },
+    wsUpstream: 'wss://localhost:3002',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
   // NEW ADDED PLEASE DONT DELETE, I FORGOT EDDING THESE ROUTES AND IT COST ME A DAY ABOUT FRIEND REQUEST FEATURE :((
   // ==============================================
-
+  // await server.register(fastifyStatic, {
+  //     root: path.join(__dirname, '../uploads/avatars'),
+  //     prefix: '/uploads/avatars/',
+  //     decorateReply: false
+  //   });
+  // const uploadsBasePath = path.resolve(__dirname, '../../uploads');
+  // await server.register(fastifyStatic, {
+  //   root: uploadsBasePath,  // ✅ Tüm uploads dizini
+  //   prefix: '/uploads/',    // ✅ Tüm /uploads/ path'i
+  //   decorateReply: false,
+  //   serve: true,           // ✅ Serving aktif
+  //   preCompressed: false,
+  //   allowedPath: (pathName: string, root: string) => {
+  //     // Güvenlik: sadece images ve avatars'a izin ver
+  //     return pathName.startsWith(path.join(root, 'avatars'));
+  //   }
+  // });
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatar/upload',
+    rewritePrefix: '/api/profile/avatar/upload',
+    httpMethods: ['POST'],
+  });
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../../uploads'),
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatar',
+    rewritePrefix: '/api/profile/avatar',
+    httpMethods: ['DELETE'],
+  });
   // === More New added
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/avatars',
+    rewritePrefix: '/api/profile/avatars',
+    httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
   await server.register(proxy, {
     upstream: upstreamAuthAndUserService || 'https://localhost:3002',
     prefix: '/api/user',
@@ -279,6 +353,21 @@ async function buildServer() {
     prefix: '/api/profile',
     rewritePrefix: '/api/profile',
     httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  //match history
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/my-statistics',
+    rewritePrefix: '/api/my-statistics',
+    httpMethods: ['GET'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/my-matches',
+    rewritePrefix: '/api/my-matches',
+    httpMethods: ['GET'],
   });
 
   server.setNotFoundHandler((request, reply) => {

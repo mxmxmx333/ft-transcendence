@@ -10,6 +10,10 @@ import './socketManager';
 import { setupAuthToggle } from './authToggle';
 import { setupMobileMenu } from './mobilMenu';
 import { manageNavbar, navigateTo } from './router';
+import './LiveChat/chatElements';
+import './LiveChat/chatSocketManager';
+import './LiveChat/liveChat';
+import './LiveChat/liveChatRS';
 
 function initializeApp() {
   manageNavbar();

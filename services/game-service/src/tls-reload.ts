@@ -7,9 +7,9 @@ export interface TlsReloadOptions {
   keyPath: string;
   caPath: string;
   signal?: NodeJS.Signals; // default: 'SIGHUP'
-  debounceMs?: number;     // default: 300ms
+  debounceMs?: number; // default: 300ms
   retryIntervalMs?: number; // default: 500ms
-  retryTimeoutMs?: number;  // default: 30000ms (30s)
+  retryTimeoutMs?: number; // default: 30000ms (30s)
 }
 
 function readBundle(opts: TlsReloadOptions) {
@@ -24,7 +24,7 @@ function readBundle(opts: TlsReloadOptions) {
   return null;
 }
 
-export default fp(async function tlsReloadPlugin (fastify: FastifyInstance, opts: TlsReloadOptions) {
+export default fp(async function tlsReloadPlugin(fastify: FastifyInstance, opts: TlsReloadOptions) {
   const signal = opts.signal ?? 'SIGHUP';
   const debounceMs = opts.debounceMs ?? 300;
   const retryIntervalMs = opts.retryIntervalMs ?? 500;
@@ -47,7 +47,9 @@ export default fp(async function tlsReloadPlugin (fastify: FastifyInstance, opts
       fastify.log.info('[tls-reload] TLS certificates reloaded');
       return true;
     } else {
-      fastify.log.warn('[tls-reload] Underlying server has no setSecureContext; restart required to apply new TLS material');
+      fastify.log.warn(
+        '[tls-reload] Underlying server has no setSecureContext; restart required to apply new TLS material'
+      );
       return false;
     }
   }
@@ -74,7 +76,10 @@ export default fp(async function tlsReloadPlugin (fastify: FastifyInstance, opts
 
     // first schedule immediately (next tick) so we don’t block the current signal handler
     retryTimer = setTimeout(attempt, Math.min(50, retryIntervalMs));
-    fastify.log.warn({ retryIntervalMs, retryTimeoutMs }, '[tls-reload] Bundle missing; starting retry loop');
+    fastify.log.warn(
+      { retryIntervalMs, retryTimeoutMs },
+      '[tls-reload] Bundle missing; starting retry loop'
+    );
   }
 
   async function reload() {
@@ -91,7 +96,9 @@ export default fp(async function tlsReloadPlugin (fastify: FastifyInstance, opts
     } catch (err) {
       fastify.log.error({ err }, '[tls-reload] TLS reload failed');
     } finally {
-      setTimeout(() => { debounce = false; }, debounceMs);
+      setTimeout(() => {
+        debounce = false;
+      }, debounceMs);
     }
   }
 

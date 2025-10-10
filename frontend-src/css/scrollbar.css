@@ -1,0 +1,48 @@
+#chat-messages-area::-webkit-scrollbar,
+#chat-input::-webkit-scrollbar {
+	width: 5px;
+}
+
+#chat-messages-area::-webkit-scrollbar-thumb,
+#chat-input::-webkit-scrollbar-thumb {
+	/* background: rgba(0, 255, 255, 0.567); */
+	background: rgba(255, 240, 30, 0.8);
+	border-radius: 9999px;
+}
+
+#chat-messages-area::-webkit-scrollbar-track,
+#chat-input::-webkit-scrollbar-track {
+	background: rgb(255, 255, 255, 0.3);
+	border-radius: 9999px;
+}
+
+
+
+
+#chat-history::-webkit-scrollbar,
+#search-list::-webkit-scrollbar,
+#friends-list::-webkit-scrollbar,
+#blocked-list::-webkit-scrollbar,
+#requests-list::-webkit-scrollbar {
+	width: 5px;
+}
+
+#chat-history::-webkit-scrollbar-thumb,
+#search-list::-webkit-scrollbar-thumb,
+#friends-list::-webkit-scrollbar-thumb,
+#blocked-list::-webkit-scrollbar-thumb,
+#requests-list::-webkit-scrollbar-thumb {
+	/* background: rgba(0, 255, 255, 0.567); */
+	background: rgba(255, 240, 30, 0.8);
+	border-radius: 9999px;
+}
+
+#chat-history::-webkit-scrollbar-track,
+#search-list::-webkit-scrollbar-track,
+#friends-list::-webkit-scrollbar-track,
+#blocked-list::-webkit-scrollbar-track,
+#requests-list::-webkit-scrollbar-track {
+	background: rgb(255, 255, 255, 0.3);
+	border-radius: 9999px;
+}
+

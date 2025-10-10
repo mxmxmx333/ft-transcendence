@@ -13,7 +13,6 @@ import {
 
 dotenv.config();
 
-
 function filesReady(paths: string[]) {
   return paths.every((p) => fs.existsSync(p));
 }
@@ -41,6 +40,7 @@ declare module 'fastify' {
       renewNow: () => Promise<void>;
       vRequest: typeof undiciFetch;
       reloadMtls: () => Promise<void>;
+      tryEnable: (force?: boolean) => Promise<void>;
     };
   }
 }
@@ -48,21 +48,30 @@ declare module 'fastify' {
 const certDir = process.env.CERT_DIR || path.resolve(__dirname, '../certs/vault');
 const appRoleDir = process.env.APPROLE_DIR || path.resolve(__dirname, '../certs/approle');
 
+const caPath = path.join(certDir, 'ca.crt');
+const crtPath = path.join(certDir, 'client.crt');
+const keyPath = path.join(certDir, 'client.key');
+const roleIdPath = path.join(appRoleDir, 'role_id');
+const secretIdPath = path.join(appRoleDir, 'secret_id');
+
+console.debug(`[vault] Using certDir: ${certDir}`);
+console.debug(`[vault] Using appRoleDir: ${appRoleDir}`);
+console.debug(`[vault] Using CA: ${caPath}`);
+console.debug(`[vault] Using client.crt: ${crtPath}`);
+console.debug(`[vault] Using client.key: ${keyPath}`);
+console.debug(`[vault] Using role_id: ${roleIdPath}`);
+console.debug(`[vault] Using secret_id: ${secretIdPath}`);
 const vaultClient: FastifyPluginAsync = async (fastify) => {
   const { VAULT_ADDR, VAULT_TOKEN_MARGIN_SEC = '30' } = process.env;
 
-  const caPath = path.join(certDir, 'ca.crt');
-  const crtPath = path.join(certDir, 'client.crt');
-  const keyPath = path.join(certDir, 'client.key');
-  const roleIdPath = path.join(appRoleDir, 'role_id');
-  const secretIdPath = path.join(appRoleDir, 'secret_id');
-
+  
   if (!VAULT_ADDR) throw new Error('VAULT_ADDR is required in .env');
 
   let enabled = false;
 
   function createDispatcher() {
     if (filesReady([caPath, crtPath, keyPath])) {
+      
       const ca = mustRead(caPath, 'Vault CA');
       const cert = mustRead(crtPath, 'Client certificate');
       const key = mustRead(keyPath, 'Client key');
@@ -104,7 +113,9 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     });
     const prev = dispatcher;
     dispatcher = next;
-    try { await prev.close(); } catch {}
+    try {
+      await prev.close();
+    } catch {}
     enabled = true;
     await appRoleLogin();
     fastify.log.info('[vault] enabled mTLS after files appeared');
@@ -204,15 +215,23 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     return singleFlightLock;
   }
 
-  const vRequest: typeof undiciFetch = (url, init) => {
-    ensureToken().catch((err) => {
-      fastify.log.error(err, '[vault] ensureToken failed');
-    });
+  const vRequest: typeof undiciFetch = async (url, init) => {
+    // Ensure client is enabled (files present) and token is ready
+    try {
+      if (!enabled) {
+        await tryEnable(true);
+      }
+      await ensureToken(true);
+    } catch (err) {
+      fastify.log.error({ err }, '[vault] ensureToken/enable failed');
+    }
     return vfetch(url, init);
   };
 
   fastify.decorate('vClient', {
-    get dispatcher() { return dispatcher; },
+    get dispatcher() {
+      return dispatcher;
+    },
     fetch: vfetch,
     rawFetch: rawFetch,
     getToken: () => state.token,
@@ -221,10 +240,13 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     renewNow,
     vRequest,
     reloadMtls,
+    tryEnable,
   });
-  
+
   // Install SIGHUP handler to reload Vault mTLS materials at runtime
-  const hupHandler = () => { void (enabled ? reloadMtls() : tryEnable(true)); };
+  const hupHandler = () => {
+    void (enabled ? reloadMtls() : tryEnable(true));
+  };
   process.on('SIGHUP', hupHandler);
 
   // Do not fail startup if files are missing; attempt to enable once

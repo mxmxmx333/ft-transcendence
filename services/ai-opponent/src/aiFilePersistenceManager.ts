@@ -4,8 +4,6 @@ import type { SerializedWeights, PerformanceStats, AIModelFile } from './types';
 import env from 'dotenv';
 env.config();
 
-
-
 export class AIFilePersistenceManager {
   private readonly modelDir = process.env.MODEL_DIR || 'services/ai-opponent/ai_model';
   private readonly globalModelFile = process.env.GLOBAL_MODEL_FILE || 'global_ai_model.json';

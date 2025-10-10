@@ -1,4 +1,11 @@
-import { Player, GameRoom, activeConnections, gameRooms, TournamentRoom, tournamentRooms } from './types/types';
+import {
+  Player,
+  GameRoom,
+  activeConnections,
+  gameRooms,
+  TournamentRoom,
+  tournamentRooms,
+} from './types/types';
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
@@ -115,7 +122,10 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
   }
 }
 
-export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPayload['create_tournament_room']) {
+export function handleCreateTournamentRoom(
+  player: Player,
+  payload: CreateRoomPayload['create_tournament_room']
+) {
   console.log(`[Server] handleCreateTournamentRoom called by player ${player.id}`);
   if (player.roomId) {
     console.log(`[Server] Player ${player.id} is already in a room`);
@@ -126,7 +136,7 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   }
   const socket = player.conn;
   console.log(`[Server] Player ${player.nickname} is creating a TournamentRoom`);
-  const roomId = 'T'+generateUniqueRoomId();
+  const roomId = 'T' + generateUniqueRoomId();
   console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
   try {
     const room: TournamentRoom = {
@@ -155,7 +165,8 @@ export function handleCreateTournamentRoom(player: Player, payload: CreateRoomPa
   player.roomId = roomId;
   player.conn.emit('tournament_room_created', {
     roomId: player.roomId,
-    players: [{id: player.id, nickname: player.nickname}],
+    players: [{ id: player.id, nickname: player.nickname }],
+    owner: tournamentRooms[roomId].owner?.nickname,
     success: true,
   });
 }
@@ -185,35 +196,10 @@ export function joinTournamentRoom(player: Player, roomId: string) {
   room.players.push(player);
   console.log(`Player ${player.nickname} joining TournamentRoom ${roomId}`);
 
-  const cleanPlayers = room.players.map(player => ({
+  const cleanPlayers = room.players.map((player) => ({
     id: player.id,
     nickname: player.nickname,
-    isOwner: player.id === room.owner?.id
   }));
-
-  if (!room.owner) {
-    console.log(`Player ${player.nickname} joining TournamentRoom ${roomId} as owner`);
-    room.owner = player;
-    player.roomId = roomId;
-    
-    ////emit
-    io.to(roomId).emit('joined_tournament_room', {
-      roomId: room.id,
-      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
-      players: cleanPlayers,
-      totalPlayers: cleanPlayers.length,
-      success: true,
-    });
-    io.to(roomId).emit('tournament_player_joined', {
-      roomId: room.id,
-      message: `Player ${player.nickname} has joined the TournamentRoom as owner`,
-      players: cleanPlayers,
-      totalPlayers: cleanPlayers.length,
-      success: true,
-    });
-    console.log(`[Server] Player ${player.id} joined TournamentRoom ${room.id} as owner`);
-    return;
-  }
 
   player.roomId = roomId;
   player.conn.join(roomId);
@@ -243,16 +229,14 @@ export function checkStartTournament(player: Player, roomId: string) {
     });
     return;
   }
-  if (room.owner?.id !== player.id) {
-    player.conn.emit('room_error', {message: 'Only the owner can start the tournament',});
-    return;
-  }
   if (room.players.length < 3) {
-    player.conn.emit('room_error', {message: 'At least 3 players are required to start the tournament',});
+    player.conn.emit('room_error', {
+      message: 'At least 3 players are required to start the tournament',
+    });
     return;
   }
   startTournament(roomId);
-  // Owner vs Player2 starten
+  // Player1 vs Player2 starten
 }
 
 export function leaveTournamentRoom(player: Player, roomId: string) {
@@ -261,44 +245,42 @@ export function leaveTournamentRoom(player: Player, roomId: string) {
     player.conn.emit('room_error', { message: 'Tournament not found' });
     return;
   }
-  
+
   // Player aus der Liste entfernen
-  room.players = room.players.filter(p => p.id !== player.id);
-  
-  // Wenn Owner verlässt, neuen Owner bestimmen
-  if (room.owner?.id === player.id && room.players.length > 0) {
-    room.owner = room.players[0];
-    io.to(roomId).emit('tournament_owner_changed', {
-      newOwner: room.owner.nickname
-    });
-  }
-  
+  room.players = room.players.filter((p) => p.id !== player.id);
   player.roomId = undefined;
   player.conn.leave(roomId);
-  
+
   // Update an alle senden
-  broadcastTournamentUpdate(room);
-  
+  if (room.players.length > 0) {
+    broadcastTournamentUpdate(room);
+  }
+
   // Room löschen wenn leer
   if (room.players.length === 0) {
     abortGame(room as any);
     deleteRoom(roomId);
     console.log(`[Server] Tournament room ${roomId} deleted - no players left`);
+  } else if (room.players.length < 3 && room.gameLoop) {
+    io.to(roomId).emit('room_error', {
+      message: 'Tournament aborted - not enough players remaining',
+    });
+    abortGame(room as any);
+    deleteRoom(roomId);
+    console.log(`[Server] Tournament ${roomId} aborted - insufficient players after disconnect`);
   }
-  
   console.log(`[Server] Player ${player.nickname} left tournament ${roomId}`);
 }
 
 function broadcastTournamentUpdate(room: TournamentRoom) {
-  const playerData = room.players.map(p => ({
+  const playerData = room.players.map((p) => ({
     id: p.id,
     nickname: p.nickname,
-    isOwner: p.id === room.owner?.id
   }));
-  
+
   io.to(room.id).emit('tournament_players_updated', {
     players: playerData,
-    playerCount: room.players.length
+    playerCount: room.players.length,
   });
 }
 
@@ -362,6 +344,7 @@ export function joinRoom(player: Player, roomId: string) {
 }
 
 export function handleLeaveRoom(socket: Socket) {
+  if (!socket.room) return;
   const player = socket.player;
   if (!player || !player.roomId) return;
 
@@ -377,23 +360,28 @@ export function handleLeaveRoom(socket: Socket) {
 
 export function handleDisconnect(player: Player) {
   console.log(`[Server] Player ${player.id} disconnected`);
-  handleLeaveRoom(player.conn);
+  if (player.roomId && tournamentRooms[player.roomId]) {
+    leaveTournamentRoom(player, player.roomId);
+  }
+  if (player.roomId && gameRooms[player.roomId]) {
+    handleLeaveRoom(player.conn);
+  }
   activeConnections.delete(player.conn.id);
 }
 
 export function deleteRoom(roomId: string) {
-  const room = gameRooms[roomId];
   deleteTournamentRoom(roomId);
+  const room = gameRooms[roomId];
   if (!room) {
     return;
   }
   if (room.owner) {
-    room.owner.roomId = undefined;
     room.owner.conn.leave(roomId);
+    room.owner.roomId = undefined;
   }
   if (room.guest) {
-    room.guest.roomId = undefined;
     room.guest.conn.leave(roomId);
+    room.guest.roomId = undefined;
   }
   delete gameRooms[roomId];
   console.log(`[Server] Room ${roomId} deleted`);
@@ -404,10 +392,23 @@ export function deleteTournamentRoom(roomId: string) {
   if (!room) {
     return;
   }
-  room.players.forEach(player => {
+  room.players.forEach((player) => {
     player.roomId = undefined;
     player.conn.leave(roomId);
   });
+  room.lostPlayers.forEach((player) => {
+    player.roomId = undefined;
+    player.conn.leave(roomId);
+  });
+  room.lastWinner?.conn.leave(roomId);
+  if (room.lastWinner) room.lastWinner.roomId = undefined;
+  room.owner?.conn.leave(roomId);
+  if (room.owner) room.owner.roomId = undefined;
+  room.guest?.conn.leave(roomId);
+  if (room.guest) room.guest.roomId = undefined;
+
   delete tournamentRooms[roomId];
+  const roomg = gameRooms[roomId];
+  if (roomg) delete gameRooms[roomId];
   console.log(`[Server] Tournament Room ${roomId} deleted`);
 }

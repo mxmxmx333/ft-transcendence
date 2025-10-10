@@ -13,7 +13,6 @@ import {
 
 dotenv.config();
 
-
 function filesReady(paths: string[]) {
   return paths.every((p) => fs.existsSync(p));
 }
@@ -43,7 +42,7 @@ const httpsAgent: FastifyPluginAsync = async (fastify) => {
   function createDispatcher() {
     if (filesReady([caPath])) {
       const ca = mustRead(caPath, 'CA');
-      
+
       enabled = true;
       const agent = new UndiciAgent({
         keepAliveTimeout: 30_000,
@@ -80,7 +79,9 @@ const httpsAgent: FastifyPluginAsync = async (fastify) => {
     setGlobalDispatcher(next);
     const prev = dispatcher;
     dispatcher = next;
-    try { await prev.close(); } catch {}
+    try {
+      await prev.close();
+    } catch {}
     enabled = true;
     fastify.log.info('[ca-agent] enabled custom CA after file appeared');
   }
@@ -110,16 +111,18 @@ const httpsAgent: FastifyPluginAsync = async (fastify) => {
   const rawFetch: typeof undiciFetch = (url, init) =>
     undiciFetch(url, { ...(init as UndiciRequestInit), dispatcher });
 
-
-
   fastify.decorate('httpsAgent', {
-    get dispatcher() { return dispatcher; },
+    get dispatcher() {
+      return dispatcher;
+    },
     rawFetch: rawFetch,
     reloadMtls,
   });
-  
+
   // Install SIGHUP handler to reload CA materials at runtime
-  const hupHandler = () => { void (enabled ? reloadMtls() : tryEnable(true)); };
+  const hupHandler = () => {
+    void (enabled ? reloadMtls() : tryEnable(true));
+  };
   process.on('SIGHUP', hupHandler);
 
   // Do not fail startup if files are missing; attempt to enable once

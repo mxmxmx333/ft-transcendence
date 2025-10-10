@@ -51,7 +51,7 @@ class AIServerClass {
       console.error(`[AIServer] Error creating AI instance for room ${roomId}:`, error);
       return null;
     }
-  } 
+  }
 
   public async removeAIInstance(roomId: string): Promise<boolean> {
     const instance = this.aiInstances.get(roomId);

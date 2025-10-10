@@ -1,5 +1,15 @@
 import { Player, activeConnections } from './types/types';
-import { handleCreateRoom, joinRoom, handleLeaveRoom, handleDisconnect, handleCreateTournamentRoom, joinTournamentRoom, checkStartTournament, leaveTournamentRoom, deleteRoom } from './room';
+import {
+  handleCreateRoom,
+  joinRoom,
+  handleLeaveRoom,
+  handleDisconnect,
+  handleCreateTournamentRoom,
+  joinTournamentRoom,
+  checkStartTournament,
+  leaveTournamentRoom,
+  deleteRoom,
+} from './room';
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload, GameRoom, TournamentRoom } from './types/types';
 import { abort } from 'node:process';
@@ -45,22 +55,16 @@ export function registerIoHandlers(io: Server) {
         // Tournament Room Check
         if ('players' in socket.room) {
           const tournamentRoom = socket.room as TournamentRoom;
-          
-          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) {
-            abortGame(tournamentRoom as any);
-            deleteRoom(tournamentRoom.id);
-            console.log(`[Socket] No active match in tournament room ${tournamentRoom.id}`);
-            return;
-          }
-          
+          if (!tournamentRoom.owner || !tournamentRoom.guest || !tournamentRoom.gameState) return;
           gameRoom = tournamentRoom as any;
-        } 
+        }
         // Regular GameRoom
         else if ('gameState' in socket.room) {
           gameRoom = socket.room as GameRoom;
-        }
-        else {
-          console.error(`[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`);
+        } else {
+          console.error(
+            `[Socket] Socket ${socket.id} room is neither a gameRoom nor a tournamentRoom`
+          );
           abortGame(socket.room as any);
           deleteRoom(socket.room.id);
           return;
@@ -142,27 +146,24 @@ export function registerIoHandlers(io: Server) {
 
     // start-pause
     socket.on('game_pause', (isPaused: boolean) => {
-    try {
-      if (!socket.room) return;
-      
-      const room = socket.room;
-      
-      console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
-      
-      // Oyun durumunu güncelle
-      room.isPaused = isPaused;
-      
-      // Tüm oyunculara bildir
-      if (!isPaused) {
-        room.gameState.lastUpdate = Date.now();
+      try {
+        if (!socket.room) return;
+
+        const room = socket.room;
+
+        console.log(`[Server] Game ${isPaused ? 'paused' : 'resumed'} in room ${room.id}`);
+
+        // Oyun durumunu güncelle
+        room.isPaused = isPaused;
+
+        // Tüm oyunculara bildir
+        if (!isPaused) {
+          room.gameState.lastUpdate = Date.now();
+        }
+        io.to(room.id).emit('game_pause_state', isPaused);
+      } catch (error) {
+        console.error('[Socket] Error in game_pause handler:', error);
       }
-      io.to(room.id).emit('game_pause_state', isPaused);
-
-    } catch (error) {
-      console.error('[Socket] Error in game_pause handler:', error);
-    }
+    });
   });
-
-  });
-  
 }

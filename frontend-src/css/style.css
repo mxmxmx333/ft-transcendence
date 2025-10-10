@@ -1,4 +1,4 @@
-
+@import "./scrollbar.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,6 +12,9 @@
 @layer utilities {
   .bg-dark {
     background-color: #0f0f0f;
+  }
+  .notification-dot-color {
+	@apply bg-red-600;
   }
 }
 

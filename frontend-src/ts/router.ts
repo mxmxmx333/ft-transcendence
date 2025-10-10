@@ -3,9 +3,36 @@ import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
 import { setupMobileMenu } from './mobilMenu';
+import { getStatistics } from './statistics';
+
+import { displayLiveChat, initLiveChat } from './LiveChat/liveChat.js';
+import { ChatSocketManager } from './LiveChat/chatSocketManager.js';
+
+const loginPage = document.querySelector('.login-page') as HTMLElement;
+export const profilePage = document.querySelector('.profile-page') as HTMLElement;
+export const gamePage = document.querySelector('.game-page') as HTMLElement;
+export const newgamePage = document.querySelector('.newgame-page') as HTMLElement;
+const multiplayerLobby = document.querySelector('.multiplayer-lobby') as HTMLElement;
+const optionsPage = document.querySelector('.options-page') as HTMLElement;
+const userSearchPage = document.querySelector('.user-search-page') as HTMLElement;
+const userProfilePage = document.querySelector('.user-profile-page') as HTMLElement;
+const oauthResultPage = document.querySelector('.oauth-result-page') as HTMLElement;
+const nicknamePage = document.querySelector('.nickname-page') as HTMLElement;
+const tournamentLobby = document.querySelector('.tournament-lobby') as HTMLElement;
+const liveChatPage = document.querySelector('.live-chat') as HTMLElement;
+const statisticsPage = document.querySelector('.statistics-page') as HTMLElement;
+let currentPage = loginPage;
+
+export function showPage(pageToShow: HTMLElement) {
+  if (currentPage === pageToShow) return;
+  currentPage.classList.add('hidden');
+  pageToShow.classList.remove('hidden');
+  currentPage = pageToShow;
+}
 
 const socketManager = SocketManager.getInstance();
 // socketManager.connect();
+const chatSocketManager = ChatSocketManager.getInstance();
 
 type Route = {
   path: string;
@@ -63,7 +90,7 @@ const routes: Route[] = [
     path: '/choose-nickname',
     view: showNicknamePage,
     preAuthRequired: true,
-  }
+  },
 ];
 
 export function manageNavbar() {
@@ -103,8 +130,7 @@ async function saveProfileChanges() {
       // Alert yerine daha zarif bir bildirim kullanın
       console.log('Profile updated successfully!');
       // navigateTo yerine direkt olarak sayfayı kapat
-      document.querySelector('.options-page')?.classList.add('hidden');
-      document.querySelector('.profile-page')?.classList.remove('hidden');
+      showPage(profilePage);
 
       // Profil verilerini yenile
       await loadProfileData();
@@ -121,8 +147,7 @@ function setupOptionsPageListeners() {
   // Back to profile butonu - sadece sayfayı gizle, yönlendirme yapma
   document.getElementById('back-to-profile')?.addEventListener('click', (e) => {
     e.preventDefault();
-    document.querySelector('.options-page')?.classList.add('hidden');
-    document.querySelector('.profile-page')?.classList.remove('hidden');
+    showPage(profilePage);
   });
 
   // Options form submit
@@ -139,18 +164,7 @@ function showOptionsPage() {
   }
 
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.remove('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(optionsPage);
 
   loadOptionsData();
   setupOptionsPageListeners(); // Bu satırı ekleyin
@@ -176,25 +190,20 @@ function showUserSearchPage() {
   }
 
   manageNavbar();
-
-  // TÜM sayfaları gizle
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
-
   // Search sayfasını göster
-  document.querySelector('.user-search-page')?.classList.remove('hidden');
-
+  showPage(userSearchPage);
   // Setup fonksiyonunu çağır
   setupUserSearch();
+}
+
+function showStatistics() {
+  if (!isAuthenticated()) {
+    navigateTo('/');
+    return;
+  }
+  manageNavbar();
+  showPage(statisticsPage);
+  getStatistics();
 }
 
 function setupUserSearch() {
@@ -489,18 +498,7 @@ function showUserProfilePage() {
 
   manageNavbar();
   // Tüm sayfaları gizle
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.remove('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(userProfilePage);
 
   // URL'den user ID'yi al ve profil verilerini yükle
   const userId = window.location.pathname.split('/').pop();
@@ -518,20 +516,9 @@ async function showOAuthResultPage() {
   const state = urlParams.get('state');
 
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
 
   const oauth_result_header = document.getElementById('oauth-result-header');
-  const oauth_result_text= document.getElementById('oauth-result-text');
+  const oauth_result_text = document.getElementById('oauth-result-text');
 
   let header = 'Authentication Error';
   let text = 'Error when trying to login through 42.';
@@ -544,7 +531,12 @@ async function showOAuthResultPage() {
       console.log(data);
       if (data.token && data.action_required !== false) {
         localStorage.setItem('preAuthToken', data.token);
-        const location = data.action_required === 'nickname' ? '/choose-nickname' : data.action_required === '2fa' ? '/2fa' : null;
+        const location =
+          data.action_required === 'nickname'
+            ? '/choose-nickname'
+            : data.action_required === '2fa'
+              ? '/2fa'
+              : null;
         if (location) {
           window.location.href = location;
           return;
@@ -569,23 +561,12 @@ async function showOAuthResultPage() {
     oauth_result_text.innerText = text;
   }
 
-  document.querySelector('.oauth-result-page')?.classList.remove('hidden');
+  showPage(oauthResultPage);
 }
 
 function showNicknamePage() {
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.remove('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(nicknamePage);
 }
 
 async function loadUserProfileData(userId: number) {
@@ -719,62 +700,14 @@ function addUserProfileEventListeners(userId: number) {
 }
 
 function showLiveChat() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
   manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
-}
-
-function showStatistics() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  const multiPGamePage = document.querySelector('.multiplayer-lobby');
-
-  manageNavbar();
-  loginPage?.classList.add('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  multiPGamePage?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(liveChatPage);
+  displayLiveChat();
 }
 
 function showAuthPage() {
-  const loginPage = document.querySelector('.login-page');
-  const profilePage = document.querySelector('.profile-page');
-  const gamePage = document.querySelector('.game-page');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-
   manageNavbar();
-  loginPage?.classList.remove('hidden');
-  profilePage?.classList.add('hidden');
-  gamePage?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(loginPage);
 }
 
 function showProfilePage() {
@@ -782,25 +715,8 @@ function showProfilePage() {
     navigateTo('/');
     return;
   }
-
-  if (document.querySelector('.profile-page')?.classList.contains('hidden') === false) {
-    return;
-  }
-
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.remove('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
-
+  showPage(profilePage);
   loadProfileData();
 }
 
@@ -810,18 +726,7 @@ function showGamePage() {
     return;
   }
   manageNavbar();
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.remove('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
+  showPage(newgamePage);
 }
 
 export function navigateTo(path: string) {
@@ -871,6 +776,7 @@ window.addEventListener('popstate', handleRouting);
 // Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', () => {
   manageNavbar();
+  initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-link]')) {
@@ -896,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!result.ok) {
         navigateTo('/oAuthCallback');
       } else {
-        const { url }= await result.json();
+        const { url } = await result.json();
         if (!url) {
           navigateTo('/oAuthCallback');
         } else {
@@ -937,44 +843,44 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.body.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target.matches('[data-link]')) {
-            e.preventDefault();
-            const href = target.getAttribute('href');
-            const dataLink = target.getAttribute('data-link');
-            
-            // Href veya data-link'ten birini kullan
-            const link = href || dataLink;
-            
-            if (link === '/logout') {
-                handleLogout();
-            } else if (link) {
-                navigateTo(link);
-            }
-        }
-    });
-  
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-link]')) {
+      e.preventDefault();
+      const href = target.getAttribute('href');
+      const dataLink = target.getAttribute('data-link');
+
+      // Href veya data-link'ten birini kullan
+      const link = href || dataLink;
+
+      if (link === '/logout') {
+        handleLogout();
+      } else if (link) {
+        navigateTo(link);
+      }
+    }
+  });
+
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    
+
     // Create Tournament
     if (target.closest('#create-tournament-btn')) {
       e.preventDefault();
       createTournament();
     }
-    
+
     // Join Tournament
     if (target.closest('#join-tournament-btn')) {
       e.preventDefault();
       joinTournament();
     }
-    
+
     // Start Tournament
     if (target.closest('#start-tournament-btn')) {
       e.preventDefault();
       startTournament();
     }
-    
+
     // Leave Tournament
     if (target.closest('#leave-tournament-btn')) {
       e.preventDefault();
@@ -1077,27 +983,13 @@ async function handleLogout() {
     document.querySelector('.user-profile-page')?.classList.add('hidden');
     document.querySelector('.tournament-lobby')?.classList.add('hidden');
 
-
     manageNavbar();
     navigateTo('/');
+    chatSocketManager.disconnect();
   } catch (error) {
     localStorage.removeItem('authToken');
     navigateTo('/');
   }
-}
-
-// QUESTION: what's happening here? is it more of a "show game options?" --> is the funciton name appropriate?
-function showMultiplayerLobby() {
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.remove('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-  document.querySelector('.oauth-result-page')?.classList.add('hidden');
-  document.querySelector('.nickname-page')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
@@ -1111,11 +1003,11 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
   const existingGame = socketManager.getGameInstance();
   if (existingGame && existingGame.gameRunning) {
     alert('A game is already running. Please wait for it to finish first.');
-    return; 
+    return;
   }
 
   if (!singlePlayer && remote) {
-    showMultiplayerLobby();
+    showPage(multiplayerLobby);
     setupLobbyUI(singlePlayer, remote);
     try {
       await socketManager.ensureConnection();
@@ -1123,10 +1015,8 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
     } catch (error) {
       document.getElementById('lobby-status')!.textContent = 'Connection failed';
     }
-  }
-  else {
-    document.querySelector('.newgame-page')?.classList.add('hidden');
-    document.querySelector('.game-page')?.classList.remove('hidden');
+  } else {
+    showPage(gamePage);
     setupLobbyUI(singlePlayer, remote);
   }
 }
@@ -1135,8 +1025,7 @@ function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: bo
   try {
     const roomId = socketManager.createRoom();
     socketManager.onGameStart = () => {
-      document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-      document.querySelector('.game-page')?.classList.remove('hidden');
+      showPage(gamePage);
       startMultiplayerGame(game);
     };
   } catch (error) {
@@ -1147,7 +1036,7 @@ function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: bo
 function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) return;
-  
+
   const socketManager = SocketManager.getInstance();
   const existingGame = socketManager.getGameInstance();
   if (existingGame && existingGame.gameRunning) {
@@ -1156,7 +1045,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
     showGamePage();
     return;
   }
-  
+
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
   game.isSinglePlayer = singlePlayer;
@@ -1177,8 +1066,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
         statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
 
         socketManager.onGameStart = () => {
-          document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-          document.querySelector('.game-page')?.classList.remove('hidden');
+          showPage(gamePage);
           startMultiplayerGame(game);
         };
       } else {
@@ -1187,11 +1075,11 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
     } catch (error) {
       console.error('Join room failed:', error);
       statusElement.textContent = 'Failed to join room';
-      
+
       setTimeout(() => {
         showGamePage();
       }, 2000);
-    } 
+    }
   });
   document.getElementById('join-room-btn')?.addEventListener('click', async () => {
     const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
@@ -1205,8 +1093,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
       if (success) {
         statusElement.textContent = 'Joined successfully! Starting game...';
         socketManager.onGameStart = () => {
-          document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-          document.querySelector('.game-page')?.classList.remove('hidden');
+          showPage(gamePage);
           startMultiplayerGame(game);
         };
       } else {
@@ -1215,7 +1102,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
     } catch (error) {
       console.error('Join room failed:', error);
       statusElement.textContent = 'Failed to join room';
-      
+
       // BEI ERROR ZURÜCK ZUR GAME SELECTION
       setTimeout(() => {
         showGamePage(); // Zurück zur Game-Auswahl
@@ -1234,28 +1121,16 @@ function startMultiplayerGame(game: PongGame) {
   // game.start();
 }
 
-
 // TOURNAMENT
 function showTournamentLobby(): void {
-  hideAllPages();
-  document.querySelector('.tournament-lobby')?.classList.remove('hidden');
+  //   hideAllPages();
+  showPage(tournamentLobby);
   resetTournamentUI();
 }
 
-function hideAllPages(): void {
-  document.querySelector('.login-page')?.classList.add('hidden');
-  document.querySelector('.profile-page')?.classList.add('hidden');
-  document.querySelector('.game-page')?.classList.add('hidden');
-  document.querySelector('.newgame-page')?.classList.add('hidden');
-  document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-  document.querySelector('.tournament-lobby')?.classList.add('hidden');
-  document.querySelector('.options-page')?.classList.add('hidden');
-  document.querySelector('.user-search-page')?.classList.add('hidden');
-  document.querySelector('.user-profile-page')?.classList.add('hidden');
-}
-
 function resetTournamentUI(): void {
-  document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
+  document.getElementById('tournament-status')!.textContent =
+    'Ready to create or join a tournament';
   const tournamentInput = document.getElementById('tournament-id-input') as HTMLInputElement;
   if (tournamentInput) tournamentInput.value = '';
   document.getElementById('tournament-info')?.classList.add('hidden');
@@ -1265,75 +1140,56 @@ function resetTournamentUI(): void {
 async function createTournament(): Promise<void> {
   try {
     document.getElementById('tournament-status')!.textContent = 'Creating tournament...';
-    
+
     const tournamentData = await socketManager.createTournament();
     console.log('Tournament created with data:', tournamentData);
 
     const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
-    
-    showTournamentInfo(roomId, true, tournamentData); // tournamentData hinzufügen
-    document.getElementById('tournament-status')!.textContent = `Tournament ${roomId} created! Share this ID with others.`;
-    
+
+    showTournamentInfo(roomId, tournamentData);
+    document.getElementById('tournament-status')!.textContent =
+      `Tournament ${roomId} created! Share this ID with others.`;
   } catch (error) {
     console.error('Failed to create tournament:', error);
-    document.getElementById('tournament-status')!.textContent = 'Failed to create tournament. Please try again.';
-  
-    document.getElementById('tournament-info')?.classList.add('hidden');
-    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
-    
-    // Optional: Reset nach 2 Sekunden
-    setTimeout(() => {
-      resetTournamentUI();
-      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
-    }, 2000);
+    document.getElementById('tournament-status')!.textContent =
+      'Failed to create tournament. Please try again.';
   }
 }
 
 async function joinTournament(): Promise<void> {
   const tournamentIdInput = document.getElementById('tournament-id-input') as HTMLInputElement;
   const tournamentId = tournamentIdInput.value.trim().toUpperCase();
-  
+
   if (!tournamentId) {
     alert('Please enter a tournament ID');
     return;
   }
-  
+
   if (tournamentId.length < 3) {
     alert('Tournament ID must be at least 3 characters');
     return;
   }
-  
+
   try {
-    document.getElementById('tournament-status')!.textContent = `Joining tournament ${tournamentId}...`;
+    document.getElementById('tournament-status')!.textContent =
+      `Joining tournament ${tournamentId}...`;
 
     const tournamentData = await socketManager.joinTournament(tournamentId);
     console.log('Tournament data received:', tournamentData);
 
-    showTournamentInfo(tournamentId, false, tournamentData); // false = not owner
+    showTournamentInfo(tournamentId, tournamentData);
     document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
-
   } catch (error) {
     console.error('Failed to join tournament:', error);
-    document.getElementById('tournament-status')!.textContent = 'Failed to join tournament. Check ID and try again.';
-  
-    document.getElementById('tournament-info')?.classList.add('hidden');
-    document.getElementById('tournament-owner-controls')?.classList.add('hidden');
-    
-    // Optional: Reset nach 2 Sekunden
-    setTimeout(() => {
-      resetTournamentUI();
-      document.getElementById('tournament-status')!.textContent = 'Ready to create or join a tournament';
-    }, 2000);
+    document.getElementById('tournament-status')!.textContent =
+      'Failed to join tournament. Check ID and try again.';
   }
 }
 
-function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentData?: any): void {
+function showTournamentInfo(tournamentId: string, tournamentData?: any): void {
   document.getElementById('current-tournament-id')!.textContent = tournamentId;
   document.getElementById('tournament-info')?.classList.remove('hidden');
-  
-  if (isOwner) {
-    document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
-  }
+  document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
 
   if (tournamentData && tournamentData.players) {
     console.log('Using real player data:', tournamentData.players);
@@ -1344,96 +1200,69 @@ function showTournamentInfo(tournamentId: string, isOwner: boolean, tournamentDa
   } else {
     return;
   }
-  updateTournamentPlayers(tournamentData.players || [{ nickname: 'You', isOwner: isOwner },
-      { nickname: 'Player2', isOwner: false }]);
+  updateTournamentPlayers(tournamentData.players);
 }
 
-function updateTournamentPlayers(playersData: any): void {
+export function updateTournamentPlayers(playersData: any): void {
   console.log('Live update - Tournament players changed:', playersData);
-  
+
   // Verschiedene Server-Datenstrukturen handhaben
   let players = playersData;
   if (playersData && !Array.isArray(playersData)) {
     players = playersData.players || playersData.room?.players || [];
   }
-  
+
   if (!Array.isArray(players)) {
     console.warn('Invalid players data received:', playersData);
     return;
   }
-  
+
   const playersList = document.getElementById('tournament-players-list')!;
   const playerCount = document.getElementById('tournament-player-count')!;
   const startBtn = document.getElementById('start-tournament-btn') as HTMLButtonElement;
-  
+
   playersList.innerHTML = '';
   console.log('Updating tournament players:', players);
-  
-  players.forEach(player => {
+
+  players.forEach((player) => {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'flex justify-between items-center p-2 bg-gray-800 rounded';
 
-    const nickname = player.nickname ;
-    const isPlayerOwner = player.isOwner || false;
-
+    const nickname = player.nickname;
     playerDiv.innerHTML = `
-      <span class="text-white">${nickname}</span>
-      <span class="text-xs ${isPlayerOwner ? 'neon-text-yellow' : 'text-gray-400'}">
-        ${isPlayerOwner ? '👑 Owner' : 'Player'}
-      </span>
+      <span class="text-white">${player.nickname}</span>
+      <span class="text-xs text-gray-400">Player</span>
     `;
     playersList.appendChild(playerDiv);
   });
-  
+
   playerCount.textContent = `${players.length}/5`;
-  
+
   // Enable start button if enough players and user is owner
   if (startBtn) {
-   const currentUser = getCurrentUserNickname(); // Helper function needed
-    const isCurrentUserOwner = players.some(p => 
-      (p.nickname === currentUser || p.nickname === 'You') && (p.isOwner)
-    );
-    
-    startBtn.disabled = players.length < 3 || !isCurrentUserOwner;
-    startBtn.textContent = players.length < 3 
-      ? `Start Tournament (Min. 3 players)` 
-      : `Start Tournament (${players.length} players)`;
-    
-    const statusElement = document.getElementById('tournament-status');
-    if (statusElement && players.length >= 3 && isCurrentUserOwner) {
-      statusElement.textContent = `Ready to start with ${players.length} players!`;
-    }
+    startBtn.disabled = players.length < 3;
+    startBtn.textContent =
+      players.length < 3
+        ? `Start Tournament (Min. 3 players)`
+        : `Start Tournament (${players.length} players)`;
   }
-}
-
-function getCurrentUserNickname(): string {
-  try {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.nickname || payload.name || 'You';
-    }
-  } catch (e) {
-    console.error('Could not decode token for nickname');
-  }
-  return 'You';
 }
 
 async function startTournament(): Promise<void> {
   try {
     document.getElementById('tournament-status')!.textContent = 'Starting tournament...';
-    
+
     const tournamentId = document.getElementById('current-tournament-id')!.textContent;
-    
+
     if (!tournamentId || tournamentId === '-') {
       throw new Error('No tournament ID found');
     }
-    
+
     await socketManager.startTournament(tournamentId);
-    
   } catch (error) {
     console.error('Failed to start tournament:', error);
-    document.getElementById('tournament-status')!.textContent = 'Failed to start tournament. Please try again.';
+    document.getElementById('tournament-status')!.textContent =
+      'Failed to start tournament. Please try again.';
   }
 }
 
@@ -1441,14 +1270,13 @@ async function leaveTournament(): Promise<void> {
   if (!confirm('Are you sure you want to leave the tournament?')) {
     return;
   }
-  
+
   try {
     // Echte Socket-Implementierung
     await socketManager.leaveTournament();
-    
+
     resetTournamentUI();
     document.getElementById('tournament-status')!.textContent = 'Left tournament';
-    
   } catch (error) {
     console.error('Failed to leave tournament:', error);
   }
@@ -1461,21 +1289,23 @@ async function showTournamentPage(): Promise<void> {
     return;
   }
   showTournamentLobby();
-  
+
   try {
     await socketManager.ensureConnection();
-    document.getElementById('tournament-status')!.textContent = 'Connected to server - Ready for tournament';
+    document.getElementById('tournament-status')!.textContent =
+      'Connected to server - Ready for tournament';
   } catch (error) {
     console.error('Tournament connection failed:', error);
-    document.getElementById('tournament-status')!.textContent = 'Connection failed - tournament unavailable';
+    document.getElementById('tournament-status')!.textContent =
+      'Connection failed - tournament unavailable';
   }
 }
 
-function handleTournamentMatchStart(data: any): void {
+export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
-  hideAllPages();
-  document.querySelector('.game-page')?.classList.remove('hidden');
+  //   hideAllPages();
+  showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
   if (!canvas) {
@@ -1489,73 +1319,33 @@ function handleTournamentMatchStart(data: any): void {
   const game = new PongGame(canvas, socketManager);
   socketManager.setGameInstance(game);
 
-  if (data.owner && data.guest) {
+  const ownernickname = data.owner.nickname || data.player1;
+  const guestnickname = data.guest.nickname || data.player2;
+  if (ownernickname && guestnickname) {
     const statusElement = document.getElementById('tournament-status');
     if (statusElement) {
-      statusElement.textContent = `Match: ${data.owner.nickname} vs ${data.guest.nickname}`;
+      statusElement.textContent = `Match: ${ownernickname} vs ${guestnickname}`;
     }
   }
 
   console.log('Tournament game setup complete, canvas visible');
-
   socketManager.onGameStart = () => {
     console.log('Tournament game starting!');
     startMultiplayerGame(game);
   };
 }
 
-function handleTournamentMatchEnd(data: any): void {
-  console.log('Tournament match ended:', data);
-  
-  // Nur Message zeigen, NICHT navigieren
+export function handleTournamentEnd(data: any): void {
+  console.log('Tournament completely finished, winner:', data);
+  showPage(tournamentLobby);
+
   const status = document.getElementById('tournament-status');
   if (status) {
-    const winnerName = data.winnerName || data.winner;
-    const loserName = data.loserName || data.loser;
-    const message = data.message || `${winnerName} wins!`;
-    
-    status.textContent = `Match Result: ${message}`;
+    status.textContent = `🏆 Tournament finished!\n${data.winner} won!`;
   }
-  
-  setTimeout(() => {
-    const status = document.getElementById('tournament-status');
-    if (status) {
-      status.textContent = 'Waiting for next match...';
-    }
-  }, 2000);
 
-  // Auf Game-Page bleiben für nächstes Match
-  console.log('Match end handled, waiting for next match or tournament end');
-}
-
-function handleTournamentEnd(data: any): void {
-  console.log('Tournament completely finished:', data);
-  
-  const status = document.getElementById('tournament-status');
-  if (status) {
-    const winnerMessage = data.message || `Tournament finished!`;
-    const winnerName = data.winnerName || data.winner;
-    
-    status.textContent = `🏆 ${winnerMessage}`;
-    
-    // Zusätzliche Winner-Info falls verfügbar
-    if (winnerName && typeof winnerName === 'string') {
-      status.textContent = `🏆 Tournament Winner: ${winnerName}!`;
-    }
-  }
-  
   // NUR hier zur Tournament-Lobby zurück
   setTimeout(() => {
-    hideAllPages();
-    document.querySelector('.tournament-lobby')?.classList.remove('hidden');
     resetTournamentUI();
-    document.getElementById('tournament-status')!.textContent = 'Tournament completed';
-  }, 3000);
+  }, 9000);
 }
-
-// To-Do: das gescheit aufräumen und nur importieren
-// Globale Funktionen für Socket Events registrieren
-(window as any).updateTournamentPlayers = updateTournamentPlayers;
-(window as any).handleTournamentMatchStart = handleTournamentMatchStart;
-(window as any).handleTournamentMatchEnd = handleTournamentMatchEnd;
-(window as any).handleTournamentEnd = handleTournamentEnd;

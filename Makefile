@@ -112,8 +112,8 @@ start-vault-dev: vault-deps-dev
 
 clean-vault-dev: stop-vault-dev
 	docker volume rm transcendence_vault-dev-runtime-certs transcendence_vault-dev-config transcendence_vault-dev-logs transcendence_vault-dev-data || true
-	rm -rf ./services/api-gateway/certs/server.* ./services/api-gateway/certs/ca.* ./services/api-gateway/certs/vault ./services/api-gateway/certs/approle
-	rm -rf ./services/auth-user-service/certs/server.* ./services/auth-user-service/certs/ca.* ./services/auth-user-service/certs/vault ./services/auth-user-service/certs/approle
+	rm -rf ./services/api-gateway/certs/server.* ./services/api-gateway/certs/ca.* ./services/api-gateway/certs/vault ./services/api-gateway/certs/approle/*
+	rm -rf ./services/auth-user-service/certs/server.* ./services/auth-user-service/certs/ca.* ./services/auth-user-service/certs/vault ./services/auth-user-service/certs/approle/*
 	rm -rf ./services/game-service/certs/server.* ./services/game-service/certs/ca.*
 	rm -rf ./services/ai-opponent/certs/server.* ./services/ai-opponent/certs/ca.*
 	rm -rf ./frontend-src/certs/server.* ./frontend-src/certs/ca.*
@@ -130,7 +130,7 @@ prod: vault-deps-prod
 	$(COMPOSE) --profile "prod" up -d vault-1
 	$(COMPOSE) --profile "prod" up --exit-code-from setup-volume-ownerships setup-volume-ownerships
 	$(COMPOSE) --profile "prod" up --exit-code-from vault-bootstrap-prod vault-bootstrap-prod
-	$(COMPOSE) --profile "prod" up -d api-gateway auth-user-service game-service web-application-firewall ai-opponent
+	npm run build
 	$(COMPOSE) --profile "prod" up -d api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent
 	$(COMPOSE) --profile "prod" up -d vault-2 vault-2-agent vault-3 vault-3-agent vault-1-agent
 

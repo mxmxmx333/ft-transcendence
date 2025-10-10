@@ -13,7 +13,6 @@ import {
 
 dotenv.config();
 
-
 function filesReady(paths: string[]) {
   return paths.every((p) => fs.existsSync(p));
 }
@@ -104,7 +103,9 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     });
     const prev = dispatcher;
     dispatcher = next;
-    try { await prev.close(); } catch {}
+    try {
+      await prev.close();
+    } catch {}
     enabled = true;
     await appRoleLogin();
     fastify.log.info('[vault] enabled mTLS after files appeared');
@@ -212,7 +213,9 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
   };
 
   fastify.decorate('vClient', {
-    get dispatcher() { return dispatcher; },
+    get dispatcher() {
+      return dispatcher;
+    },
     fetch: vfetch,
     rawFetch: rawFetch,
     getToken: () => state.token,
@@ -222,9 +225,11 @@ const vaultClient: FastifyPluginAsync = async (fastify) => {
     vRequest,
     reloadMtls,
   });
-  
+
   // Install SIGHUP handler to reload Vault mTLS materials at runtime
-  const hupHandler = () => { void (enabled ? reloadMtls() : tryEnable(true)); };
+  const hupHandler = () => {
+    void (enabled ? reloadMtls() : tryEnable(true));
+  };
   process.on('SIGHUP', hupHandler);
 
   // Do not fail startup if files are missing; attempt to enable once

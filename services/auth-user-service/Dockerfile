@@ -8,6 +8,11 @@ RUN npm install
 
 COPY src/ ./src/
 RUN npm run build
+RUN npm install sharp
+
+RUN mkdir -p /app/uploads/avatars && \
+    chmod -R 755 /app/uploads && \
+    chown -R node:node /app/uploads
 
 # === Production Stage ===
 FROM node:20-alpine AS runner

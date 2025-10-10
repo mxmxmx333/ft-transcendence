@@ -30,7 +30,13 @@ const certPath = path.join(certDir, 'server.crt');
 const caPath = path.join(certDir, 'ca.crt');
 let httpsOptions: Record<string, any> = {};
 if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
-  httpsOptions = { https: { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath), ca: fs.readFileSync(caPath) } };
+  httpsOptions = {
+    https: {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+      ca: fs.readFileSync(caPath),
+    },
+  };
   console.log('Game-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
   console.warn('Game-Service: SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
@@ -85,7 +91,7 @@ io.use((socket, next) => {
       return next(new Error('Authentication error: No token provided'));
     }
 
-    let decoded: AuthPayload= {} as AuthPayload;
+    let decoded: AuthPayload = {} as AuthPayload;
     decoded.id = socket.request.headers['x-user-id']?.toString() as string;
     decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
     console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);

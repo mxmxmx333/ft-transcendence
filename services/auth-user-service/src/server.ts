@@ -1,14 +1,19 @@
 import fastify from 'fastify';
 import path from 'path';
-import dbConnector from './db';
+import dbConnector, { createMatchHistoryTable } from './db';
 import AuthService from './auth.service';
+import fastifyMultipart from '@fastify/multipart';
 import AuthController from './auth.controller';
 import fs from 'fs';
 import vaultClient from './vault-client';
-import tlsReloadPlugin from './tls-reload';
 import vAuth from './auth';
 import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
+import { Server as SocketIOServer } from 'socket.io';
+import { AuthPayload } from './types/types';
+import { registerIoHandlers } from './io.handler';
+import { MatchResultBody } from './user';
+import tlsReloadPlugin from './tls-reload';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 
@@ -17,7 +22,6 @@ if (!frontendUrl) {
   throw new Error('FRONTEND_URL environment variable is not set');
 }
 const isDevelopment = process.env.NODE_ENV === 'development';
-
 let certDir = process.env.CERT_DIR || '../certs';
 if (isDevelopment) {
   certDir = path.join(__dirname, certDir);
@@ -26,25 +30,24 @@ const keyPath = path.join(certDir, 'server.key');
 const certPath = path.join(certDir, 'server.crt');
 const caPath = path.join(certDir, 'ca.crt');
 
-async function buildServer() {
-  let httpsOptions: Record<string, any> = {};
-  if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
-    httpsOptions = {
-      https: {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-        ca: fs.readFileSync(caPath),
-      },
-    };
-    console.log('Auth-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
-  } else {
-    console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
-  }
-  const server = fastify({
-    logger: {
-      level: 'debug',
-      ...(isDevelopment
-        ? {
+let httpsOptions = {} as Record<string, any>;
+if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) {
+  httpsOptions = {
+    https: {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+      ca: fs.readFileSync(caPath),
+    },
+  };
+  console.log('Auth-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+} else {
+  console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
+}
+export const server = fastify({
+  logger: {
+    level: 'debug',
+    ...(isDevelopment
+      ? {
           transport: {
             target: 'pino-pretty',
             options: {
@@ -53,31 +56,54 @@ async function buildServer() {
             },
           },
         }
-        : {}),
-    },
-    ...httpsOptions,
-  });
+      : {}),
+  },
+  ...httpsOptions,
+});
 
-  // Register plugins
-  await server.register(dbConnector);
-  await server.register(vaultClient);
-  await server.register(vAuth);
-  await server.register(tlsReloadPlugin, {
-    certPath,
-    keyPath,
-    caPath,
-    signal: 'SIGHUP',
-    debounceMs: 300,
-  });
+export const io = new SocketIOServer(server.server, {
+  cors: {
+    origin: frontendUrl,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+});
 
-  // Error handling
-  server.setErrorHandler((error, request, reply) => {
-    server.log.error(error);
-    reply.status(500).send({ error: 'Internal Server Error' });
-  });
+// --- Authentication middleware for sockets ---
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('No token provided'));
 
-  return server;
-}
+  try {
+    let decoded: AuthPayload = {} as AuthPayload;
+    decoded.id = socket.request.headers['x-user-id']?.toString() as string;
+    decoded.nickname = socket.request.headers['x-user-nickname']?.toString() as string;
+    console.debug('id: ', decoded.id, 'nickname: ', decoded.nickname);
+
+    socket.user = {
+      id: decoded.id,
+      nickname: decoded.nickname,
+    };
+    console.log(`[LiveChat] User ${socket.user.nickname} connected`);
+    next();
+  } catch (err) {
+    console.error('[LiveChat] Invalid token', err);
+    next(new Error('Missing or invalid token'));
+  }
+});
+
+//   return server;
+// }
+
+registerIoHandlers(io);
+
+// Error handling
+server.setErrorHandler((error, request, reply) => {
+  server.log.error(error);
+  reply.status(500).send({ error: 'Internal Server Error' });
+});
 
 interface SignupBody {
   nickname: string;
@@ -107,8 +133,46 @@ interface FriendResponseBody {
 }
 
 async function start() {
-  const server = await buildServer();
+  //   const server = await buildServer();
+  // Register plugins
+  await server.register(dbConnector);
+  await server.register(vaultClient);
+  await server.register(vAuth);
+
+  // Pre-warm Vault token to avoid first-request race conditions
+  try {
+    // Force enable + ensure token before serving requests
+    // (requires vClient.tryEnable to be exposed by the plugin)
+    // If files are missing, this will just log a warning and continue.
+    // It avoids 403 from transit/keys on first request.
+    await (server as any).vClient?.tryEnable?.(true);
+    await (server as any).vClient?.ensureToken?.(true);
+    server.log.info('[startup] Vault client ready (token pre-warmed)');
+  } catch (err) {
+    server.log.warn({ err }, '[startup] Vault client not ready yet; will attempt on demand');
+  }
+
+  await server.register(tlsReloadPlugin, {
+    certPath,
+    keyPath,
+    caPath,
+    signal: 'SIGHUP',
+    debounceMs: 300,
+  });
+  //TESTING
+  await server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+      files: 1, // Maksimum 1 dosya
+    },
+  });
+
+  //TESTING
+ 
   const authService = new AuthService(server);
+
+  createMatchHistoryTable(server.db);
+
   const oAuthService = new OAuthService();
   const authController = new AuthController(authService, oAuthService, server);
 
@@ -132,15 +196,15 @@ async function start() {
   server.get('/api/auth/42', async (request, reply) => {
     if (!oAuthService.envVariablesConfigured()) {
       return reply.status(500).send({
-        error: 'OAuth settings not configured in .env file'
+        error: 'OAuth settings not configured in .env file',
       });
     }
 
-    request.log.info({headers: request.headers}, 'Incoming oauth request headers');
+    request.log.info({ headers: request.headers }, 'Incoming oauth request headers');
 
     const result = await authController.oAuthLogin(request, reply);
 
-    request.log.info({result}, 'OAuth Login response');
+    request.log.info({ result }, 'OAuth Login response');
 
     return result;
   });
@@ -148,15 +212,15 @@ async function start() {
   server.get('/api/auth/42/callback', async (request, reply) => {
     if (!oAuthService.envVariablesConfigured()) {
       return reply.status(500).send({
-        error: 'OAuth settings not configured in .env file'
+        error: 'OAuth settings not configured in .env file',
       });
     }
 
-    request.log.info({headers: request.headers}, 'Incoming oauth callback headers');
+    request.log.info({ headers: request.headers }, 'Incoming oauth callback headers');
 
     const result = await authController.oAuthLoginCallback(request, reply);
 
-    request.log.info({result}, 'OAuth Login callback response');
+    request.log.info({ result }, 'OAuth Login callback response');
 
     return result;
   });
@@ -167,6 +231,10 @@ async function start() {
     } catch (err) {
       return reply.status(500).send({ error: 'Logout failed' });
     }
+  });
+
+  server.get('/api/profile/avatars', async (req, reply) => {
+    return authController.getAvailableAvatars(req, reply);
   });
 
   server.get('/api/profile', async (req, reply) => {
@@ -191,42 +259,58 @@ async function start() {
     }
   });
 
-  server.post<{ Body: { nickname: string } }>('/api/profile/set-nickname', async (request, reply) => {
-    request.log.info({ headers: request.headers }, 'Incoming profile request');
-    try {
-      const token = request.headers.authorization?.split(' ')[1];
-      if (!token) {
+  //TESTING
+  server.post('/api/profile/avatar/upload', async (req, reply) => {
+    return authController.uploadAvatar(req, reply);
+  });
+
+  server.delete('/api/profile/avatar', async (req, reply) => {
+    return authController.deleteCustomAvatar(req, reply);
+  });
+
+  server.register(require('@fastify/static'), {
+    root: path.join(__dirname, '../uploads'),
+    prefix: '/uploads/',
+  });
+  //TESTING
+  server.post<{ Body: { nickname: string } }>(
+    '/api/profile/set-nickname',
+    async (request, reply) => {
+      request.log.info({ headers: request.headers }, 'Incoming profile request');
+      try {
+        const token = request.headers.authorization?.split(' ')[1];
+        if (!token) {
+          return reply.status(401).send({ error: 'Unauthorized' });
+        }
+        const decoded = await request.server.vAuth.verify(token);
+        if (!decoded.nickname_required) {
+          return reply.status(403).send({ error: 'Setting Nickname only allowed during sign up.' });
+        }
+
+        const user = authService.getUserById(Number(decoded.sub));
+        if (!user || user.id === undefined) {
+          return reply.status(404).send({ error: 'User not found' });
+        }
+
+        try {
+          const result = authService.setNickname(user.id, request.body.nickname);
+          const signToken = await authController.signUserInfos(result);
+
+          return reply.send({ success: true, token: signToken, user: result });
+        } catch (error) {
+          if (error instanceof SqliteError) {
+            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+              return reply.send({ success: false, error: 'Nickname already in use' });
+            }
+            return reply.send({ success: false, error: 'Unknown database error' });
+          }
+          return reply.send({ success: false, error: 'Signing error' });
+        }
+      } catch (err) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
-      const decoded = await request.server.vAuth.verify(token);
-      if (!decoded.nickname_required) {
-        return reply.status(403).send({ error: 'Setting Nickname only allowed during sign up.' });
-      }
-
-      const user = authService.getUserById(Number(decoded.sub));
-      if (!user || user.id === undefined) {
-        return reply.status(404).send({ error: 'User not found' });
-      }
-
-      try {
-        const result = authService.setNickname(user.id, request.body.nickname);
-        const signToken = await authController.signUserInfos(result);
-
-        return reply.send({ success: true, token: signToken, user: result });
-      } catch (error) {
-        if (error instanceof SqliteError) {
-          if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-            return reply.send({ success: false, error: 'Nickname already in use' });
-          }
-          return reply.send({ success: false, error: 'Unknown database error' });
-        }
-        return reply.send({ success: false, error: 'Signing error' });
-      }
-    } catch (err) {
-      return reply.status(401).send({ error: 'Unauthorized' });
     }
-
-  });
+  );
   // New don't delete pls
 
   // === More new methods
@@ -244,60 +328,57 @@ async function start() {
     return authController.getFriendRequests(req, reply);
   });
 
-  // Friend request'e cevap verme endpoint'i
-  server.post('/api/friends/request/:id/accept', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'accept' } } as any,
-      reply
-    );
+  server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
+    try {
+      console.log('🎯 Internal match result received:', req.body);
+      const success = authService.saveMatchResult(req.body);
+
+      req.log.info({ matchData: req.body }, 'Match result saved internally');
+      return reply.send({ success });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to save match result' });
+    }
   });
 
-  server.post('/api/friends/request/:id/decline', async (req, reply) => {
-    return authController.respondToFriendRequestById(
-      { ...req, body: { action: 'decline' } } as any,
-      reply
-    );
-  });
-
-  server.post<{ Params: { id: string }; Body: { action: 'accept' | 'decline' } }>(
-    '/api/friends/request/:id/:action?',
-    async (req, reply) => {
-      // URL parametresinden action'ı al veya body'den
-      const actionFromUrl = (req.params as any).action;
-      const actionFromBody = (req.body as any)?.action;
-      const action = actionFromUrl || actionFromBody;
-
-      if (!action) {
-        return reply.status(400).send({ error: 'Action parameter required' });
+  server.get<{ Querystring: { limit?: string } }>('/api/my-matches', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
       }
 
-      return authController.respondToFriendRequestById(
-        {
-          ...req,
-          params: req.params,
-          body: { action },
-        } as any,
-        reply
-      );
+      const decoded = await req.server.vAuth.verify(token);
+      const limit = parseInt(req.query.limit || '50');
+      const matches = authService.getUserMatchHistory(Number(decoded.sub), limit);
+
+      return reply.send({ matches });
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get match history' });
     }
-  );
+  });
+
+  server.get('/api/my-statistics', async (req, reply) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const decoded = await req.server.vAuth.verify(token);
+      const stats = authService.getUserGameStats(Number(decoded.sub));
+
+      return reply.send(stats);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: 'Failed to get statistics' });
+    }
+  });
 
   // =========
   server.put<{ Body: UpdateProfileBody }>('/api/profile', async (req, reply) => {
     return authController.updateProfile(req, reply);
-  });
-
-  server.get<{ Querystring: { q: string } }>('/api/users/search', async (req, reply) => {
-    req.log.info({ query: req.query }, 'Incoming search request');
-    return authController.searchUsers(req, reply);
-  });
-
-  server.post<{ Body: FriendRequestBody }>('/api/friends/request', async (req, reply) => {
-    return authController.sendFriendRequest(req, reply);
-  });
-
-  server.put<{ Body: FriendResponseBody }>('/api/friends/respond', async (req, reply) => {
-    return authController.respondToFriendRequest(req, reply);
   });
 
   server.get('/api/friends', async (req, reply) => {
