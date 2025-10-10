@@ -11,8 +11,6 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 
-const uploadsDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads/avatars');
-
 // AUTHENTICATION SERVICE
 export default class AuthService {
   private db: any;
@@ -471,21 +469,25 @@ export default class AuthService {
   const staticAvatars = ['default', 'default1'];
   
   try {
-    const uploadsDir = path.join(__dirname, '../../uploads/avatars');
+    // ✅ DÜZELTME: Doğru uploads dizinini kullan
+    const uploadsDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../../uploads/avatars');
     console.log('📂 Checking avatars directory:', uploadsDir);
     
     if (fs.existsSync(uploadsDir)) {
       const files = fs.readdirSync(uploadsDir);
       console.log('📁 Files found:', files);
       
-      // ✅ FIX: Sadece bu kullanıcıya ait custom avatarları göster
+      // ✅ Sadece bu kullanıcıya ait custom avatarları göster
       const customAvatars = files
         .filter(file => {
           const isUserAvatar = file.startsWith(`custom_${userId}_`);
-          const hasValidExtension = /\.(jpg|png|gif|webp)$/i.test(file);
+          const hasValidExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(file);
           return isUserAvatar && hasValidExtension;
         })
-        .map(file => file.replace(/\.(jpg|png|gif|webp)$/i, ''));
+        .map(file => {
+          // ✅ Uzantıyı kaldırarak sadece dosya adını döndür
+          return file.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+        });
       
       console.log('🎨 User custom avatars:', customAvatars);
       return [...staticAvatars, ...customAvatars, 'upload'];
@@ -504,6 +506,9 @@ async processAndSaveAvatar(
   mimeType: string
 ): Promise<string> {
   try {
+    // ✅ DÜZELTME: Environment variable'dan upload dizinini al
+    const uploadsDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../../uploads/avatars');
+    
     // Uploads dizinini oluştur
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -523,13 +528,13 @@ async processAndSaveAvatar(
     // Resmi kaydet
     await this.processImage(fileBuffer, filePath, mimeType);
 
-    // ✅ Database'de avatar alanını güncelle - SADECE FILENAME
-    const avatarUrl = filename.replace(extension, ''); // Extension'sız
+    // ✅ Database'de avatar alanını güncelle - SADECE DOSYA ADI (uzantısız)
+    const avatarName = filename.replace(/\.[^/.]+$/, ""); // Extension'ı tamamen kaldır
     const updateStmt = this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?');
-    updateStmt.run(avatarUrl, userId);
+    updateStmt.run(avatarName, userId);
 
-    console.log('✅ Avatar saved:', avatarUrl);
-    return avatarUrl;
+    console.log('✅ Avatar saved:', avatarName);
+    return avatarName;
 
   } catch (error) {
     console.error('❌ Error processing avatar:', error);
