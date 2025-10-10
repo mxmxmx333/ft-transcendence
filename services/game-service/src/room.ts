@@ -2,8 +2,8 @@ import { Player, GameRoom, activeConnections, gameRooms, TournamentRoom, tournam
 import { io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
-import { PaddleMovePayload, CreateRoomPayload } from './types/types';
-import { apiGatewayUpstream, aiUpstream } from './server';
+import { CreateRoomPayload } from './types/types';
+import { aiUpstream } from './server';
 import { startTournament } from './tournament';
 import fs from 'node:fs';
 import path from 'path';
@@ -11,9 +11,6 @@ import path from 'path';
 
 // Neu: Undici für TLS/Dispatcher
 import { Agent as UndiciAgent, setGlobalDispatcher } from 'undici';
-import { start } from 'node:repl';
-import { clear } from 'node:console';
-import { abort } from 'node:process';
 
 // === TLS / Custom CA für fetch ===
 const certDir = process.env.CERT_DIR || path.join(__dirname, '../certs');
@@ -257,7 +254,6 @@ export function checkStartTournament(player: Player, roomId: string) {
     return;
   }
   startTournament(roomId);
-  // Player1 vs Player2 starten
 }
 
 export function leaveTournamentRoom(player: Player, roomId: string) {
