@@ -108,6 +108,9 @@ impl App {
                             self.current_page = Pages::GameOver(GameOverPage::new(result));
                         },
                         (Ok(WebSocketEvents::GameAborted(_)), _) => self.abort_game().await,
+                        (Ok(WebSocketEvents::GamePauseState(is_paused)), Pages::Game(game)) => {
+                          game.set_paused(is_paused);
+                        },
                         (Ok(_), _) => (),
                         (Err(err), _) => {
                             // TODO: Show some error message (maybe create a separate page)
@@ -182,6 +185,13 @@ impl App {
                               Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
                                   if let Some(socket) = self.socket.as_mut() {
                                     if socket.paddle_move(paddle_directions).await.is_err() {
+                                        self.abort_game().await;
+                                    }
+                                  }
+                              },
+                              Some(PageResults::GamePaused(is_paused)) => {
+                                  if let Some(socket) = self.socket.as_mut() {
+                                    if socket.pause_game(is_paused).await.is_err() {
                                         self.abort_game().await;
                                     }
                                   }

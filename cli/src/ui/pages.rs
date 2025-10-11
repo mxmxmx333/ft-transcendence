@@ -65,6 +65,7 @@ pub enum PageResults {
     GameModeChosen(GameModes),
     JoinRoom(String),
     UpdatePaddleMovement((PaddleMoveDirection, PaddleMoveDirection)),
+    GamePaused(bool),
     GameOver,
     Exit,
 }

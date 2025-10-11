@@ -96,6 +96,7 @@ pub enum WebSocketEvents {
     JoinedRoom(JoinedRoomEvent),
     GameStart(GameStartEvent),
     GameState(GameStateEvent),
+    GamePauseState(bool),
     GameAborted(GameAbortedEvent),
     GameOver(GameOverEvent),
     Ping,
