@@ -6,3 +6,4 @@ pub mod join_room;
 pub mod login;
 pub mod pages;
 pub mod widgets;
+pub mod totp;

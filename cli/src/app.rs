@@ -9,7 +9,7 @@ use tokio::{
 };
 
 use crate::{
-    auth::{self, LoginErrors},
+    auth::{self, BoolOrString, LoginErrors, TotpErrors},
     ui::{
         game::Game,
         game_lobby::GameLobbyPage,
@@ -17,13 +17,12 @@ use crate::{
         gamemode::{GameModePage, GameModes},
         join_room::JoinRoomPage,
         login::LoginPage,
-        pages::PageResults,
+        pages::PageResults, totp::TotpPage,
     },
     websocket::{
-        SocketIoClient,
         events::{
             errors::EventError, request::CreateRoomRequest, websocketevents::WebSocketEvents,
-        },
+        }, SocketIoClient
     },
 };
 
@@ -64,6 +63,9 @@ pub struct App {
 #[derive(Debug)]
 enum ChannelEvents {
     LoginSuccess((String, String)),
+    TotpRequired((String, String)),
+    TotpSuccess(String),
+    TotpError(TotpErrors),
     LoginError(LoginErrors),
     RoomCreated((SocketIoClient, String)),
     RoomJoined(SocketIoClient),
@@ -131,10 +133,30 @@ impl App {
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
                                     match auth::login(&host, &email, &password).await {
-                                        Ok(response) => tx.send(ChannelEvents::LoginSuccess((host, response.token))).await.unwrap(),
+                                        Ok(response) => {
+                                          if let BoolOrString::Bool(false) = response.action_required {
+                                            tx.send(ChannelEvents::LoginSuccess((host, response.token))).await.unwrap();
+                                          } else {
+                                            tx.send(ChannelEvents::TotpRequired((host, response.token))).await.unwrap();
+                                          }
+                                        },
                                         Err(loginerror) => tx.send(ChannelEvents::LoginError(loginerror)).await.unwrap(),
                                     }
                                 });
+                              },
+                              Some(PageResults::Totp(totp_code)) => {
+                                if let (Some(host), Some(auth_token)) = (&self.host, &self.auth_token) {
+                                  let host = host.clone();
+                                  let auth_token = auth_token.clone();
+                                  let totp_code = totp_code.clone();
+                                  let tx = tx.clone();
+                                  tokio::spawn(async move {
+                                    match auth::login2fa(&host, &auth_token, &totp_code).await {
+                                      Ok(response) => tx.send(ChannelEvents::TotpSuccess(response.token)).await.unwrap(),
+                                      Err(totperror) => tx.send(ChannelEvents::TotpError(totperror)).await.unwrap(),
+                                    }
+                                  });
+                                }
                               },
                               Some(PageResults::GameModeChosen(mode)) => {
                                 match (mode, self.host.as_ref(), self.auth_token.as_ref()) {
@@ -208,10 +230,22 @@ impl App {
 
                 Some(msg) = rx.recv() => {
                     match (msg, &mut self.current_page) {
-                        (ChannelEvents::LoginSuccess((host, token)), Pages::Login(_)) => {
+                        (ChannelEvents::LoginSuccess((host, token)), _) => {
                             self.auth_token = Some(token);
                             self.host = Some(host);
                             self.current_page = Pages::GameModeSelector(GameModePage::new());
+                        }
+                        (ChannelEvents::TotpRequired((host, token)), _) => {
+                          self.auth_token = Some(token);
+                          self.host = Some(host);
+                          self.current_page = Pages::TotpPage(TotpPage::new());
+                        }
+                        (ChannelEvents::TotpSuccess(token), _) => {
+                          self.auth_token = Some(token);
+                          self.current_page = Pages::GameModeSelector(GameModePage::new());
+                        }
+                        (ChannelEvents::TotpError(error), Pages::TotpPage(page)) => {
+                          page.totp_error(&error);
                         }
                         (ChannelEvents::LoginError(error), Pages::Login(page)) => {
                             page.login_error(&error);
