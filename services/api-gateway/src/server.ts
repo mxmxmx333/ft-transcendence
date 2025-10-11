@@ -1,4 +1,4 @@
-import Fastify, { fastify } from 'fastify';
+import Fastify, { fastify, FastifyInstance } from 'fastify';
 import path from 'path';
 import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
@@ -421,8 +421,32 @@ async function buildServer() {
   return server;
 }
 
+async function gracefulShutdown(signal: string, server: FastifyInstance) {  
+    try {
+      await server.close();
+      console.log('Graceful shutdown completed');
+      process.exit(0); 
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  }
+
+// --- Start Server ---
 async function start() {
   const server = await buildServer();
+  
+  process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION', server);
+  });
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('UNHANDLED_REJECTION', server);
+  });
+
   try {
     await server.listen({ port: 3000, host: '0.0.0.0' });
     server.log.info(`API Gateway running at https://localhost:3000`);

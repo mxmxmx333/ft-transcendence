@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import AuthService from './auth.service';
 import OAuthService, { OAuthCallbackRequestSchema, OAuthError, OAuthRequestSchema } from './oauth';
 import User from './user';
-import { frontendUrl, UpdateAccountBody } from './server';
+import { frontendUrl } from './server';
 import z, { ZodError } from 'zod';
 import * as OTPAuth from "otpauth";
 
