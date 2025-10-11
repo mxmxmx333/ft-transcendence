@@ -140,7 +140,7 @@ impl App {
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_singleplayer_game(&get_endpoint(&host), &token).await {
+                                            match create_singleplayer_game(&get_endpoint(&host, &token), &token).await {
                                                 Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                             }
@@ -151,7 +151,7 @@ impl App {
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_join_room(&get_endpoint(&host), &token, None).await {
+                                            match create_join_room(&get_endpoint(&host, &token), &token, None).await {
                                                 Ok((client, Some(room_id))) => tx.send(ChannelEvents::RoomCreated((client, room_id))).await.unwrap(),
                                                 Ok((_, None)) => panic!("create_join_room returned no room_id after creating a room"),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
@@ -172,7 +172,7 @@ impl App {
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
                                     if let (Some(host), Some(token)) = (host.as_ref(), auth_token.as_ref()) {
-                                        match create_join_room(&get_endpoint(host), token, Some(room_id)).await {
+                                        match create_join_room(&get_endpoint(host, &token), token, Some(room_id)).await {
                                             Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                             Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                         }
@@ -255,11 +255,11 @@ impl App {
     }
 }
 
-fn get_endpoint(host: &str) -> String {
+fn get_endpoint(host: &str, token: &str) -> String {
     if cfg!(debug_assertions) {
-        format!("wss://{}:3000/socket.io/?EIO=4&transport=websocket", host)
+        format!("wss://{}:3000/socket.io/?token={}&EIO=4&transport=websocket", host, token)
     } else {
-        format!("wss://{}:8443/socket.io/?EIO=4&transport=websocket", host)
+        format!("wss://{}:8443/socket.io/?token={}&EIO=4&transport=websocket", host, token)
     }
 }
 
