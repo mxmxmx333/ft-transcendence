@@ -389,16 +389,9 @@ async function buildServer() {
 
 async function gracefulShutdown(signal: string, server: FastifyInstance) {  
     try {
-      await Promise.race([
-        server.close(),
-        new Promise((resolve, reject) => setTimeout(() => reject('Timeout'), 5000))
-      ]);
-
-      // await server.close();
+      await server.close();
       console.log('Graceful shutdown completed');
-      setTimeout(() => {
-        process.exit(0); 
-      }, 5000);
+      process.exit(0); 
     } catch (error) {
       console.error('Error during shutdown:', error);
       process.exit(1);
