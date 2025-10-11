@@ -387,6 +387,7 @@ async function buildServer() {
   return server;
 }
 
+// --- Start Server ---
 async function start() {
   const server = await buildServer();
   try {
@@ -396,6 +397,31 @@ async function start() {
     server.log.error(err);
     process.exit(1);
   }
+  
+  // --- Shutdown ---
+  const gracefulShutdown = async (signal: string) => {  
+    try {
+      await server.close();
+      console.log('Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  }
+  
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('UNHANDLED_REJECTION');
+  });
 }
 
 start();

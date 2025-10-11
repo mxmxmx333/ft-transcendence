@@ -87,6 +87,7 @@ class AIServerClass {
 
     return true;
   }
+
   public getActiveInstances(): string[] {
     return Array.from(this.aiInstances.keys());
   }
@@ -183,6 +184,7 @@ async function buildServer(): Promise<FastifyInstance> {
   return server;
 }
 
+// --- Start Server ---
 async function start() {
   const server = await buildServer();
 
@@ -192,6 +194,35 @@ async function start() {
     caPath,
     signal: 'SIGHUP',
     debounceMs: 300,
+  });
+
+  // --- Shutdown ---
+  const gracefulShutdown = async (signal: string) => {
+    try {
+      const activeInstances = aiServer.getActiveInstances();
+      for (const roomId of activeInstances) {
+        await aiServer.removeAIInstance(roomId);
+      }
+      await server.close();
+      console.log('[AI-Opponent] Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('[AI-Opponent] Error during shutdown:', error);
+      process.exit(1);
+    }
+  }
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+  process.on('uncaughtException', (error) => {
+    console.error('[AI-Opponent] Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[AI-Opponent] Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('UNHANDLED_REJECTION');
   });
 
   server.get('/api/ai', async (request, reply) => {
