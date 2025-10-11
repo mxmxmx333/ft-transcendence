@@ -86,7 +86,7 @@ services:
       - ./services/web-application-firewall/modsecurity.d:/etc/modsecurity.d:ro
       - ./services/web-application-firewall/html:/usr/share/nginx/html:ro
       - web-application-firewall-certs:/etc/nginx/certs:ro
-      - avatar-uploads:/usr/share/nginx/html/imgs/avatars:rw
+      # - avatar-uploads:/usr/share/nginx/html/imgs/avatars:rw
     security_opt:
       - no-new-privileges:true
     networks:
