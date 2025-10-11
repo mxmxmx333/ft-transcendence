@@ -115,6 +115,9 @@ async function buildServer() {
       '/api/friends',
       '/api/game',
       '/socket.io',
+      '/api/account',
+      '/api/auth/2fa/enable',
+      '/api/auth/2fa/disable'
     ];
     const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));
 
@@ -151,7 +154,10 @@ async function buildServer() {
       console.debug('ID:', user.sub);
       console.debug('Nickname:', user.nickname);
       if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
-        throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token (nickname required)');
+      }
+      if (user.totp_required && request.url !== '/api/auth/2fa/login') {
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token (2fa required)');
       }
       console.debug('type of user.sub:', typeof user.sub);
       console.debug('type of user.nickname:', typeof user.nickname);
@@ -374,6 +380,34 @@ async function buildServer() {
     prefix: '/api/my-matches',
     rewritePrefix: '/api/my-matches',
     httpMethods: ['GET'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/account',
+    rewritePrefix: '/api/account',
+    httpMethods: ['GET', 'POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/login',
+    rewritePrefix: '/api/auth/2fa/login',
+    httpMethods: ['POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/enable',
+    rewritePrefix: '/api/auth/2fa/enable',
+    httpMethods: ['POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/disable',
+    rewritePrefix: '/api/auth/2fa/disable',
+    httpMethods: ['POST'],
   });
 
   server.setNotFoundHandler((request, reply) => {
