@@ -84,7 +84,7 @@ services:
     volumes:
       - ./services/web-application-firewall/configs/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./services/web-application-firewall/modsecurity.d:/etc/modsecurity.d:ro
-      - ./services/web-application-firewall/html:/usr/share/nginx/html:ro
+      - ./services/web-application-firewall/html:/usr/share/nginx/html:rw
       - web-application-firewall-certs:/etc/nginx/certs:ro
       # - avatar-uploads:/usr/share/nginx/html/imgs/avatars:rw
     security_opt:
