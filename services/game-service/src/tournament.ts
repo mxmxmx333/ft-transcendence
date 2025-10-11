@@ -69,6 +69,7 @@ function startMatch(room: TournamentRoom) {
       player1: owner.nickname,
       player2: guest.nickname,
     });
+    // fetch to broadcast message in chat
     console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
   } catch (error) {
     console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);

@@ -1,5 +1,5 @@
 {
-  "name": "auth-user-service",
+  "name": "live-chat",
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {

@@ -22,12 +22,8 @@ const chatMsgArea = document.getElementById('chat-messages-area') as HTMLElement
 const chatFooter = document.getElementById('chat-footer') as HTMLDivElement;
 const chatsMenuOptions = document.getElementById('chat-friend-options') as HTMLElement; // Section element
 const friendsMenuOptions = document.getElementById('friends-nav-options') as HTMLElement; // Section element
-const friendsMenuExBlockedOptions = document.getElementById(
-  'friends-blocked-nav-options'
-) as HTMLElement;
-const friendsMenuExRequestsOptions = document.getElementById(
-  'friends-requests-nav-options'
-) as HTMLElement;
+const friendsMenuExBlockedOptions = document.getElementById('friends-blocked-nav-options') as HTMLElement;
+const friendsMenuExRequestsOptions = document.getElementById('friends-requests-nav-options') as HTMLElement;
 const usersMenuOptions = document.getElementById('users-nav-options') as HTMLElement; // Section element
 const chatOptionsBtn = document.getElementById('chat-friend-options-btn') as HTMLButtonElement;
 const tournamentChat = document.getElementById('tournament-chat') as HTMLLIElement;
@@ -53,12 +49,8 @@ const confirmRemoveFriend = document.getElementById('confirm-remove-friend') as 
 const removeFriendNick = document.getElementById('remove-friend-nickname') as HTMLSpanElement;
 const removeFriendYesBtn = document.getElementById('remove-friend-yes-btn') as HTMLButtonElement;
 const removeFriendNoBtn = document.getElementById('remove-friend-no-btn') as HTMLButtonElement;
-const chatsMenuBlockedOptions = document.getElementById(
-  'chat-blocked-friend-options'
-) as HTMLElement;
-const chatsMenuBlockedByOptions = document.getElementById(
-  'chat-blocked-by-friend-options'
-) as HTMLElement;
+const chatsMenuBlockedOptions = document.getElementById('chat-blocked-friend-options') as HTMLElement;
+const chatsMenuBlockedByOptions = document.getElementById('chat-blocked-by-friend-options') as HTMLElement;
 const chatFooterBlocked = document.getElementById('chat-footer-blocked') as HTMLDivElement;
 const sendMsgBtn = document.getElementById('send-msg-btn') as HTMLButtonElement;
 const noChats = document.getElementById('no-chats') as HTMLParagraphElement;
@@ -77,73 +69,73 @@ const acceptGameInviteBtn = document.getElementById('accept-game-invite-btn') as
 const declineGameInviteBtn = document.getElementById('decline-game-invite-btn') as HTMLElement;
 
 export const DOM = {
-  searchBar,
-  noResults,
-  noFriends,
-  noBlocked,
-  noRequests,
-  findUser,
-  searchResults,
-  searchList,
-  chatHistory,
-  friendsList,
-  headerName,
-  headerPic,
-  headerPicArea,
-  profileView,
-  closeProfileViewBtn,
-  profileViewPic,
-  profileViewName,
-  sideBarMenu,
-  searchInfo,
-  chatInput,
-  chatMsgArea,
-  chatFooter,
-  chatsMenuOptions,
-  friendsMenuOptions,
-  friendsMenuExBlockedOptions,
-  friendsMenuExRequestsOptions,
-  usersMenuOptions,
-  chatOptionsBtn,
-  tournamentChat,
-  tournamentMainChatArea,
-  chatMainArea,
-  friendsMenuExtension,
-  blockedList,
-  requestsList,
-  requesterID,
-  chatsNotification,
-  friendsNotification,
-  requestsNotification,
-  liveChatLink,
-  liveChatNotification,
-  addFriendBtn,
-  requestSentInfo,
-  blockedByUserOptions,
-  viewProfileBtn,
-  mainHeaderMenu,
-  acceptRequestBtn,
-  declineRequestBtn,
-  confirmRemoveFriend,
-  removeFriendNick,
-  removeFriendYesBtn,
-  removeFriendNoBtn,
-  chatsMenuBlockedOptions,
-  chatsMenuBlockedByOptions,
-  chatFooterBlocked,
-  sendMsgBtn,
-  noChats,
-  goToBottomIcon,
-  newMsgsCount,
-  goToBottomBtn,
-  chatContainer,
-  reconnectInfo,
-  statusDot,
-  onlineStatus,
-  chatHeader,
-  tournamentHeader,
-  gameInviteBanner,
-  gameInviteFrom,
-  acceptGameInviteBtn,
-  declineGameInviteBtn,
+	searchBar,
+	noResults,
+	noFriends,
+	noBlocked,
+	noRequests,
+	findUser,
+	searchResults,
+	searchList,
+	chatHistory,
+	friendsList,
+	headerName,
+	headerPic,
+	headerPicArea,
+	profileView,
+	closeProfileViewBtn,
+	profileViewPic,
+	profileViewName,
+	sideBarMenu,
+	searchInfo,
+	chatInput,
+	chatMsgArea,
+	chatFooter,
+	chatsMenuOptions,
+	friendsMenuOptions,
+	friendsMenuExBlockedOptions,
+	friendsMenuExRequestsOptions,
+	usersMenuOptions,
+	chatOptionsBtn,
+	tournamentChat,
+	tournamentMainChatArea,
+	chatMainArea,
+	friendsMenuExtension,
+	blockedList,
+	requestsList,
+	requesterID,
+	chatsNotification,
+	friendsNotification,
+	requestsNotification,
+	liveChatLink,
+	liveChatNotification,
+	addFriendBtn,
+	requestSentInfo,
+	blockedByUserOptions,
+	viewProfileBtn,
+	mainHeaderMenu,
+	acceptRequestBtn,
+	declineRequestBtn,
+	confirmRemoveFriend,
+	removeFriendNick,
+	removeFriendYesBtn,
+	removeFriendNoBtn,
+	chatsMenuBlockedOptions,
+	chatsMenuBlockedByOptions,
+	chatFooterBlocked,
+	sendMsgBtn,
+	noChats,
+	goToBottomIcon,
+	newMsgsCount,
+	goToBottomBtn,
+	chatContainer,
+	reconnectInfo,
+	statusDot,
+	onlineStatus,
+	chatHeader,
+	tournamentHeader,
+	gameInviteBanner,
+	gameInviteFrom,
+	acceptGameInviteBtn,
+	declineGameInviteBtn
 };
