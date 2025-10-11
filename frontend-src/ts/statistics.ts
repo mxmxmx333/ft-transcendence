@@ -303,8 +303,6 @@ export function getStatistics() {
   // Initialize manager if not exists
   if (!statisticsManager) {
     statisticsManager = new StatisticsManager();
-    statisticsManager.loadStatistics();
-  } else {
-    console.error('Statistics page element not found');
   }
+  statisticsManager.loadStatistics();
 }
