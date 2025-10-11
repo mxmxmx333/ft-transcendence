@@ -1,5 +1,5 @@
-import { handleSignup, handleLogin, handleSetNickname } from './auth.js';
-import { navigateTo } from './router.js';
+import { handleSignup, handleLogin, handleSetNickname, handle2FaLogin, handleDisable2Fa, handleEnable2Fa, handleUpdateAccount, handleDeleteAccount } from './auth.js';
+import { navigateTo, showAccountPage, showDeleteAccountPage } from './router.js';
 
 // For input security issues I'll use these as I got errors for now it's hashed.
 // const validateEmail = (email: string): boolean => {
@@ -44,6 +44,134 @@ const setupLoginValidation = () => {
     }
   });
 };
+
+const setup2FaLoginValidation = () => {
+  const form = document.getElementById('totp-form') as HTMLFormElement;
+
+  form.addEventListener('submit', async(e) => {
+    e.preventDefault();
+
+    const totp_code = (document.getElementById('totp-field') as HTMLInputElement).value;
+
+    if (!/^\d{6}$/.test(totp_code)) {
+      alert('2FA Code must consist of exactly 6 digits!');
+      return;
+    }
+
+    try {
+      await handle2FaLogin({ totp_code });
+      navigateTo('/profile');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '2Fa validation failed');
+    }
+  });
+}
+
+const setupEnableTotpFormValidation = () => {
+  const form = document.getElementById('enable-totp-form') as HTMLFormElement;
+
+  form.addEventListener('submit', async(e) => {
+    e.preventDefault();
+
+    const totp_code = (document.getElementById('enable-totp-code') as HTMLInputElement).value;
+
+    if (!/^\d{6}$/.test(totp_code)) {
+      alert('2FA Code must consist of exactly 6 digits!');
+      return;
+    }
+
+    try {
+      await handleEnable2Fa({ totp_code });
+      showAccountPage();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Enabling 2Fa failed');
+    }
+  });
+}
+
+const setupDisableTotpFormValidation = () => {
+  const form = document.getElementById('disable-totp-form') as HTMLFormElement;
+
+  form.addEventListener('submit', async(e) => {
+    e.preventDefault();
+
+    const totp_code = (document.getElementById('current-totp') as HTMLInputElement).value;
+
+    if (!/^\d{6}$/.test(totp_code)) {
+      alert('2FA Code must consist of exactly 6 digits!');
+      return;
+    }
+
+    try {
+      await handleDisable2Fa({ totp_code });
+      showAccountPage();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Disabling 2Fa failed');
+    }
+  });
+}
+
+const setupAccountUpdateFormValidation = () => {
+  const form = document.getElementById('account-form') as HTMLFormElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = (document.getElementById('settings-email') as HTMLInputElement).value;
+    const current_password = (document.getElementById('current-password') as HTMLInputElement).value;
+
+    if (!email || !current_password) {
+      return alert('Email and current password cannot be empty');
+    }
+
+    const new_password_field  = (document.getElementById('new-password') as HTMLInputElement);
+
+    const new_password = new_password_field.value ? new_password_field.value : null;
+
+    try {
+      await handleUpdateAccount({email,current_password, new_password});
+      alert('Successfully updated Account info');
+      showAccountPage();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Updating Account failed');
+    }
+  });
+}
+
+const setupAccountDeleteFormValidation = () => {
+  document.getElementById('delete-account-button-local')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('delete-confirm-password')?.classList.remove('hidden');
+    showDeleteAccountPage();
+  });
+
+  document.getElementById('delete-account-button-remote')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('delete-confirm-password')?.classList.add('hidden');
+    showDeleteAccountPage();
+  });
+
+  document.getElementById('delete-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const password_field = document.getElementById('delete-confirm-password') as HTMLInputElement;
+    const password = password_field?.value ? password_field.value : null;
+
+    try {
+      await handleDeleteAccount({password});
+      localStorage.removeItem('authToken');
+      alert('Account successfully deleted');
+      navigateTo('/');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Deleting Account failed');
+    }
+  });
+
+  document.getElementById('back-to-account')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAccountPage();
+  });
+}
 
 const setupSignupValidation = () => {
   const form = document.getElementById('signupForm') as HTMLFormElement;
@@ -130,4 +258,9 @@ export function setupAuthToggle() {
   setupLoginValidation();
   setupSignupValidation();
   setupSetNicknameValidation();
+  setup2FaLoginValidation();
+  setupEnableTotpFormValidation();
+  setupDisableTotpFormValidation();
+  setupAccountUpdateFormValidation();
+  setupAccountDeleteFormValidation();
 }
