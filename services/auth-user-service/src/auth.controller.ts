@@ -739,6 +739,25 @@ export default class AuthController {
       }
 
       const updatedUser = this.authService.getUserById(userId);
+      try {
+      const response = await fetch(`${liveChatUpstream}/auth/info/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: Number(updatedUser!.id),
+          nickname: updatedUser!.nickname,
+          avatar: updatedUser!.avatar,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to inform livechat about user update");
+      }
+      return reply.send({success: true});
+      } catch (error) {
+        this.fastify.log.error(error);
+      }
       return reply.send({
         success: true,
         user: {
