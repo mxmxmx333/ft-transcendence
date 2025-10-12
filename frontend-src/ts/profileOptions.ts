@@ -10,26 +10,29 @@ export class ProfileOptions {
   public init() {
     this.loadAvatars();
     this.loadProfileData();
-    // Friend related functions removed
   }
 
   private initEventListeners() {
-    // Options butonu event listener
-    document.getElementById('options-btn')?.addEventListener('click', () => {
-      navigateTo('/options');
-    });
+  const form = document.getElementById('profile-form');
+  if (!form) return;
 
-    // Back to profile butonu
-    document.getElementById('back-to-profile')?.addEventListener('click', () => {
-      navigateTo('/profile');
-    });
+  form.replaceWith(form.cloneNode(true));
+  const newForm = document.getElementById('profile-form') as HTMLFormElement;
 
-    // Form submit event
-    document.getElementById('profile-form')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.saveProfileChanges();
-    });
-  }
+  newForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    this.saveProfileChanges();
+  });
+
+  document.getElementById('options-btn')?.addEventListener('click', () => {
+    navigateTo('/options');
+  });
+
+  document.getElementById('back-to-profile')?.addEventListener('click', () => {
+    navigateTo('/profile');
+  });
+}
+
 
   private async loadProfileData() {
     try {
@@ -460,46 +463,67 @@ export class ProfileOptions {
       console.error('Avatar update failed:', error);
     }
   }
-
   private async saveProfileChanges() {
-    const nickname = (document.getElementById('options-nickname') as HTMLInputElement).value;
+  const nicknameInput = document.getElementById('options-nickname') as HTMLInputElement;
+  const nickname = nicknameInput.value.trim();
 
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+  const statusInput = document.getElementById('options-status') as HTMLInputElement;
+  const status = statusInput ? statusInput.value.trim() : '';
 
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nickname, status }),
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      console.error('No auth token found.');
+      return;
+    }
+
+    if (!nickname) {
+      alert('Nickname cannot be empty!');
+      nicknameInput.focus();
+      return;
+    }
+
+    if (nickname.length < 3) {
+      alert('Nickname must be at least 3 characters long!');
+      nicknameInput.focus();
+      return;
+    }
+
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ nickname, status }),
+    });
+
+    if (response.ok) {
+      console.log('✅ Profile updated successfully!');
+
+      this.updateProfileDisplay({
+        nickname,
+        status,
+        avatar: this.currentAvatar,
+        email: 'user@example.com',
+        gameStatistics: { games_played: 0, games_won: 0 },
+        friendsCount: 0,
       });
 
-      if (response.ok) {
-        console.log('Profile updated successfully!');
+      document.querySelector('.options-page')?.classList.add('hidden');
+      document.querySelector('.profile-page')?.classList.remove('hidden');
 
-        // ✅ currentAvatar ile profil görselini güncelle
-        this.updateProfileDisplay({
-          nickname: nickname,
-          status: status,
-          avatar: this.currentAvatar, // ✅ EN ÖNEMLİ SATIR
-          email: 'user@example.com', // Mevcut email veya boş bırakın
-          gameStatistics: { games_played: 0, games_won: 0 },
-          friendsCount: 0,
-        });
-
-        // ✅ Profil sayfasına dön
-        document.querySelector('.options-page')?.classList.add('hidden');
-        document.querySelector('.profile-page')?.classList.remove('hidden');
-
-        console.log('✅ Profile page updated with avatar:', this.currentAvatar);
-      }
-    } catch (error) {
-      console.error('Profile update failed:', error);
+      console.log('✅ Profile page updated with avatar:', this.currentAvatar);
+    } else {
+      const error = await response.json();
+      alert('Profile update failed: ' + (error.message || 'Unknown error'));
     }
+  } catch (error) {
+    console.error('❌ Profile update failed:', error);
+    alert('An unexpected error occurred while updating your profile.');
   }
+}
+
 }
 
 // Global erişim için
