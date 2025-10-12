@@ -2,7 +2,7 @@ import { ImprovedReinforcementLearningAI } from './rl_ai';
 import type { Constants, GameStateNN } from './types';
 
 // Performance tracking constants
-const DEFAULT_RL_WEIGHT = 0.5;
+const DEFAULT_RL_WEIGHT = 0.35;
 const MAX_RL_WEIGHT = 0.85;
 const MIN_RL_WEIGHT = 0.1;
 const PERFORMANCE_WINDOW = 50;

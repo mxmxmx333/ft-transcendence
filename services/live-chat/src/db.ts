@@ -6,7 +6,7 @@ import fs from 'fs';
 dotenv.config();
 
 // @max
-const dbPath = process.env.LIVECHAT_DB_DIR || path.join(__dirname, '../database/pong.db');
+const dbPath = process.env.LIVECHAT_DB_DIR || path.join(__dirname, '../database/pongChat.db');
 
 export default fp(
   async (fastify) => {
@@ -21,6 +21,16 @@ export default fp(
       // db.exec(`DROP TABLE unread_counter`);
       // db.exec(`DROP TABLE lc_friendships`);
       // db.exec(`DROP TABLE lc_requests`);
+    
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nickname TEXT UNIQUE,
+          avatar TEXT DEFAULT 'default',
+          created_at TEXT DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
+        )`
+      );
 
       // (STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW'))
       // takes current date and converts it to text, also adding milliseconds

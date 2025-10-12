@@ -9,7 +9,7 @@ use tokio::{
 };
 
 use crate::{
-    auth::{self, LoginErrors},
+    auth::{self, BoolOrString, LoginErrors, TotpErrors},
     ui::{
         game::Game,
         game_lobby::GameLobbyPage,
@@ -17,13 +17,12 @@ use crate::{
         gamemode::{GameModePage, GameModes},
         join_room::JoinRoomPage,
         login::LoginPage,
-        pages::PageResults,
+        pages::PageResults, totp::TotpPage,
     },
     websocket::{
-        SocketIoClient,
         events::{
             errors::EventError, request::CreateRoomRequest, websocketevents::WebSocketEvents,
-        },
+        }, SocketIoClient
     },
 };
 
@@ -64,6 +63,9 @@ pub struct App {
 #[derive(Debug)]
 enum ChannelEvents {
     LoginSuccess((String, String)),
+    TotpRequired((String, String)),
+    TotpSuccess(String),
+    TotpError(TotpErrors),
     LoginError(LoginErrors),
     RoomCreated((SocketIoClient, String)),
     RoomJoined(SocketIoClient),
@@ -108,6 +110,9 @@ impl App {
                             self.current_page = Pages::GameOver(GameOverPage::new(result));
                         },
                         (Ok(WebSocketEvents::GameAborted(_)), _) => self.abort_game().await,
+                        (Ok(WebSocketEvents::GamePauseState(is_paused)), Pages::Game(game)) => {
+                          game.set_paused(is_paused);
+                        },
                         (Ok(_), _) => (),
                         (Err(err), _) => {
                             // TODO: Show some error message (maybe create a separate page)
@@ -128,10 +133,30 @@ impl App {
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
                                     match auth::login(&host, &email, &password).await {
-                                        Ok(response) => tx.send(ChannelEvents::LoginSuccess((host, response.token))).await.unwrap(),
+                                        Ok(response) => {
+                                          if let BoolOrString::Bool(false) = response.action_required {
+                                            tx.send(ChannelEvents::LoginSuccess((host, response.token))).await.unwrap();
+                                          } else {
+                                            tx.send(ChannelEvents::TotpRequired((host, response.token))).await.unwrap();
+                                          }
+                                        },
                                         Err(loginerror) => tx.send(ChannelEvents::LoginError(loginerror)).await.unwrap(),
                                     }
                                 });
+                              },
+                              Some(PageResults::Totp(totp_code)) => {
+                                if let (Some(host), Some(auth_token)) = (&self.host, &self.auth_token) {
+                                  let host = host.clone();
+                                  let auth_token = auth_token.clone();
+                                  let totp_code = totp_code.clone();
+                                  let tx = tx.clone();
+                                  tokio::spawn(async move {
+                                    match auth::login2fa(&host, &auth_token, &totp_code).await {
+                                      Ok(response) => tx.send(ChannelEvents::TotpSuccess(response.token)).await.unwrap(),
+                                      Err(totperror) => tx.send(ChannelEvents::TotpError(totperror)).await.unwrap(),
+                                    }
+                                  });
+                                }
                               },
                               Some(PageResults::GameModeChosen(mode)) => {
                                 match (mode, self.host.as_ref(), self.auth_token.as_ref()) {
@@ -140,7 +165,7 @@ impl App {
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_singleplayer_game(&get_endpoint(&host), &token).await {
+                                            match create_singleplayer_game(&get_endpoint(&host, &token), &token).await {
                                                 Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                             }
@@ -151,7 +176,7 @@ impl App {
                                         let token = token.clone();
                                         let tx = tx.clone();
                                         tokio::spawn(async move {
-                                            match create_join_room(&get_endpoint(&host), &token, None).await {
+                                            match create_join_room(&get_endpoint(&host, &token), &token, None).await {
                                                 Ok((client, Some(room_id))) => tx.send(ChannelEvents::RoomCreated((client, room_id))).await.unwrap(),
                                                 Ok((_, None)) => panic!("create_join_room returned no room_id after creating a room"),
                                                 Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
@@ -172,7 +197,7 @@ impl App {
                                 let tx = tx.clone();
                                 tokio::spawn(async move {
                                     if let (Some(host), Some(token)) = (host.as_ref(), auth_token.as_ref()) {
-                                        match create_join_room(&get_endpoint(host), token, Some(room_id)).await {
+                                        match create_join_room(&get_endpoint(host, &token), token, Some(room_id)).await {
                                             Ok((client, _)) => tx.send(ChannelEvents::RoomJoined(client)).await.unwrap(),
                                             Err(error) => tx.send(ChannelEvents::RoomJoinError(error)).await.unwrap(),
                                         }
@@ -182,6 +207,13 @@ impl App {
                               Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
                                   if let Some(socket) = self.socket.as_mut() {
                                     if socket.paddle_move(paddle_directions).await.is_err() {
+                                        self.abort_game().await;
+                                    }
+                                  }
+                              },
+                              Some(PageResults::GamePaused(is_paused)) => {
+                                  if let Some(socket) = self.socket.as_mut() {
+                                    if socket.pause_game(is_paused).await.is_err() {
                                         self.abort_game().await;
                                     }
                                   }
@@ -198,10 +230,22 @@ impl App {
 
                 Some(msg) = rx.recv() => {
                     match (msg, &mut self.current_page) {
-                        (ChannelEvents::LoginSuccess((host, token)), Pages::Login(_)) => {
+                        (ChannelEvents::LoginSuccess((host, token)), _) => {
                             self.auth_token = Some(token);
                             self.host = Some(host);
                             self.current_page = Pages::GameModeSelector(GameModePage::new());
+                        }
+                        (ChannelEvents::TotpRequired((host, token)), _) => {
+                          self.auth_token = Some(token);
+                          self.host = Some(host);
+                          self.current_page = Pages::TotpPage(TotpPage::new());
+                        }
+                        (ChannelEvents::TotpSuccess(token), _) => {
+                          self.auth_token = Some(token);
+                          self.current_page = Pages::GameModeSelector(GameModePage::new());
+                        }
+                        (ChannelEvents::TotpError(error), Pages::TotpPage(page)) => {
+                          page.totp_error(&error);
                         }
                         (ChannelEvents::LoginError(error), Pages::Login(page)) => {
                             page.login_error(&error);
@@ -255,11 +299,11 @@ impl App {
     }
 }
 
-fn get_endpoint(host: &str) -> String {
+fn get_endpoint(host: &str, token: &str) -> String {
     if cfg!(debug_assertions) {
-        format!("wss://{}:3000/socket.io/?EIO=4&transport=websocket", host)
+        format!("wss://{}:3000/socket.io/?token={}&EIO=4&transport=websocket", host, token)
     } else {
-        format!("wss://{}:8443/socket.io/?EIO=4&transport=websocket", host)
+        format!("wss://{}:8443/socket.io/?token={}&EIO=4&transport=websocket", host, token)
     }
 }
 

@@ -46,6 +46,7 @@ pub enum EventTypes {
         #[serde(rename(serialize = "moveP2"))]
         move_p2: PaddleMoveDirection,
     },
+    GamePause(bool),
     LeaveRoom,
 }
 

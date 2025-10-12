@@ -12,6 +12,7 @@ node_modules/
 
 # === Database ===
 pong.db*
+services/live-chat/database/pongChat.db*
 
 # === Bootstrap Artifacts / Secrets ===
 services/vault/certs/*.key
