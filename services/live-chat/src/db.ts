@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 dotenv.config();
 
-// @max
-const dbPath = process.env.LIVECHAT_DB_DIR || path.join(__dirname, '../database/pongChat.db');
+const dbDir = process.env.LIVECHAT_DB_DIR || path.join(__dirname, '../database/');
+const dbPath = path.join(dbDir, process.env.LIVECHAT_DB_NAME || 'livechat.db');
 
 export default fp(
   async (fastify) => {

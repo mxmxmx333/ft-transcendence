@@ -28,6 +28,7 @@ API_GATEWAY_CERT_DIR="${API_GATEWAY_CERT_DIR:-/certs/api-gateway}"
 AUTH_USER_SERVICE_CERT_DIR="${AUTH_USER_SERVICE_CERT_DIR:-/certs/auth-user-service}"
 GAME_SERVICE_CERT_DIR="${GAME_SERVICE_CERT_DIR:-/certs/game-service}"
 AI_OPPONENT_CERT_DIR="${AI_OPPONENT_CERT_DIR:-/certs/ai-opponent}"
+LIVE_CHAT_CERT_DIR="${LIVE_CHAT_CERT_DIR:-/certs/live-chat}"
 
 # VAULT SERVICE AGENT CERT DIRS
 VAULT_AGENT_API_GATEWAY_CERT_DIR="${VAULT_AGENT_API_GATEWAY_CERT_DIR:-/certs/api-gateway-agent}"
@@ -44,6 +45,9 @@ VAULT_AGENT_AI_OPPONENT_APPROLE_DIR="${VAULT_AGENT_AI_OPPONENT_APPROLE_DIR:-/app
 
 VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR:-/certs/web-application-firewall-agent}"
 VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR="${VAULT_AGENT_WEB_APPLICATION_FIREWALL_APPROLE_DIR:-/approle/web-application-firewall-agent/}"
+
+VAULT_AGENT_LIVE_CHAT_CERT_DIR="${VAULT_AGENT_LIVE_CHAT_CERT_DIR:-/certs/live-chat-agent}"
+VAULT_AGENT_LIVE_CHAT_APPROLE_DIR="${VAULT_AGENT_LIVE_CHAT_APPROLE_DIR:-/approle/live-chat-agent/}"
 
 # VAULT CONFIG SRC AND DEST DIR
 VAULT_CONFIG_SRC_NAME="${VAULT_CONFIG_SRC_NAME:-vault-1.hcl.replace}"
@@ -260,6 +264,15 @@ define_pki_roles() {
     server_flag=true client_flag=false \
     max_ttl="72h"
 
+  echo ">> write pki role live-chat-internal (server)"
+  vault write pki/roles/live-chat-internal \
+    allowed_domains="live-chat" \
+    allow_bare_domains=true allow_subdomains=false \
+    allow_ip_sans=false \
+    key_type="ec" key_bits=256 \
+    server_flag=true client_flag=false \
+    max_ttl="72h"
+
   echo ">> write pki role ai-opponent-internal (server)"
   vault write pki/roles/ai-opponent-internal \
     allowed_domains="ai-opponent" \
@@ -271,7 +284,7 @@ define_pki_roles() {
 
   echo ">> write pki role vault-clients-internal (client mTLS to Vault)"
   vault write pki/roles/vault-clients-internal \
-    allowed_domains="api-gateway,auth-user-service,api-gateway-agent,auth-user-service-agent,game-service-agent,web-application-firewall-agent,ai-opponent-agent,cli-agent" \
+    allowed_domains="api-gateway,auth-user-service,api-gateway-agent,auth-user-service-agent,game-service-agent,web-application-firewall-agent,ai-opponent-agent,live-chat-agent" \
     allow_bare_domains=true allow_subdomains=false allow_ip_sans=false \
     key_type="ec" key_bits=256 \
     server_flag=false client_flag=true \
@@ -318,12 +331,13 @@ issue_vault_certs(){
   issue_cert "game-service-agent"             "vault-clients-internal"  "game-service-agent"                   ""            "$VAULT_AGENT_GAME_SERVICE_CERT_DIR"               "client"
   issue_cert "ai-opponent-agent"              "vault-clients-internal"  "ai-opponent-agent"                    ""            "$VAULT_AGENT_AI_OPPONENT_CERT_DIR"                "client"
   issue_cert "web-application-firewall-agent" "vault-clients-internal"  "web-application-firewall-agent"       ""            "$VAULT_AGENT_WEB_APPLICATION_FIREWALL_CERT_DIR"   "client"
+  issue_cert "live-chat-agent"                "vault-clients-internal"  "live-chat-agent"                      ""            "$VAULT_AGENT_LIVE_CHAT_CERT_DIR"                  "client"
   issue_cert "ft-transcendence.at"            "ft-transcendence"        "ft-transcendence.at,localhost"        ""            "$WEB_APPLICATION_FIREWALL_CERT_DIR"               "server"
   issue_cert "api-gateway"                    "api-gateway-internal"    "api-gateway"                          ""            "$API_GATEWAY_CERT_DIR"                            "server"
   issue_cert "auth-user-service"              "auth-user-service-internal" "auth-user-service"                 ""            "$AUTH_USER_SERVICE_CERT_DIR"                      "server"
   issue_cert "game-service"                   "game-service-internal"   "game-service"                         ""            "$GAME_SERVICE_CERT_DIR"                           "server"
   issue_cert "ai-opponent"                    "ai-opponent-internal"    "ai-opponent"                          ""            "$AI_OPPONENT_CERT_DIR"                            "server"
-
+  issue_cert "live-chat"                      "live-chat-internal"      "live-chat"                            ""            "$LIVE_CHAT_CERT_DIR"                              "server"
 }
 
 # ------- Phase 8: Policies & App-Roles -------
@@ -375,6 +389,7 @@ enable_policies_and_approles() {
   vault policy write game-service-rotator               policies/pki-rotate-game-service.hcl
   vault policy write ai-opponent-rotator                policies/pki-rotate-ai-opponent.hcl
   vault policy write web-application-firewall-rotator   policies/pki-rotate-web-application-firewall.hcl
+  vault policy write live-chat-rotator                  policies/pki-rotate-live-chat.hcl
   vault policy write pki-rotate-node-1                  policies/pki-rotate-node-1.hcl
   vault policy write pki-rotate-node-2                  policies/pki-rotate-node-2.hcl
   vault policy write pki-rotate-node-3                  policies/pki-rotate-node-3.hcl
@@ -400,6 +415,9 @@ enable_policies_and_approles() {
 
   vault write auth/approle/role/web-application-firewall-rotator \
     token_policies="web-application-firewall-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
+
+  vault write auth/approle/role/live-chat-rotator \
+    token_policies="live-chat-rotator" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
 
   vault write auth/approle/role/vault-node-1-rotator \
     token_policies="pki-rotate-node-1" token_ttl="1h" token_max_ttl="4h" secret_id_num_uses=0 secret_id_ttl="168h"
