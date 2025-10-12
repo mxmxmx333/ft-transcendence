@@ -2,7 +2,7 @@ import fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { registerIoHandlers } from './io.handler';
 import dotenv from 'dotenv';
-import { AuthPayload } from './types/types';
+import { AuthPayload, gameRooms, tournamentRooms } from './types/types';
 import fs from 'fs';
 import path from 'path';
 import tlsReloadPlugin from './tls-reload';
@@ -32,13 +32,28 @@ if (!authUserServiceUpstream) {
   throw new Error('AUTH_USER_SERVICE_UPSTREAM environment variable is not set');
 }
 
-function check_for_active_connection(userId: string) {
-  for (const socket of activeConnections.values()) {
-    if (socket.user && socket.user.id === userId) {
-      return true;
+export function checkForExistingRoom(userId: string) {
+  const rooms = gameRooms;
+ 
+  for (const roomId in rooms) {
+    const room = rooms[roomId];
+    if (room.owner?.id === userId || room.guest?.id === userId) {
+      return roomId;
     }
   }
-  return false;
+  const tRooms = tournamentRooms;
+  for (const roomId in tRooms) {
+    const room = tRooms[roomId];
+    if (room.owner?.id === userId || room.guest?.id === userId) {
+      return roomId;
+    }
+    for (const player of room.players) {
+      if (player.id === userId) {
+        return roomId;
+      }
+    }
+  }
+  return null;
 }
 
 const keyPath = path.join(certDir, 'server.key');
@@ -118,10 +133,6 @@ io.use((socket, next) => {
       isService: false,
       isAI: false,
     };
-    if (check_for_active_connection(socket.user.id)) {
-      console.log(`[Auth] User ${socket.user.nickname} already has an active connection`);
-      return next(new Error('Authentication error: Active connection exists'));
-    }
     console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
     next();
   } catch (err) {

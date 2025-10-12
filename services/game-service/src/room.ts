@@ -6,13 +6,12 @@ import {
   TournamentRoom,
   tournamentRooms,
 } from './types/types';
-import { io } from './server';
+import { checkForExistingRoom, io } from './server';
 import { startGame, abortGame } from './game';
 import { Socket } from 'socket.io';
 import { CreateRoomPayload } from './types/types';
 import { aiUpstream } from './server';
 import { startTournament } from './tournament';
-
 // === Room Management ===
 
 function generateUniqueRoomId(): string {
@@ -32,7 +31,15 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
     });
     return;
   }
+
   const socket = player.conn;
+  const hasRoom = checkForExistingRoom(player.id);
+  if (hasRoom) {
+    console.log(`[Auth] User ${socket.user.nickname} already has an active connection`);
+    return socket.emit('create_error', {
+      message: 'You are already in an active Room, and therefore cannot create a new room. Your current RoomId: ' + hasRoom,
+    });
+  }
   console.log(`[Server] Player ${player.nickname} is creating a room`);
   const roomId = generateUniqueRoomId();
   console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
@@ -135,6 +142,13 @@ export function handleCreateTournamentRoom(
     return;
   }
   const socket = player.conn;
+  const hasRoom = checkForExistingRoom(player.id);
+  if (hasRoom) {
+    console.log(`[Auth] User ${socket.user.nickname} already has an active connection`);
+    return socket.emit('create_error', {
+      message: 'You are already in an active Room, and therefore cannot create a new room. Your current RoomId: ' + hasRoom,
+    });
+  }
   console.log(`[Server] Player ${player.nickname} is creating a TournamentRoom`);
   const roomId = 'T' + generateUniqueRoomId();
   console.log(`[Server] Player ${player.nickname} creating room ${roomId}...`);
@@ -192,7 +206,14 @@ export function joinTournamentRoom(player: Player, roomId: string) {
     });
     return;
   }
-
+  const socker = player.conn;
+  const hasRoom = checkForExistingRoom(player.id);
+  if (hasRoom) {
+    console.log(`[Auth] User ${socker.user.nickname} already has an active connection`);
+    return socker.emit('join_error', {
+      message: 'You already are already in an active Room, and therefore cannot join a new room. Your current RoomId: ' + hasRoom,
+    });
+  }
   room.players.push(player);
   console.log(`Player ${player.nickname} joining TournamentRoom ${roomId}`);
 
