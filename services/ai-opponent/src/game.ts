@@ -144,14 +144,7 @@ export class PongGame {
     this.gameRunning = false;
 
     // PROBLEM: onGameEnd wird nicht mit korrektem won-Parameter aufgerufen!
-    const aiWon = message.winner === 'guest'; // AI ist immer guest
-    console.log('[HHHHHHHHHHHHHHHHHHHIER] aiWon =', aiWon);
-    console.log('[HHHHHHHHHHHHHHHHHIER] message.winner = ', message.winner);
-
-    console.log(`[PongGame-${this.gameId}] AI ${aiWon ? 'WON' : 'LOST'} the game`);
-    console.log(
-      `[PongGame-${this.gameId}] Final Score - AI (guest): ${message.finalScore?.guest || 'N/A'}, Human (owner): ${message.finalScore?.owner || 'N/A'}`
-    );
+    const aiWon = message.winner === 'AI';
 
     // Informiere das AI-System über das Spielende mit korrektem Result
     if (this.aiSystem?.onGameEnd) {

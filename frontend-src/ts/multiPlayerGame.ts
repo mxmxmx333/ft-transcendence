@@ -137,6 +137,11 @@ export class PongGame {
 
   // New returning new game page
   private returnToNewGamePage() {
+    if (document.querySelector('.game-page')?.classList.contains('hidden')) {
+      console.log('Game page already hidden, not returning to new game page');
+      return;
+    }
+    // Sayfa geçişi
     // document.querySelector('.game-page')?.classList.add('hidden');
     // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     // document.querySelector('.newgame-page')?.classList.remove('hidden');
@@ -493,7 +498,7 @@ export class PongGame {
   }
 
   private handlePaddleMovement() {
-    console.debug('Handling paddle movement');
+    // console.debug('Handling paddle movement');
     if (this.isPaused) {
       return;
     }
@@ -644,7 +649,7 @@ export class PongGame {
   }
 
   private gameLoop = (timestamp: number) => {
-    console.debug(`Game loop running: ${this.gameRunning}`);
+    // console.debug(`Game loop running: ${this.gameRunning}`);
     if (!this.gameRunning) return;
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;
