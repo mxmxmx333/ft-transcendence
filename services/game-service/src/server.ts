@@ -7,6 +7,8 @@ import fs from 'fs';
 import path from 'path';
 import tlsReloadPlugin from './tls-reload';
 import httpsAgent from './https-client-plugin';
+import { activeConnections } from './types/types';
+
 
 dotenv.config();
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
@@ -28,6 +30,15 @@ if (!aiUpstream) {
 export const authUserServiceUpstream = process.env.AUTH_USER_SERVICE_UPSTREAM;
 if (!authUserServiceUpstream) {
   throw new Error('AUTH_USER_SERVICE_UPSTREAM environment variable is not set');
+}
+
+function check_for_active_connection(userId: string) {
+  for (const socket of activeConnections.values()) {
+    if (socket.user && socket.user.id === userId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const keyPath = path.join(certDir, 'server.key');
@@ -107,6 +118,10 @@ io.use((socket, next) => {
       isService: false,
       isAI: false,
     };
+    if (check_for_active_connection(socket.user.id)) {
+      console.log(`[Auth] User ${socket.user.nickname} already has an active connection`);
+      return next(new Error('Authentication error: Active connection exists'));
+    }
     console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
     next();
   } catch (err) {

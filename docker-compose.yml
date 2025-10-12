@@ -45,7 +45,6 @@ services:
 
 
       # Vault Nodes
-      - vault-keys:/vault/keys
       - vault-1-runtime-certs:/vault1/runtime-certs
       - vault-2-runtime-certs:/vault2/runtime-certs
       - vault-3-runtime-certs:/vault3/runtime-certs
@@ -569,6 +568,7 @@ services:
     command: [ "sh", "/scripts/vault-unseal-prod.sh" ]
     volumes:
       - ./services/vault/scripts:/scripts:ro
+      - vault-1-runtime-certs:/vault/certs:ro
       - vault-keys:/vault/keys:ro
     networks: [ api-network ]
     restart: "no"

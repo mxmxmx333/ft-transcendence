@@ -57,3 +57,10 @@ api-gateway-1  | {"level":40,"time":1760030744817,"pid":1,"hostname":"77c028d6c5
 api-gateway-1  | {"level":40,"time":1760030744817,"pid":1,"hostname":"77c028d6c558","retryIntervalMs":500,"retryTimeoutMs":30000,"msg":"[tls-reload] Bundle missing; starting retry loop"}
 api-gateway-1  | {"level":30,"time":1760030744820,"pid":1,"hostname":"77c028d6c558","msg":"[vault] mTLS dispatcher reloaded"}
 api-gateway-1  | {"level":50,"time":1760030775075,"pid":1,"hostname":"77c028d6c558","msg":"[tls-reload] Retry timeout reached; certificate bundle still not found"}
+
+Makefile skripts verbessern (up, down, rebuild services, etc...)
+
+Modsecurits scharf schalten.
+
+Issues checken und mit anderen abstimmen
+
