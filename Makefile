@@ -29,7 +29,7 @@ VAULT_NODES  := vault-1 vault-2 vault-3
 # TARGETS
 ################################################################################
 
-all: dep-check build run
+all: dep-check re
 
 dep-check:
 	@command -v openssl >/dev/null 2>&1 || { echo "❌ openssl missing"; exit 1; }
