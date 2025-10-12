@@ -1,27 +1,23 @@
-use std::{error::Error, fmt::Display, time::Duration};
+use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr, time::Duration};
 
 use futures_util::{FutureExt, StreamExt, future};
+use http::{method, Method, Response, StatusCode};
+use hyper::{body::{Body, Bytes}, server::conn::http1, service::service_fn, Request};
 use ratatui::DefaultTerminal;
 use tokio::{
-    select,
-    sync::mpsc::{self},
-    time,
+    net::TcpListener, select, sync::mpsc::{self, Sender}, time
 };
+use hyper_util::rt::TokioIo;
+use http_body_util::Full;
 
 use crate::{
     auth::{self, BoolOrString, LoginErrors, TotpErrors},
     ui::{
-        game::Game,
-        game_lobby::GameLobbyPage,
-        game_over::GameOverPage,
-        gamemode::{GameModePage, GameModes},
-        join_room::JoinRoomPage,
-        login::LoginPage,
-        pages::PageResults, totp::TotpPage,
+        game::Game, game_lobby::GameLobbyPage, game_over::GameOverPage, gamemode::{GameModePage, GameModes}, host_selector::HostSelectorPage, join_room::JoinRoomPage, login::LoginPage, nickname_page::NicknamePage, pages::{LoginType, PageResults}, totp::TotpPage
     },
     websocket::{
         events::{
-            errors::EventError, request::CreateRoomRequest, websocketevents::WebSocketEvents,
+            errors::EventError, request::CreateRoomRequest, websocketevents::SocketEvents,
         }, SocketIoClient
     },
 };
@@ -52,24 +48,85 @@ impl Display for FatalErrors {
 }
 
 #[derive(Debug)]
+enum WsOrWeb {
+  Websocket(SocketIoClient),
+  Webserver(TcpListener),
+}
+
+#[derive(Debug)]
 pub struct App {
     host: Option<String>,
     auth_token: Option<String>,
     current_page: Pages,
-    socket: Option<SocketIoClient>,
+    socket: Option<WsOrWeb>,
     kitty_protocol_support: bool,
 }
 
 #[derive(Debug)]
 enum ChannelEvents {
     LoginSuccess((String, String)),
+    LoginError(LoginErrors),
+    NicknameError(LoginErrors),
     TotpRequired((String, String)),
     TotpSuccess(String),
     TotpError(TotpErrors),
-    LoginError(LoginErrors),
+    RemoteRedirect(String),
+    RemoteRedirectCallback((String, bool)),
+    RemoteRedirectError(LoginErrors),
     RoomCreated((SocketIoClient, String)),
     RoomJoined(SocketIoClient),
     RoomJoinError(EventError),
+}
+
+async fn wait_for_webserver_events(server: &mut TcpListener, tx: &Sender<ChannelEvents>) -> Result<SocketEvents, EventError> {
+    let (stream, _) = match server.accept().await {
+      Ok(conn) => conn,
+      Err(_) => return Err(EventError::ConnectionError),
+    };
+
+    let service = service_fn(move |req: Request<hyper::body::Incoming>| {
+      let tx = tx.clone();
+      async move {
+        let query = req.uri().query().unwrap_or("");
+        let params: HashMap<_, _> = url::form_urlencoded::parse(query.as_bytes())
+                  .into_owned()
+                  .collect();
+
+        let token = params.get("token");
+        let nickname_required = params.get("nickname_required");
+
+        match (token, nickname_required) {
+          (Some(token), Some(nickname_required)) => {
+            let nickname_required = match nickname_required.as_str() {
+              "true" => true,
+              "false" => false,
+              _ => {
+                let mut response = Response::new(Full::new(Bytes::from("Bad Request")));
+                *response.status_mut() = StatusCode::BAD_REQUEST;
+                tx.send(ChannelEvents::RemoteRedirectError(LoginErrors::InvalidResponse)).await.unwrap();
+                return Ok::<_, hyper::Error>(response);
+              }
+            };
+            tx.send(ChannelEvents::RemoteRedirectCallback((token.clone(), nickname_required))).await.unwrap();
+            Ok::<_, hyper::Error>(Response::new(Full::new(Bytes::from("LGTM"))))
+          },
+          (_, _) => {
+            let mut response = Response::new(Full::new(Bytes::from("Bad Request")));
+            *response.status_mut() = StatusCode::BAD_REQUEST;
+            tx.send(ChannelEvents::RemoteRedirectError(LoginErrors::InvalidResponse)).await.unwrap();
+            Ok::<_, hyper::Error>(response)
+          },
+        }
+      }
+    });
+
+    let io = TokioIo::new(stream);
+
+    if let Err(err) = http1::Builder::new().serve_connection(io, service).await {
+      eprintln!("Error serving connection: {}", err);
+    }
+
+    Err(EventError::ConnectionError)
 }
 
 impl App {
@@ -77,18 +134,20 @@ impl App {
         Self {
             host: None,
             auth_token: None,
-            current_page: Pages::Login(LoginPage::new()),
+            current_page: Pages::HostSelector(HostSelectorPage::new()),
             socket: None,
             kitty_protocol_support,
         }
     }
 
-    async fn wait_for_events(&mut self) -> Result<WebSocketEvents, EventError> {
+    async fn wait_for_socket_events(&mut self, tx: &Sender<ChannelEvents>) -> Result<SocketEvents, EventError> {
         match self.socket.as_mut() {
-            Some(socket) => socket.wait_for_events().await,
+            Some(WsOrWeb::Websocket(socket)) => socket.wait_for_events().await,
+            Some(WsOrWeb::Webserver(server)) => wait_for_webserver_events(server, tx).await,
             None => future::pending().await,
         }
     }
+
 
     pub async fn run(mut self, terminal: &mut DefaultTerminal) -> Result<(), FatalErrors> {
         let mut reader = crossterm::event::EventStream::new();
@@ -97,20 +156,20 @@ impl App {
 
         loop {
             select! {
-                event = self.wait_for_events() => {
+                event = self.wait_for_socket_events(&tx) => {
                     match (event, &mut self.current_page) {
-                        (Ok(WebSocketEvents::GameStart(gamestartevent)), _) => {
+                        (Ok(SocketEvents::GameStart(gamestartevent)), _) => {
                             self.current_page = Pages::Game(Game::new(gamestartevent, &terminal.get_frame()));
                         },
-                        (Ok(WebSocketEvents::GameState(gamestateevent)), Pages::Game(game)) => {
+                        (Ok(SocketEvents::GameState(gamestateevent)), Pages::Game(game)) => {
                             game.update(&gamestateevent);
                         },
-                        (Ok(WebSocketEvents::GameOver(gameoverevent)), Pages::Game(game)) => {
+                        (Ok(SocketEvents::GameOver(gameoverevent)), Pages::Game(game)) => {
                             let result = game.game_over(&gameoverevent);
                             self.current_page = Pages::GameOver(GameOverPage::new(result));
                         },
-                        (Ok(WebSocketEvents::GameAborted(_)), _) => self.abort_game().await,
-                        (Ok(WebSocketEvents::GamePauseState(is_paused)), Pages::Game(game)) => {
+                        (Ok(SocketEvents::GameAborted(_)), _) => self.abort_game().await,
+                        (Ok(SocketEvents::GamePauseState(is_paused)), Pages::Game(game)) => {
                           game.set_paused(is_paused);
                         },
                         (Ok(_), _) => (),
@@ -126,8 +185,57 @@ impl App {
                     match event {
                       crossterm::event::Event::Key(key) => {
                           match self.current_page.key_event(&event, key.kind) {
-                              Some(PageResults::Login((host, email, password))) => {
-                                let host = host.clone();
+                              Some(PageResults::HostSelected((host, login_type))) => {
+                                self.host = Some(host.clone());
+                                match login_type {
+                                  LoginType::LocalLogin => {
+                                    self.current_page = Pages::Login(LoginPage::new());
+                                  },
+                                  LoginType::RemoteLogin => {
+                                    let addr: SocketAddr = ([127, 0, 0, 1], 0).into();
+                                    let webserver = TcpListener::bind(addr).await;
+                                    match webserver {
+                                      Ok(webserver) => {
+                                        let addr = webserver.local_addr();
+                                        match addr {
+                                          Ok(addr) => {
+                                            let port = addr.port();
+                                            let tx = tx.clone();
+                                            self.socket = Some(WsOrWeb::Webserver(webserver));
+                                            tokio::spawn(async move {
+                                              match auth::remotelogin(&host, port).await {
+                                                Ok(response) => tx.send(ChannelEvents::RemoteRedirect(response.url)).await.unwrap(),
+                                                Err(err) => tx.send(ChannelEvents::RemoteRedirectError(err)).await.unwrap(),
+                                              }
+                                            });
+                                          },
+                                          Err(_) => tx.send(ChannelEvents::LoginError(LoginErrors::Unknown("Unable to fetch Port from local webserver".to_string()))).await.unwrap(),
+                                        }
+                                      }
+                                      Err(_) => tx.send(ChannelEvents::LoginError(LoginErrors::Unknown("Unable to bind webserver".to_string()))).await.unwrap(),
+                                    }
+                                  },
+                                }
+                              },
+                              Some(PageResults::NicknameSelected(nickname)) => {
+                                let token = self.auth_token.clone().unwrap();
+                                let host = self.host.clone().unwrap();
+                                let tx = tx.clone();
+                                tokio::spawn(async move {
+                                  match auth::set_nickname(&host, &token, &nickname).await {
+                                    Ok(response) => {
+                                      match (response.success, response.token, response.error) {
+                                        (true, Some(token), _) => tx.send(ChannelEvents::LoginSuccess((host, token))).await.unwrap(),
+                                        (false, _, Some(error)) => tx.send(ChannelEvents::NicknameError(LoginErrors::Unknown(error))).await.unwrap(),
+                                        (_, _, _) => tx.send(ChannelEvents::NicknameError(LoginErrors::Unknown("someone changed backend code ig".to_string()))).await.unwrap(),
+                                      }
+                                    },
+                                    Err(loginerror) => tx.send(ChannelEvents::NicknameError(loginerror)).await.unwrap(),
+                                  }
+                                });
+                              },
+                              Some(PageResults::Login((email, password))) => {
+                                let host = self.host.clone().unwrap();
                                 let email = email.clone();
                                 let password = password.clone();
                                 let tx = tx.clone();
@@ -205,14 +313,14 @@ impl App {
                                 });
                               },
                               Some(PageResults::UpdatePaddleMovement(paddle_directions)) => {
-                                  if let Some(socket) = self.socket.as_mut() {
+                                  if let Some(WsOrWeb::Websocket(socket)) = self.socket.as_mut() {
                                     if socket.paddle_move(paddle_directions).await.is_err() {
                                         self.abort_game().await;
                                     }
                                   }
                               },
                               Some(PageResults::GamePaused(is_paused)) => {
-                                  if let Some(socket) = self.socket.as_mut() {
+                                  if let Some(WsOrWeb::Websocket(socket)) = self.socket.as_mut() {
                                     if socket.pause_game(is_paused).await.is_err() {
                                         self.abort_game().await;
                                     }
@@ -250,12 +358,34 @@ impl App {
                         (ChannelEvents::LoginError(error), Pages::Login(page)) => {
                             page.login_error(&error);
                         },
+                        (ChannelEvents::NicknameError(error), Pages::NicknameSelector(page)) => {
+                          page.nickname_error(&error);
+                        },
+                        (ChannelEvents::RemoteRedirect(url), Pages::HostSelector(page)) => {
+                          if webbrowser::open(url.as_str()).is_err() {
+                            page.host_error(&LoginErrors::Unknown("Unable to open webbrowser".to_string()));
+                            self.socket = None;
+                          }
+                        },
+                        (ChannelEvents::RemoteRedirectCallback((token, nickname_required)), Pages::HostSelector(_)) => {
+                          self.auth_token = Some(token);
+                          self.socket = None;
+                          if nickname_required {
+                            self.current_page = Pages::NicknameSelector(NicknamePage::new());
+                          } else {
+                            self.current_page = Pages::GameModeSelector(GameModePage::new());
+                          }
+                        },
+                        (ChannelEvents::RemoteRedirectError(error), Pages::HostSelector(page)) => {
+                          page.host_error(&error);
+                          self.socket = None;
+                        }
                         (ChannelEvents::RoomCreated((client, room_id)), Pages::GameModeSelector(_)) => {
-                            self.socket = Some(client);
+                            self.socket = Some(WsOrWeb::Websocket(client));
                             self.current_page = Pages::GameLobby(GameLobbyPage::new(room_id));
                         },
                         (ChannelEvents::RoomJoined(client), _) => {
-                            self.socket = Some(client);
+                            self.socket = Some(WsOrWeb::Websocket(client));
                         },
                         (ChannelEvents::RoomJoinError(error), Pages::JoinRoom(page)) => {
                             page.join_error(&error);
@@ -265,7 +395,7 @@ impl App {
                 }
 
                 _ = interval.tick() => {
-                    if let (false, Pages::Game(game), Some(socket)) = (self.kitty_protocol_support, &mut self.current_page, self.socket.as_mut()) {
+                    if let (false, Pages::Game(game), Some(WsOrWeb::Websocket(socket))) = (self.kitty_protocol_support, &mut self.current_page, self.socket.as_mut()) {
                         if game.tick(socket).await.is_err() {
                             self.abort_game().await;
                         }
@@ -291,7 +421,7 @@ impl App {
     }
 
     async fn abort_game(&mut self) {
-        if let Some(socket) = self.socket.as_mut() {
+        if let Some(WsOrWeb::Websocket(socket)) = self.socket.as_mut() {
             socket.close().await.ok();
         }
         self.socket = None;

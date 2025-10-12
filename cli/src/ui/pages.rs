@@ -4,16 +4,13 @@ use ratatui::Frame;
 use crate::websocket::events::request::PaddleMoveDirection;
 
 use super::{
-    game::Game,
-    game_lobby::GameLobbyPage,
-    game_over::GameOverPage,
-    gamemode::{GameModePage, GameModes},
-    join_room::JoinRoomPage,
-    login::LoginPage, totp::TotpPage,
+    game::Game, game_lobby::GameLobbyPage, game_over::GameOverPage, gamemode::{GameModePage, GameModes}, host_selector::HostSelectorPage, join_room::JoinRoomPage, login::LoginPage, nickname_page::NicknamePage, totp::TotpPage
 };
 
 #[derive(Debug, Clone)]
 pub enum Pages {
+    HostSelector(HostSelectorPage),
+    NicknameSelector(NicknamePage),
     Login(LoginPage),
     TotpPage(TotpPage),
     GameModeSelector(GameModePage),
@@ -26,6 +23,8 @@ pub enum Pages {
 impl Pages {
     pub fn render(&mut self, frame: &mut Frame) {
         match self {
+            Self::HostSelector(page) => page.render(frame),
+            Self::NicknameSelector(page) => page.render(frame),
             Self::Login(page) => page.render(frame),
             Self::TotpPage(page) => page.render(frame),
             Self::GameModeSelector(page) => page.render(frame),
@@ -38,6 +37,8 @@ impl Pages {
 
     pub fn key_event(&mut self, event: &Event, kind: KeyEventKind) -> Option<PageResults> {
         match (self, kind) {
+            (Self::HostSelector(page), KeyEventKind::Press) => page.key_event(event),
+            (Self::NicknameSelector(page), KeyEventKind::Press) => page.key_event(event),
             (Self::Login(page), KeyEventKind::Press) => page.key_event(event),
             (Self::TotpPage(page), KeyEventKind::Press) => page.key_event(event),
             (Self::GameModeSelector(page), KeyEventKind::Press) => page.key_event(event),
@@ -51,6 +52,8 @@ impl Pages {
 
     pub fn needs_update(&self) -> bool {
         match self {
+            Self::HostSelector(page) => page.needs_update(),
+            Self::NicknameSelector(page) => page.needs_update(),
             Self::Login(loginpage) => loginpage.needs_update(),
             Self::TotpPage(page) => page.needs_update(),
             Self::GameModeSelector(gamemodepage) => gamemodepage.needs_update(),
@@ -63,8 +66,16 @@ impl Pages {
 }
 
 #[derive(Debug)]
+pub enum LoginType {
+  LocalLogin,
+  RemoteLogin,
+}
+
+#[derive(Debug)]
 pub enum PageResults {
-    Login((String, String, String)),
+    HostSelected((String, LoginType)),
+    NicknameSelected(String),
+    Login((String, String)),
     Totp(String),
     BackToMenu,
     GameModeChosen(GameModes),

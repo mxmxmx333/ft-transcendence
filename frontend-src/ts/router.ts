@@ -544,7 +544,17 @@ async function showOAuthResultPage() {
         const data = await result.json();
 
         console.log(data);
-        if (data.token && data.action_required !== false) {
+        if (data.token && data.cli_redirect) {
+          const nickname_required = data.action_required === 'nickname';
+          const cli_callback_result = await fetch('http://localhost:' + data.cli_redirect + '?token=' + data.token + '&nickname_required=' + nickname_required);
+          if (cli_callback_result.ok) {
+            header = 'Authentication successful';
+            text = 'You can switch back to the CLI now.';
+          } else {
+            text = 'Something when wrong when redirect you back to the CLI.';
+          }
+        }
+        else if (data.token && data.action_required !== false) {
           localStorage.setItem('preAuthToken', data.token);
           const location = data.action_required === 'nickname'
             ? '/choose-nickname'
@@ -556,7 +566,6 @@ async function showOAuthResultPage() {
             return;
           }
         } else if (data.token && data.action_required === false) {
-          // TODO: Check if the user should be redirected back to CLI instead of setting it in the browser
           localStorage.setItem('authToken', data.token);
           navigateTo('/profile');
           return;

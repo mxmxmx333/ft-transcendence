@@ -7,3 +7,5 @@ pub mod login;
 pub mod pages;
 pub mod widgets;
 pub mod totp;
+pub mod host_selector;
+pub mod nickname_page;

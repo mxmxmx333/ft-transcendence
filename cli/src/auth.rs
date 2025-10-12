@@ -8,6 +8,11 @@ struct LoginRequest<'a> {
 }
 
 #[derive(Serialize)]
+struct SetNicknameRequest<'a> {
+    nickname: &'a str,
+}
+
+#[derive(Serialize)]
 struct TotpRequest<'a> {
     totp_code: &'a str,
 }
@@ -28,10 +33,21 @@ pub struct LoginResponse {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct RedirectResponse {
+  pub url: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct NicknameResponse {
+  pub success: bool,
+  pub token: Option<String>,
+  pub error: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct User {
     pub id: usize,
     pub nickname: String,
-    pub email: String,
 }
 
 #[derive(Debug)]
@@ -61,7 +77,7 @@ impl Display for LoginErrors {
             Self::InvalidCredentials => write!(f, "Incorrect email or password"),
             Self::ServerError => write!(f, "Internal Server Error"),
             Self::NicknameMissing => write!(f, "Please set a Nickname on the website first"),
-            Self::Unknown(err) => write!(f, "Unknown Error: {}", err),
+            Self::Unknown(err) => write!(f, "Error: {}", err),
         }
     }
 }
@@ -129,6 +145,76 @@ pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginRespo
       },
       _ => (),
     }
+
+    Ok(response_body)
+}
+
+
+pub async fn remotelogin(host: &str, port: u16) -> Result<RedirectResponse, LoginErrors> {
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
+
+    let endpoint = if cfg!(debug_assertions) {
+        format!("https://{}:3000/api/auth/42", host)
+    } else {
+        format!("https://{}:8443/api/auth/42", host)
+    };
+
+    let response = client
+      .get(endpoint)
+      .query(&[("cli_port", port)])
+      .send()
+      .await
+      .map_err(|_| LoginErrors::ConnectionError)?;
+
+    if response.status().is_server_error() {
+        return Err(LoginErrors::ServerError);
+    } else if response.status().is_client_error() {
+        return Err(LoginErrors::Unknown("Received client error from redirect response".to_string()));
+    }
+
+    let response_body: RedirectResponse = response
+        .json()
+        .await
+        .map_err(|_| LoginErrors::InvalidResponse)?;
+
+    Ok(response_body)
+}
+
+pub async fn set_nickname(host: &str, token: &str, nickname: &str) -> Result<NicknameResponse, LoginErrors> {
+    let body = SetNicknameRequest { nickname };
+
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
+
+    let endpoint = if cfg!(debug_assertions) {
+        format!("https://{}:3000/api/profile/set-nickname", host)
+    } else {
+        format!("https://{}:8443/api/profile/set-nickname", host)
+    };
+
+    let response = client
+      .post(endpoint)
+      .header("Authorization", format!("Bearer {}", token))
+      .json(&body)
+      .send()
+      .await
+      .map_err(|_| LoginErrors::ConnectionError)?;
+
+    if response.status().is_server_error() {
+        return Err(LoginErrors::ServerError);
+    } else if response.status().is_client_error() {
+        return Err(LoginErrors::Unknown("Received client error from nickname response".to_string()));
+    }
+
+    let response_body: NicknameResponse = response
+        .json()
+        .await
+        .map_err(|_| LoginErrors::InvalidResponse)?;
 
     Ok(response_body)
 }
