@@ -141,11 +141,17 @@ export class SocketManager {
     this.socket.on('game_over', (message: ServerToClientEvents['game_over']) => {
       console.log('Game over:', message);
       this.gameInstance?.handleGameOver({ ...message });
+      this.gameInstance?.stop();
+      this.gameInstance = null; // Clear game instance after game over
+      this.leaveRoom();
     });
 
     this.socket.on('game_aborted', (message: { message: string }) => {
       console.log('Game aborted:', message);
       this.gameInstance?.handleRoomTerminated();
+      this.gameInstance?.stop();
+      this.gameInstance = null; // Clear game instance after game over
+      this.leaveRoom();
     });
 
     this.socket.on('game_state', (state: ServerToClientEvents['game_state']) => {
@@ -318,21 +324,6 @@ export class SocketManager {
       this.socket!.emit('create_tournament_room');
       console.log('[Client] create_tournament_room emitted');
     });
-    // return new Promise((resolve, reject) => {
-    //   if (!this.hasActiveConnection()) {
-    //     return reject(new Error('Socket not connected'));
-    //   }
-
-    //   this.pendingResolve = resolve;
-    //   const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
-
-    //   this.socket!.once('room_created', () => clearTimeout(timeout));
-    //   this.socket!.once('create_error', () => clearTimeout(timeout));
-    //   this.socket!.once('room_error', () => clearTimeout(timeout));
-
-    //   this.socket!.emit('create_tournament_room');
-    //   console.log('[Client] create_tournament_room emitted');
-    // });
   }
 
   public async joinTournament(roomId: string): Promise<any> {
@@ -383,20 +374,6 @@ export class SocketManager {
       this.socket!.emit('join_tournament_room', { roomId });
       console.log('[Client] join_tournament emitted for room:', roomId);
     });
-    // return new Promise((resolve, reject) => {
-    //   if (!this.hasActiveConnection()) {
-    //     return reject(new Error('Socket not connected'));
-    //   }
-
-    //   this.pendingResolve = resolve;
-    //   const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
-
-    //   this.socket!.once('joined_tournament_room', () => clearTimeout(timeout));
-    //   this.socket!.once('join_error', () => clearTimeout(timeout));
-
-    //   this.socket!.emit('join_tournament_room', { roomId });
-    //   console.log('[Client] join_tournament emitted for room:', roomId);
-    // });
   }
 
   public async startTournament(tournamentId: string): Promise<void> {
@@ -461,20 +438,6 @@ export class SocketManager {
       this.socket!.emit('create_room', roomConfig);
       console.log('[Client] create_room emitted');
     });
-    //   this.pendingResolve = resolve;
-    //   const timeout = this.setupRoomOperationTimeout(reject, 'Room creation timeout');
-
-    //   this.socket!.once('room_created', () => clearTimeout(timeout));
-    //   this.socket!.once('create_error', () => clearTimeout(timeout));
-
-    //   const roomConfig = {
-    //     isSinglePlayer: this.gameInstance?.isSinglePlayer ?? false,
-    //     isRemote: this.gameInstance?.isRemote ?? false,
-    //   };
-
-    //   this.socket!.emit('create_room', roomConfig);
-    //   console.log('[Client] create_room emitted');
-    // });
   }
 
   public async joinRoom(roomId: string): Promise<string> {
@@ -517,31 +480,7 @@ export class SocketManager {
       this.socket!.emit('join_room', { roomId });
       console.log('[Client] join_room emitted for room:', roomId);
     });
-    // return new Promise((resolve, reject) => {
-    //   if (!this.hasActiveConnection()) {
-    //     return reject(new Error('Socket not connected'));
-    //   }
-
-    //   this.pendingResolve = resolve;
-    //   const timeout = this.setupRoomOperationTimeout(reject, 'Join room timeout');
-
-    //   this.socket!.once('joined_room', () => clearTimeout(timeout));
-    //   this.socket!.once('join_error', () => clearTimeout(timeout));
-
-    //   this.socket!.emit('join_room', { roomId });
-    //   console.log('[Client] join_room emitted for room:', roomId);
-    // });
   }
-
-  // private setupRoomOperationTimeout(
-  //   reject: (error: Error) => void,
-  //   errorMessage: string
-  // ): NodeJS.Timeout {
-  //   return setTimeout(() => {
-  //     this.pendingResolve = null;
-  //     reject(new Error(errorMessage));
-  //   }, this.roomOperationTimeout);
-  // }
 
   public async leaveRoom(): Promise<void> {
     if (this.hasActiveConnection()) {
