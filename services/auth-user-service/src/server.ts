@@ -191,7 +191,7 @@ async function start() {
     return result;
   });
 
-  server.get('/api/auth/42', async (request, reply) => {
+  server.get<{Querystring: {cli_port?: number}}>('/api/auth/42', async (request, reply) => {
     if (!oAuthService.envVariablesConfigured()) {
       return reply.status(500).send({
         error: 'OAuth settings not configured in .env file',

@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import AuthService from './auth.service';
-import OAuthService, { OAuthCallbackRequestSchema, OAuthError, OAuthRequestSchema } from './oauth';
+import OAuthService, { OAuthCallbackRequestSchema, OAuthClientTypes, OAuthError } from './oauth';
 import User from './user';
 import { frontendUrl } from './server';
 import z, { ZodError } from 'zod';
@@ -445,14 +445,10 @@ export default class AuthController {
     }
   }
 
-  async oAuthLogin(request: FastifyRequest, reply: FastifyReply) {
-    const result = await OAuthRequestSchema.safeParseAsync(request.query);
+  async oAuthLogin(request: FastifyRequest<{Querystring: {cli_port?: number}}>, reply: FastifyReply) {
+    const { cli_port } = request.query;
 
-    if (!result.success) {
-      return reply.code(400).send(result.error);
-    }
-
-    const state = this.oAuthService.generateRandomState(result.data.cli);
+    const state = this.oAuthService.generateRandomState(cli_port);
 
     const callbackUrl = frontendUrl + '/oAuthCallback';
 
@@ -467,18 +463,14 @@ export default class AuthController {
   }
 
   async oAuthLoginCallback(request: FastifyRequest, reply: FastifyReply) {
-    const result = await OAuthCallbackRequestSchema.safeParseAsync(request.query);
-
-    if (!result.success) {
-      return reply.code(400).send(result.error);
-    }
-
     try {
-      const { access_token, client_type } = await this.oAuthService.fetchAccessToken(result.data);
+      const result = await OAuthCallbackRequestSchema.parseAsync(request.query);
+      const { access_token, client } = await this.oAuthService.fetchAccessToken(result);
       const profileInfos = await this.oAuthService.fetchProfileInfos(access_token);
 
       const user = this.authService.getUserByExternalId(profileInfos.id);
 
+      const cli_redirect = client.type === OAuthClientTypes.Cli ? client.cli_port : false;
       if (user) {
         this.authService.updateUserStatus(user.id!, 'online');
 
@@ -490,6 +482,7 @@ export default class AuthController {
             success: true,
             token,
             action_required,
+            cli_redirect
           });
         }
 
@@ -497,6 +490,7 @@ export default class AuthController {
           success: true,
           token,
           action_required,
+          cli_redirect,
           user: {
             id: user.id,
             nickname: user.nickname,
@@ -524,9 +518,20 @@ export default class AuthController {
         success: true,
         token,
         action_required: 'nickname',
+        cli_redirect,
+        user: {
+          id: newUser.id,
+          nickname: newUser.nickname,
+          email: newUser.email,
+          avatar: newUser.avatar,
+          status: 'online',
+        },
       });
     } catch (error) {
       this.fastify.log.error(error);
+      if (error instanceof ZodError) {
+        return reply.code(400).send('Invalid request');
+      }
       if (error instanceof OAuthError) {
         return reply.code(error.code).send(error.message);
       }

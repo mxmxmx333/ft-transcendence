@@ -9,7 +9,7 @@ use events::{
     errors::EventError,
     request::{CreateRoomRequest, EventRequest, EventTypes, PaddleMoveDirection},
     response::EventResponse,
-    websocketevents::{CreateRoomEvent, WebSocketEvents},
+    websocketevents::{CreateRoomEvent, SocketEvents},
 };
 use futures_util::{SinkExt, StreamExt};
 use handshake::{EngineIOHandshakeResponse, SocketIOHandshakeRequest, SocketIOHandshakeResponse};
@@ -245,7 +245,7 @@ impl SocketIoClient {
             .map_err(|_| EventError::ConnectionError)
     }
 
-    pub async fn wait_for_events(&mut self) -> Result<WebSocketEvents, EventError> {
+    pub async fn wait_for_events(&mut self) -> Result<SocketEvents, EventError> {
         let msg = self
             .socket
             .next()
@@ -261,7 +261,7 @@ impl SocketIoClient {
                         .await
                         .map_err(|_| EventError::ConnectionError)?;
 
-                    return Ok(WebSocketEvents::Ping);
+                    return Ok(SocketEvents::Ping);
                 }
                 let (_code, json) =
                     Self::split_code_json(&text).ok_or(EventError::InvalidResponse)?;
@@ -270,27 +270,27 @@ impl SocketIoClient {
                     serde_json::from_str(&json).map_err(EventError::SerializingError)?;
 
                 match parsed.get_type() {
-                    "joined_room" => Ok(WebSocketEvents::JoinedRoom(
+                    "joined_room" => Ok(SocketEvents::JoinedRoom(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),
-                    "game_start" => Ok(WebSocketEvents::GameStart(
+                    "game_start" => Ok(SocketEvents::GameStart(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),
-                    "game_state" => Ok(WebSocketEvents::GameState(
+                    "game_state" => Ok(SocketEvents::GameState(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),
-                    "game_pause_state" => Ok(WebSocketEvents::GamePauseState(
+                    "game_pause_state" => Ok(SocketEvents::GamePauseState(
                       serde_json::from_value(parsed.get_value().clone())
                         .map_err(EventError::SerializingError)?,
                     )),
-                    "game_aborted" => Ok(WebSocketEvents::GameAborted(
+                    "game_aborted" => Ok(SocketEvents::GameAborted(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),
-                    "game_over" => Ok(WebSocketEvents::GameOver(
+                    "game_over" => Ok(SocketEvents::GameOver(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),

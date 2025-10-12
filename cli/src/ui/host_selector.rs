@@ -9,18 +9,17 @@ use tui_input::{Input, backend::crossterm::EventHandler};
 
 use crate::auth::LoginErrors;
 
-use super::pages::PageResults;
+use super::pages::{LoginType, PageResults};
 
 #[derive(Debug, PartialEq, Clone)]
 enum Field {
-    Email,
-    Password,
+    LocalLogin,
+    RemoteLogin,
 }
 
 #[derive(Debug, Clone)]
-pub struct LoginPage {
-    email: Input,
-    password: Input,
+pub struct HostSelectorPage {
+    host: Input,
     selected_field: Field,
     needs_update: bool,
     error_message: Option<String>,
@@ -32,12 +31,17 @@ pub enum LoginResult {
     Abort,
 }
 
-impl LoginPage {
+impl HostSelectorPage {
     pub fn new() -> Self {
+        let default_host = if cfg!(debug_assertions) {
+            "localhost"
+        } else {
+            "ft-transcendence.at"
+        };
+
         Self {
-            email: Input::default(),
-            password: Input::default(),
-            selected_field: Field::Email,
+            host: Input::default().with_value(default_host.to_string()),
+            selected_field: Field::LocalLogin,
             needs_update: true,
             error_message: None,
         }
@@ -50,14 +54,10 @@ impl LoginPage {
         field: &Input,
         title: &str,
         focused: bool,
-        password: bool,
     ) {
         let style: Style = Color::Yellow.into();
 
-        let text = match password {
-            true => (0..field.value().len()).map(|_| '*').collect(),
-            false => field.value().to_owned(),
-        };
+        let text = field.value().to_owned();
 
         let input = Paragraph::new(text)
             .style(style)
@@ -79,8 +79,9 @@ impl LoginPage {
         ])
         .areas(frame.area());
 
-        let [_, email, password, error] = Layout::vertical([
+        let [_, host, local_login, remote_login, error] = Layout::vertical([
             Constraint::Percentage(30),
+            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
@@ -89,20 +90,36 @@ impl LoginPage {
 
         self.render_input_field(
             frame,
-            email,
-            &self.email,
-            "E-Mail",
-            self.selected_field.eq(&Field::Email),
-            false,
+            host,
+            &self.host,
+            "Hostname",
+            true
+            // self.selected_field.eq(&Field::Host),
         );
-        self.render_input_field(
-            frame,
-            password,
-            &self.password,
-            "Password",
-            self.selected_field.eq(&Field::Password),
-            true,
-        );
+
+        let color = match self.selected_field.eq(&Field::LocalLogin) {
+          true => Color::Rgb(255, 0, 255),
+          false => Color::Gray,
+        };
+        let style: Style = color.into();
+
+        let local = Paragraph::new("Local Login".to_owned())
+          .style(style)
+          .block(Block::bordered());
+
+        frame.render_widget(local, local_login);
+
+        let color = match self.selected_field.eq(&Field::RemoteLogin) {
+          true => Color::Rgb(255, 0, 255),
+          false => Color::Gray,
+        };
+        let style: Style = color.into();
+
+        let remote = Paragraph::new("Remote Login through 42".to_owned())
+          .style(style)
+          .block(Block::bordered());
+
+        frame.render_widget(remote, remote_login);
 
         if let Some(msg) = &self.error_message {
             let style: Style = Color::Red.into();
@@ -115,44 +132,47 @@ impl LoginPage {
     }
 
     pub fn key_event(&mut self, event: &Event) -> Option<PageResults> {
-        let current_widget = match self.selected_field {
-            Field::Email => &mut self.email,
-            Field::Password => &mut self.password,
-        };
-
         if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Esc => return Some(PageResults::Exit),
                 KeyCode::Char(c) => {
-                    if current_widget.value().len() < 32 && c.is_ascii_graphic() {
-                        current_widget.handle_event(event);
-                        self.needs_update = true;
+                    if self.host.value().len() < 32 && c.is_ascii_graphic() {
+                          self.host.handle_event(event);
+                          self.needs_update = true;
                     }
-                }
+                },
                 KeyCode::Backspace => {
-                    current_widget.handle_event(event);
+                    self.host.handle_event(event);
                     self.needs_update = true;
-                }
+                },
                 KeyCode::Tab => self.focus_other_widget(),
+                KeyCode::Up => {
+                  self.selected_field = Field::LocalLogin;
+                  self.needs_update = true;
+                },
+                KeyCode::Down => {
+                  self.selected_field = Field::RemoteLogin;
+                  self.needs_update = true;
+                },
                 KeyCode::Enter => {
-                    if self.selected_field.ne(&Field::Password) {
-                        self.focus_other_widget();
-                    } else {
-                        return Some(PageResults::Login((
-                            self.email.value().to_owned(),
-                            self.password.value().to_owned(),
-                        )));
+                    if self.host.value().is_empty() {
+                      self.error_message = Some("Host can't be empty".to_string());
+                      self.needs_update = true;
+                      return None;
                     }
-                }
+
+                    match self.selected_field {
+                        Field::LocalLogin => return Some(PageResults::HostSelected((self.host.value().to_owned(), LoginType::LocalLogin))),
+                        Field::RemoteLogin => return Some(PageResults::HostSelected((self.host.value().to_owned(), LoginType::RemoteLogin))),
+                    }
+                },
                 _ => (),
             }
         }
         None
     }
 
-    pub fn login_error(&mut self, error: &LoginErrors) {
-        self.password.reset();
-        self.selected_field = Field::Password;
+    pub fn host_error(&mut self, error: &LoginErrors) {
         self.needs_update = true;
         self.error_message = Some(error.to_string());
     }
@@ -160,8 +180,8 @@ impl LoginPage {
     fn focus_other_widget(&mut self) {
         self.needs_update = true;
         self.selected_field = match self.selected_field {
-            Field::Email => Field::Password,
-            Field::Password => Field::Email,
+            Field::LocalLogin=> Field::RemoteLogin,
+            Field::RemoteLogin => Field::LocalLogin,
         }
     }
 
