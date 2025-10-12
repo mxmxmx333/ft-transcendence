@@ -22,8 +22,8 @@ fi')
 DOMAIN       ?= ft-transcendence.at
 HOSTS_FILE   ?= /etc/hosts
 HOSTS_LINE   := $(LAN_IP) $(DOMAIN)
-SERVICES	 := api-gateway auth-user-service game-service web-application-firewall ai-opponent
-SERV_AGENTS  := api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent
+SERVICES	 := api-gateway auth-user-service game-service web-application-firewall ai-opponent live-chat
+SERV_AGENTS  := api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent live-chat-agent
 VAULT_NODES  := vault-1 vault-2 vault-3
 ################################################################################
 # TARGETS
@@ -132,7 +132,8 @@ prod: vault-deps-prod
 	$(COMPOSE) --profile "prod" up -d vault-1
 	$(COMPOSE) --profile "prod" up --exit-code-from setup-volume-ownerships setup-volume-ownerships
 	$(COMPOSE) --profile "prod" up --exit-code-from vault-bootstrap-prod vault-bootstrap-prod
-	npm run build
+	npm run build:frontend
+	$(COMPOSE) up -d $(SERVICES)
 	$(COMPOSE) --profile "prod" up -d $(SERV_AGENTS)
 	$(COMPOSE) --profile "prod" up -d vault-2 vault-2-agent vault-3 vault-3-agent vault-1-agent
 
