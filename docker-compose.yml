@@ -79,6 +79,7 @@ services:
     tmpfs:
       - /var/cache/nginx:rw,noexec,nodev,nosuid,size=256m,uid=100,gid=100
       - /var/log/nginx/:rw,noexec,nodev,nosuid,size=8m,uid=100,gid=100
+      - /var/log/:rw,noexec,nodev,nosuid,size=16m,uid=100,gid=100
       - /var/run:rw,noexec,nodev,nosuid,size=8m,uid=100,gid=100
     depends_on:
       api-gateway:
