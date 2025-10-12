@@ -190,36 +190,113 @@ function updateGameState(room: GameRoom) {
   }
 }
 
+// --- Collision helpers (two-phase resolve: walls then paddles) ---
+
+type PhysConsts = {
+  FIELD_WIDTH: number;
+  FIELD_HEIGHT: number;
+  PADDLE_WIDTH: number;
+  PADDLE_HEIGHT: number;
+  BALL_RADIUS: number;
+  MIN_VY: number;
+  THETA_MAX: number;
+  THETA_MIN: number;
+};
+
+function resolveWalls(room: GameRoom, C: PhysConsts): boolean {
+  const g = room.gameState;
+  let changed = false;
+  if (g.ballY - C.BALL_RADIUS <= 0) {
+    g.ballY = C.BALL_RADIUS;
+    g.ballVY = Math.abs(g.ballVY) || C.MIN_VY;
+    changed = true;
+  } else if (g.ballY + C.BALL_RADIUS >= C.FIELD_HEIGHT) {
+    g.ballY = C.FIELD_HEIGHT - C.BALL_RADIUS;
+    g.ballVY = -(Math.abs(g.ballVY) || C.MIN_VY);
+    changed = true;
+  }
+  return changed;
+}
+
+function resolvePaddles(room: GameRoom, C: PhysConsts): boolean {
+  const g = room.gameState;
+  type Paddle = { x: number; y: number; side: 'left' | 'right' };
+  const paddles: Paddle[] = [
+    { x: 15, y: room.owner!.paddleY, side: 'left' },
+    { x: C.FIELD_WIDTH - C.PADDLE_WIDTH, y: room.guest!.paddleY, side: 'right' },
+  ];
+
+  for (const p of paddles) {
+    const withinY = g.ballY >= p.y && g.ballY <= p.y + C.PADDLE_HEIGHT;
+    let hit = false;
+
+    if (p.side === 'left') {
+      hit =
+        g.ballX - C.BALL_RADIUS <= p.x + C.PADDLE_WIDTH &&
+        g.ballX - C.BALL_RADIUS >= p.x &&
+        withinY;
+    } else {
+      hit =
+        g.ballX + C.BALL_RADIUS >= p.x &&
+        g.ballX + C.BALL_RADIUS <= p.x + C.PADDLE_WIDTH &&
+        withinY;
+    }
+
+    if (!hit) continue;
+
+    // Nudge the ball just outside the paddle to avoid re-collision next frame
+    if (p.side === 'left') {
+      g.ballX = p.x + C.PADDLE_WIDTH + C.BALL_RADIUS;
+    } else {
+      g.ballX = p.x - C.BALL_RADIUS;
+    }
+
+    // Compute bounce angle based on contact point (center -> 0, edges -> ±THETA_MAX)
+    const paddleCenter = p.y + C.PADDLE_HEIGHT / 2;
+    let offset = (g.ballY - paddleCenter) / (C.PADDLE_HEIGHT / 2); // -1..1
+    if (offset < -1) offset = -1; else if (offset > 1) offset = 1;
+
+    let theta = offset * C.THETA_MAX;
+    if (Math.abs(theta) < C.THETA_MIN) {
+      const sign = theta === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(theta);
+      theta = sign * C.THETA_MIN;
+    }
+
+    // Keep total speed roughly constant / slight acceleration
+    const speed = Math.hypot(g.ballVX, g.ballVY) * 1.05;
+    const dirX = p.side === 'left' ? 1 : -1;
+
+    g.ballVX = Math.cos(theta) * speed * dirX;
+    g.ballVY = Math.sin(theta) * speed;
+
+    // Enforce minimal vertical component as an extra guard against "sliding"
+    if (Math.abs(g.ballVY) < C.MIN_VY) {
+      g.ballVY = (g.ballVY >= 0 ? 1 : -1) * C.MIN_VY;
+    }
+
+    return true; // only one paddle can be hit per frame
+  }
+  return false;
+}
+
 function handleCollisions(room: GameRoom) {
-  const { gameState } = room;
-  const ballRadius = 10;
-  const paddleHeight = 100;
-  const paddleWidth = 15;
+  const C: PhysConsts = {
+    FIELD_WIDTH: 800,
+    FIELD_HEIGHT: 600,
+    PADDLE_WIDTH: 15,
+    PADDLE_HEIGHT: 100,
+    BALL_RADIUS: 10,
+    MIN_VY: 1,
+    THETA_MAX: Math.PI / 3,
+    THETA_MIN: Math.PI / 24,
+  };
 
-  if (gameState.ballY - ballRadius <= 0 || gameState.ballY + ballRadius >= 600) {
-    gameState.ballVY *= -1;
-  }
-
-  // Player 1 paddle (left)
-  if (
-    gameState.ballX - ballRadius <= 30 &&
-    gameState.ballX - ballRadius >= 15 &&
-    gameState.ballY >= room.owner!.paddleY &&
-    gameState.ballY <= room.owner!.paddleY + paddleHeight
-  ) {
-    gameState.ballVX = Math.abs(gameState.ballVX) * 1.05;
-    gameState.ballVY += Math.random() * 2 - 1;
-  }
-
-  // Player 2 paddle (right)
-  if (
-    gameState.ballX + ballRadius >= 785 &&
-    gameState.ballX + ballRadius <= 800 &&
-    gameState.ballY >= room.guest!.paddleY &&
-    gameState.ballY <= room.guest!.paddleY + paddleHeight
-  ) {
-    gameState.ballVX = -Math.abs(gameState.ballVX) * 1.05;
-    gameState.ballVY += Math.random() * 2 - 1;
+  // Up to two resolves per frame to handle corner cases (paddle -> wall or wall -> paddle)
+  for (let i = 0; i < 2; i++) {
+    let changed = false;
+    changed = resolveWalls(room, C) || changed;    // clamp & reflect top/bottom
+    changed = resolvePaddles(room, C) || changed;  // side-agnostic paddle resolve
+    if (!changed) break;
   }
 }
 

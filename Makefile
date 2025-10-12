@@ -198,8 +198,8 @@ VOLUMES := $(foreach v,$(VOLUME_SUFFIXES),$(PROJECT_NAME)_$(v))
 destroy-docker-volumes:
 	@echo "⚠️  Stopping stacks and deleting project volumes ($(PROJECT_NAME))…"
 	# Stop stacks (keep going even if not running)
-	@$(COMPOSE) --profile prod down -v --remove-orphans 2>/dev/null || true
-	@$(COMPOSE) --profile dev down -v --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) --profile prod down --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) --profile dev down --remove-orphans 2>/dev/null || true
 	# Remove known volumes for this project
 	@for v in $(VOLUMES); do \
 	  echo " - removing $$v"; \

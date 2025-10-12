@@ -145,7 +145,6 @@ async function start() {
     display_tournament_message(request, reply);
   });
 
-
   // updateOf = "nickname" --> newValue = <new nickname>
   // updateOf = "avatar" --> newValue = <new path>
   // updateOf = "account" --> newValue = "delete"
