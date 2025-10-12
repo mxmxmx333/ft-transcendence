@@ -141,10 +141,6 @@ export class PongGame {
       console.log('Game page already hidden, not returning to new game page');
       return;
     }
-    // Sayfa geçişi
-    // document.querySelector('.game-page')?.classList.add('hidden');
-    // document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
-    // document.querySelector('.newgame-page')?.classList.remove('hidden');
     showPage(newgamePage);
   }
   // till here
@@ -204,33 +200,14 @@ export class PongGame {
     }
   }
   // till here start-pause btns
-  private async setupUI() {
-    try {
-      const response = await fetch('/api/profile', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-        this.myNickname = user.nickname;
-        if (!this.isRemote && !this.isSinglePlayer) this.myNickname = 'Player1';
-        document.getElementById('game-nick')!.textContent = this.myNickname;
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-      document.getElementById('game-nick')!.textContent = 'Player';
-    }
-  }
 
   private updateStatus(message: string) {
     console.log(`[Status] ${message}`);
 
     let statusElement = document.getElementById('game-status');
+    console.log('statusElement:', statusElement);
 
     if (!statusElement) {
-      // ERSTELLE STATUS ELEMENT FALLS NICHT VORHANDEN
       const gameArea = document.querySelector('.game-page');
       if (gameArea) {
         statusElement = document.createElement('div');
@@ -255,12 +232,7 @@ export class PongGame {
         return;
       }
     }
-
     statusElement.textContent = message;
-    // const statusElement = document.getElementById('lobby-status');
-    // if (statusElement) {
-    //   statusElement.textContent = message;
-    // }
   }
 
   public updateFromServer(gameState: ServerToClientEvents['game_state']) {
