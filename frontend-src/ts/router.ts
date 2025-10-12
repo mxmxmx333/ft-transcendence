@@ -1326,6 +1326,20 @@ function showTournamentLobby(): void {
   resetTournamentUI();
 }
 
+function showTournamentRules(): void {
+  const rulesElement = document.getElementById('tournament-rules-explanation');
+  if (rulesElement) {
+    rulesElement.classList.remove('hidden');
+  }
+}
+
+function hideTournamentRules(): void {
+  const rulesElement = document.getElementById('tournament-rules-explanation');
+  if (rulesElement) {
+    rulesElement.classList.add('hidden');
+  }
+}
+
 function resetTournamentUI(): void {
   document.getElementById('tournament-status')!.textContent =
     'Ready to create or join a tournament';
@@ -1333,6 +1347,7 @@ function resetTournamentUI(): void {
   if (tournamentInput) tournamentInput.value = '';
   document.getElementById('tournament-info')?.classList.add('hidden');
   document.getElementById('tournament-owner-controls')?.classList.add('hidden');
+  hideTournamentRules();
 }
 
 async function createTournament(): Promise<void> {
@@ -1347,10 +1362,12 @@ async function createTournament(): Promise<void> {
     showTournamentInfo(roomId, tournamentData);
     document.getElementById('tournament-status')!.textContent =
       `Tournament ${roomId} created! Share this ID with others.`;
+    showTournamentRules();
   } catch (error) {
     console.error('Failed to create tournament:', error);
     document.getElementById('tournament-status')!.textContent =
       'Failed to create tournament. Please try again.';
+    hideTournamentRules();
     try {
       const mgr = SocketManager.getInstance();
       if (typeof (mgr as any).setGameInstance === 'function') {
@@ -1389,6 +1406,7 @@ async function joinTournament(): Promise<void> {
     console.log('Tournament data received:', tournamentData);
 
     showTournamentInfo(tournamentId, tournamentData);
+    showTournamentRules();
     document.getElementById('tournament-status')!.textContent = `Joined tournament ${tournamentId}`;
   } catch (error) {
     console.error('Failed to join tournament:', error);
@@ -1467,6 +1485,8 @@ async function startTournament(): Promise<void> {
       throw new Error('No tournament ID found');
     }
 
+    hideTournamentRules();
+
     await socketManager.startTournament(tournamentId);
   } catch (error) {
     console.error('Failed to start tournament:', error);
@@ -1520,6 +1540,7 @@ async function showTournamentPage(): Promise<void> {
 export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
+  hideTournamentRules();
   showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
