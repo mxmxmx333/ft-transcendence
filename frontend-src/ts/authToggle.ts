@@ -173,6 +173,7 @@ const setupAccountDeleteFormValidation = () => {
   });
 }
 
+// Sadece authToggle.ts'teki setupSignupValidation'ı güncelle:
 const setupSignupValidation = () => {
   const form = document.getElementById('signupForm') as HTMLFormElement;
 
@@ -187,19 +188,22 @@ const setupSignupValidation = () => {
       alert('Nickname should be at least 3 characters!');
       return;
     }
-    // if (!validateEmail(email)) {
-    //   alert('enter a valid email');
-    //   return;
-    // }
-
-    // if (!validatePassword(password)) {
-    //   alert('At least 8 characters!');
-    //   return;
-    // }
 
     try {
       await handleSignup({ nickname, email, password });
-      navigateTo('/profile');
+      
+      // ✅ SUCCESS MESAJI
+      alert('🎉 Signup successful! You can now login with your email and password.');
+      
+      // ✅ FORMU TEMİZLE
+      form.reset();
+      
+      // ✅ OPSİYONEL: Otomatik login formuna geç
+      const switchToLogin = document.getElementById('switchToLogin');
+      if (switchToLogin) {
+        switchToLogin.click();
+      }
+      
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Signup failed');
     }

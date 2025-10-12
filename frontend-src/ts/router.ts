@@ -169,12 +169,6 @@ function setupOptionsPageListeners() {
     e.preventDefault();
     showPage(profilePage);
   });
-
-  // Options form submit
-  document.getElementById('profile-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await saveProfileChanges();
-  });
 }
 
 function showOptionsPage() {

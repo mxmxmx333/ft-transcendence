@@ -21,8 +21,15 @@ function initializeApp() {
   setupMobileMenu();
   // Checking auth status and redirect if needed
   const currentPath = window.location.pathname;
-  const protectedRoutes = ['/profile', '/game', '/tournament'];
-
+const protectedRoutes = [
+  '/profile', 
+  '/game', 
+  '/tournament',
+  '/livechat',
+  '/statistics',
+  '/account',
+  '/options'
+];
   if (currentPath === '/' && localStorage.getItem('authToken')) {
     navigateTo('/profile');
     return;
