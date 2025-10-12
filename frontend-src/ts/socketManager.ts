@@ -5,7 +5,8 @@ import type {
   ClientToServerEvents,
 } from './types/socket-interfaces';
 import { io, Socket } from 'socket.io-client';
-import { handleTournamentMatchStart, handleTournamentEnd, updateTournamentPlayers, navigateTo } from './router';
+import { handleTournamentMatchStart, handleTournamentEnd, updateTournamentPlayers, navigateTo, showPage } from './router';
+import { loginPage } from './router';
 
 export class SocketManager {
   private static instance: SocketManager;
@@ -133,10 +134,12 @@ export class SocketManager {
   
   private handleConnectionFailure(error: any): void {
     console.log('Connection failed:', error);
-    this.socket?.disconnect();
     this.gameInstance?.stop();
-    this.showErrorMessage('Connection failed. Do you have an active game already?');
-    navigateTo('/game');
+    this.gameInstance = null;    
+    this.socket?.disconnect();
+
+    showPage(loginPage);
+    alert('Connection failed.');
   }
 
   private showErrorMessage(message: string): void {
@@ -210,6 +213,7 @@ export class SocketManager {
 
     this.socket.on('create_error', (error: ServerToClientEvents['create_error']) => {
       console.error('Create error:', error.message);
+      alert(`Create error: ${error.message}`);
     });
 
     this.socket.on('room_error', (error: ServerToClientEvents['room_error']) => {

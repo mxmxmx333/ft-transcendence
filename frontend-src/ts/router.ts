@@ -9,7 +9,7 @@ import { getStatistics } from './statistics';
 import { displayLiveChat, initLiveChat } from './LiveChat/liveChat.js';
 import { ChatSocketManager } from './LiveChat/chatSocketManager.js';
 
-const loginPage = document.querySelector('.login-page') as HTMLElement;
+export const loginPage = document.querySelector('.login-page') as HTMLElement;
 export const profilePage = document.querySelector('.profile-page') as HTMLElement;
 export const gamePage = document.querySelector('.game-page') as HTMLElement;
 export const newgamePage = document.querySelector('.newgame-page') as HTMLElement;
@@ -1145,26 +1145,50 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
     showPage(multiplayerLobby);
     setupLobbyUI(singlePlayer, remote);
     try {
-      // await socketManager.ensureConnection();
       document.getElementById('lobby-status')!.textContent = 'Connected to server';
     } catch (error) {
       document.getElementById('lobby-status')!.textContent = 'Connection failed';
     }
   } else {
-    showPage(gamePage);
+    showPage(newgamePage);
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      canvas.classList.add('hidden');
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    }
     setupLobbyUI(singlePlayer, remote);
   }
 }
 
-function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: boolean) {
+async function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remote: boolean) {
   try {
-    const roomId = socketManager.createRoom();
+    await socketManager.createRoom();
     socketManager.onGameStart = () => {
       showPage(gamePage);
       startMultiplayerGame(game);
     };
   } catch (error) {
-    document.getElementById('lobby-status')!.textContent = 'Connection failed';
+    const statusEl = document.getElementById('lobby-status');
+    if (statusEl) statusEl.textContent = 'Connection failed';
+    console.error('createRoom failed (singleplayer/local path):', error);
+    try {
+      const mgr = SocketManager.getInstance();
+      if (typeof (mgr as any).setGameInstance === 'function') {
+        (mgr as any).setGameInstance(null);
+      }
+    } catch {}
+
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      canvas.classList.add('hidden');
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    }
+
+    setTimeout(() => {
+      showPage(newgamePage);
+    }, 1500);
   }
 }
 
@@ -1186,7 +1210,9 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   game.isRemote = remote;
 
   if (singlePlayer || !remote) {
-    startSinglePlayerGame(game, singlePlayer, remote);
+    startSinglePlayerGame(game, singlePlayer, remote).catch((err) => {
+      console.error('startSinglePlayerGame error:', err);
+    });
     return;
   }
 }
@@ -1211,12 +1237,26 @@ async function handleCreateRoom() {
       throw new Error('No room ID received');
     }
   } catch (error) {
-    console.error('Join room failed:', error);
-    statusElement.textContent = 'Failed to join room';
+    console.error('Create room failed:', error);
+    statusElement.textContent = 'Failed to create room';
+
+    try {
+      const mgr = SocketManager.getInstance();
+      if (typeof (mgr as any).setGameInstance === 'function') {
+        (mgr as any).setGameInstance(null);
+      }
+    } catch {}
+
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      canvas.classList.add('hidden');
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    }
 
     setTimeout(() => {
-      showGamePage();
-    }, 2000);
+      showPage(newgamePage);
+    }, 1500);
   }
 }
 
@@ -1245,9 +1285,23 @@ async function handleJoinRoom() {
     console.error('Join room failed:', error);
     statusElement.textContent = 'Failed to join room';
 
+    try {
+      const mgr = SocketManager.getInstance();
+      if (typeof (mgr as any).setGameInstance === 'function') {
+        (mgr as any).setGameInstance(null);
+      }
+    } catch {}
+
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      canvas.classList.add('hidden');
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    }
+
     setTimeout(() => {
-      showGamePage(); // Zurück zur Game-Auswahl
-    }, 2000);
+      showPage(newgamePage);
+    }, 1500);
   }
 }
 
@@ -1291,6 +1345,19 @@ async function createTournament(): Promise<void> {
     console.error('Failed to create tournament:', error);
     document.getElementById('tournament-status')!.textContent =
       'Failed to create tournament. Please try again.';
+    try {
+      const mgr = SocketManager.getInstance();
+      if (typeof (mgr as any).setGameInstance === 'function') {
+        (mgr as any).setGameInstance(null);
+      }
+    } catch {}
+    const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement | null;
+    if (canvas) {
+      canvas.classList.add('hidden');
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    }
+    showPage(tournamentLobby);
   }
 }
 
@@ -1344,7 +1411,6 @@ function showTournamentInfo(tournamentId: string, tournamentData?: any): void {
 export function updateTournamentPlayers(playersData: any): void {
   console.log('Live update - Tournament players changed:', playersData);
 
-  // Verschiedene Server-Datenstrukturen handhaben
   let players = playersData;
   if (playersData && !Array.isArray(playersData)) {
     players = playersData.players || playersData.room?.players || [];
@@ -1376,7 +1442,6 @@ export function updateTournamentPlayers(playersData: any): void {
 
   playerCount.textContent = `${players.length}/5`;
 
-  // Enable start button if enough players and user is owner
   if (startBtn) {
     startBtn.disabled = players.length < 3;
     startBtn.textContent =
@@ -1410,7 +1475,6 @@ async function leaveTournament(): Promise<void> {
   }
 
   try {
-    // Echte Socket-Implementierung
     await socketManager.leaveTournament();
 
     resetTournamentUI();
@@ -1420,7 +1484,6 @@ async function leaveTournament(): Promise<void> {
   }
 }
 
-// Update showTournamentPage function
 async function showTournamentPage(): Promise<void> {
   if (!isAuthenticated()) {
     navigateTo('/');
@@ -1451,7 +1514,6 @@ async function showTournamentPage(): Promise<void> {
 export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
-  //   hideAllPages();
   showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
