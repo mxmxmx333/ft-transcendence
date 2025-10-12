@@ -235,6 +235,7 @@ down:
 
 up:
 	@echo "🚀 Starting all services..."
+	@npm run build:frontend
 	@$(COMPOSE) up -d $(VAULT_NODES)
 	@$(COMPOSE) up -d vault-unseal-prod
 	@$(COMPOSE) up -d $(SERVICES)
@@ -245,6 +246,7 @@ re: clean destroy-service-images prod
 
 re-services: 
 	@echo "🔄 Rebuilding and restarting all services (keeping volumes)..."
+	@npm run build:frontend
 	@$(COMPOSE) up -d --build --no-deps --remove-orphans $(SERVICES)
 	@$(COMPOSE) up -d --no-deps --remove-orphans $(SERV_AGENTS)
 	@echo "✅ Services rebuilt and restarted."

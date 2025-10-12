@@ -505,7 +505,6 @@ export class ProfileOptions {
         nickname,
         status,
         avatar: this.currentAvatar,
-        email: 'user@example.com',
         gameStatistics: { games_played: 0, games_won: 0 },
         friendsCount: 0,
       });
