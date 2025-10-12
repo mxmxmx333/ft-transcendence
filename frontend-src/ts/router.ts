@@ -46,9 +46,15 @@ type Route = {
 };
 
 const routes: Route[] = [
-  {
+    {
     path: '/',
-    view: showAuthPage,
+    view: () => {
+      if (isAuthenticated()) {
+        navigateTo('/profile');
+        return;
+      }
+      showAuthPage();
+    },
   },
   {
     path: '/profile',

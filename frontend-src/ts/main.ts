@@ -23,6 +23,11 @@ function initializeApp() {
   const currentPath = window.location.pathname;
   const protectedRoutes = ['/profile', '/game', '/tournament'];
 
+  if (currentPath === '/' && localStorage.getItem('authToken')) {
+    navigateTo('/profile');
+    return;
+  }
+
   if (protectedRoutes.includes(currentPath) && !localStorage.getItem('authToken')) {
     navigateTo('/');
   }
