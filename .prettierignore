@@ -4,3 +4,5 @@ services/*/node_modules
 services/*/dist
 public/css/output.css
 pong.db
+services/live-chat/**
+frontend-src/ts/LiveChat/**

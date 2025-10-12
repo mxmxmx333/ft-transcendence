@@ -17,6 +17,9 @@ const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 export const authUserServiceUpstream =
   process.env.AUTH_USER_SERVICE_UPSTREAM || 'https://localhost:3002';
 
+export const liveChatUpstream =
+  process.env.LIVE_CHAT_UPSTREAM || 'https://localhost:3004';
+
 const isDevelopment = process.env.NODE_ENV === 'development';
 let certDir = process.env.CERT_DIR || '../certs';
 export const frontendUrl = process.env.FRONTEND_URL;
@@ -137,9 +140,20 @@ async function start() {
     debounceMs: 300,
   });
   await server.register(httpsAgent);
-  await server.post<{ Body: TournamentInfo }>('/tournament/notificiation', (request, reply) => {
-    return display_tournament_message(request, reply);
+
+  server.post<{ Body: {msg: string, user1_id: number, user2_id: number } }>('/tournament/notificiation', async (request, reply) => {
+    display_tournament_message(request, reply);
   });
+
+
+  // updateOf = "nickname" --> newValue = <new nickname>
+  // updateOf = "avatar" --> newValue = <new path>
+  // updateOf = "account" --> newValue = "delete"
+  server.post<{ Body: {userID: number, updateOf: string, newValue: string} }>('/auth/info/update', async (request, reply) => {
+    // display_tournament_message(request, reply);
+  });
+
+
   await server.listen({ port: 3004, host: '0.0.0.0' });
   console.log('Live Chat service listening at http://localhost:3004');
 }

@@ -828,7 +828,7 @@ function showProfilePage() {
   loadProfileData();
 }
 
-function showGamePage() {
+export function showGamePage() {
   if (!isAuthenticated()) {
     navigateTo('/');
     return;
@@ -892,7 +892,8 @@ window.addEventListener('popstate', handleRouting);
 // Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', () => {
   manageNavbar();
-  initLiveChat(chatSocketManager);
+  if (isAuthenticated())
+    initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-link]')) {
@@ -1230,7 +1231,7 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   });
 }
 
-function startMultiplayerGame(game: PongGame) {
+export function startMultiplayerGame(game: PongGame) {
   const existingGame = (window as any).currentGame;
   if (existingGame) {
     existingGame.stop();
