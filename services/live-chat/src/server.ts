@@ -86,10 +86,10 @@ io.use((socket, next) => {
       id: decoded.id,
       nickname: decoded.nickname,
     };
-    console.log(`[LiveChat] User ${socket.user.nickname} connected`);
+    console.log(`User ${socket.user.nickname} connected`);
     next();
   } catch (err) {
-    console.error('[LiveChat] Invalid token', err);
+    console.error('Invalid token', err);
     next(new Error('Missing or invalid token'));
   }
 });
@@ -98,11 +98,38 @@ registerIoHandlers(io);
 
 // --- Error handler ---
 server.setErrorHandler((error, request, reply) => {
-  console.error('[LiveChat] Error:', error);
+  console.error('Error:', error);
   server.log.error(error);
   reply.status(500).send({ error: 'Internal Server Error' });
 });
 
+// --- Shutdown ---
+async function gracefulShutdown(signal: string) {  
+  try {
+    io.close(() => {});
+    await server.close();
+    console.log('Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
+// --- Start server ---
 async function start() {
   await server.register(database);
   await server.register(tlsReloadPlugin, {

@@ -3,6 +3,8 @@ import AuthService from './auth.service';
 import OAuthService, { OAuthCallbackRequestSchema, OAuthError, OAuthRequestSchema } from './oauth';
 import User from './user';
 import { frontendUrl } from './server';
+import z, { ZodError } from 'zod';
+import * as OTPAuth from "otpauth";
 
 interface SignupBody {
   nickname: string;
@@ -34,14 +36,30 @@ interface UpdateProfileBody {
 //   q: string;
 // }
 
+const Login2FaRequestSchema = z.object({
+  totp_code: z.string().length(6),
+});
+
+const UpdateAccountRequestSchema = z.object({
+  email: z.email(),
+  current_password: z.string().min(8),
+  new_password: z.string().min(8).nullable(),
+});
+
+const DeleteAccountRequestSchema = z.object({
+  password: z.string().min(8).nullable(),
+});
+
 export default class AuthController {
   private fastify: any;
+  private totp_secrets_tmp: Map<number, string>;
   constructor(
     private authService: AuthService,
     private oAuthService: OAuthService,
     fastifyInstance: any
   ) {
     this.fastify = fastifyInstance;
+    this.totp_secrets_tmp = new Map();
   }
 
   // ======= EXISTING AUTH METHODS =======
@@ -164,6 +182,269 @@ export default class AuthController {
     }
   }
 
+  async login2Fa(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const result = await Login2FaRequestSchema.safeParseAsync(request.body);
+
+      if (!result.success) {
+        return reply.code(400).send(result.error);
+      }
+
+      const { sub, totp_required } = await request.server.vAuth.verify(token);
+      if (!totp_required) {
+        return reply.status(400).send({error: 'No TOTP needed' });
+      }
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user) {
+        return reply.status(404).send({error: 'User not found'});
+      }
+      if (!user.totp_secret) {
+        return reply.status(403).send({error: 'User doesn\'t have 2FA enabled'});
+      }
+
+      const totp = new OTPAuth.TOTP({secret: user.totp_secret});
+
+      const delta = totp.validate({token: result.data.totp_code, window: 1});
+      if (delta === null) {
+        return reply.status(401).send({error: 'Invalid 2FA Code'});
+      }
+
+      // Update user status to online
+      this.authService.updateUserStatus(user.id!, 'online');
+      const signToken = await this.signUserInfos(user, true);
+
+      return reply.send({
+        success: true,
+        token: signToken,
+        action_required: false,
+        user: {
+          id: user.id,
+          nickname: user.nickname,
+          email: user.email,
+          avatar: user.avatar,
+          status: 'online',
+        },
+      });
+    } catch (error) {
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
+  async enable2Fa(request: FastifyRequest<{Body: {totp_code: string}}>, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { sub } = await request.server.vAuth.verify(token);
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user || !user.id) {
+        return reply.status(404).send({error: 'User not found'});
+      }
+      if (user.totp_secret) {
+        return reply.status(400).send({error: '2FA already enabled'});
+      }
+
+      const secret = this.totp_secrets_tmp.get(user.id);
+      if (!secret) {
+        return reply.status(500).send({error: 'Secret missing'});
+      }
+
+      const totp = new OTPAuth.TOTP({secret});
+      let delta = totp.validate({token: request.body.totp_code, window: 1});
+
+      if (delta === null) {
+        return reply.status(401).send({error: 'Invalid TOTP code'});
+      }
+
+      this.totp_secrets_tmp.delete(user.id);
+      this.authService.enable2Fa(user.id, secret);
+
+      return reply.send({success: true});
+    } catch (error) {
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
+  async disable2Fa(request: FastifyRequest<{Body: {totp_code: string}}>, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { sub } = await request.server.vAuth.verify(token);
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user || !user.id) {
+        return reply.status(404).send({error: 'User not found'});
+      }
+      if (!user.totp_secret) {
+        return reply.status(400).send({error: '2FA already disabled'});
+      }
+
+      const totp = new OTPAuth.TOTP({secret: user.totp_secret});
+      const delta = totp.validate({token: request.body.totp_code, window: 1});
+
+      if (delta === null) {
+        return reply.status(401).send({error: 'Invalid TOTP code'});
+      }
+
+      this.authService.disable2Fa(user.id);
+
+      return reply.send({success: true});
+    } catch (error) {
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
+  async getAccountInfos(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { sub, totp_required } = await request.server.vAuth.verify(token);
+      if (totp_required) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user || !user.id) {
+        return reply.status(404).send({error: 'User not found'});
+      }
+
+      let totp = null;
+      if (user.totp_secret === null) {
+        totp = new OTPAuth.TOTP({issuer: "ft_transcendence", label: user.nickname!});
+        this.totp_secrets_tmp.set(user.id, totp.secret.base32);
+      }
+
+      return reply.send({
+        success: true,
+        auth_method: user.auth_method,
+        email: user.email,
+        totp_enabled: user.totp_secret !== null,
+        enable_totp_uri: totp ? totp.toString() : null,
+      });
+    } catch (error) {
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
+  async updateAccountInfos(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const result = await UpdateAccountRequestSchema.parseAsync(request.body);
+
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { sub, totp_required } = await request.server.vAuth.verify(token);
+      if (totp_required) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user || !user.id) {
+        return reply.status(404).send({error: 'User not found'});
+      }
+
+      let hashedPassword = await this.fastify.bcrypt.hash(result.current_password, 10);
+      if (!await this.fastify.bcrypt.compare(result.current_password, user.password_hash)) {
+        return reply.status(401).send({error: 'Invalid password'});
+      }
+
+      if (result.new_password) {
+        hashedPassword = await this.fastify.bcrypt.hash(result.new_password, 10);
+      }
+
+      if (this.authService.updateAccount(Number(sub), result.email, hashedPassword)) {
+        return reply.send({success: true});
+      }
+      return reply.status(409).send({error: 'E-Mail already in use'});
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return reply.status(400).send({error: 'Invalid request'});
+      }
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
+  async deleteAccount(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const result = await DeleteAccountRequestSchema.parseAsync(request.body);
+
+      const token = request.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const { sub, totp_required } = await request.server.vAuth.verify(token);
+      if (totp_required) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const user = this.authService.getUserById(Number(sub));
+      if (!user || !user.id) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+
+      if (user.auth_method === 'local') {
+        if (!result.password) {
+          return reply.status(401).send({ error: 'Missing password' });
+        }
+        if (!await this.fastify.bcrypt.compare(result.password, user.password_hash)) {
+          return reply.status(401).send({ error: 'Invalid password' });
+        }
+        if (user.totp_secret !== null) {
+          return reply.status(401).send({error: 'You need to disable 2FA first!'});
+        }
+      }
+      this.authService.deleteAccount(Number(sub));
+      return reply.send({success: true});
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return reply.status(400).send({error: 'Invalid request'});
+      }
+      this.fastify.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal server error',
+        details: error,
+      });
+    }
+  }
+
   async oAuthLogin(request: FastifyRequest, reply: FastifyReply) {
     const result = await OAuthRequestSchema.safeParseAsync(request.query);
 
@@ -254,12 +535,12 @@ export default class AuthController {
     }
   }
 
-  async signUserInfos(user: User) {
+  async signUserInfos(user: User, totp_success?: boolean) {
     const token = await this.fastify.vAuth.sign({
       sub: user.id?.toString(),
       nickname: user.nickname,
       nickname_required: user.nickname === null,
-      totp_required: user.totp_secret !== null,
+      totp_required: totp_success ? false : user.totp_secret !== null,
     });
 
     return token;

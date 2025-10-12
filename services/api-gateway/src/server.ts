@@ -1,4 +1,4 @@
-import Fastify, { fastify } from 'fastify';
+import Fastify, { fastify, FastifyInstance } from 'fastify';
 import path from 'path';
 import proxy from '@fastify/http-proxy';
 import dotenv from 'dotenv';
@@ -115,6 +115,9 @@ async function buildServer() {
       '/api/friends',
       '/api/game',
       '/socket.io',
+      '/api/account',
+      '/api/auth/2fa/enable',
+      '/api/auth/2fa/disable'
     ];
     const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));
 
@@ -151,7 +154,10 @@ async function buildServer() {
       console.debug('ID:', user.sub);
       console.debug('Nickname:', user.nickname);
       if (user.nickname_required && request.url !== '/api/profile/set-nickname') {
-        throw new Error('Tried accessing an disallowed endpoint with a preAuth token');
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token (nickname required)');
+      }
+      if (user.totp_required && request.url !== '/api/auth/2fa/login') {
+        throw new Error('Tried accessing an disallowed endpoint with a preAuth token (2fa required)');
       }
       console.debug('type of user.sub:', typeof user.sub);
       console.debug('type of user.nickname:', typeof user.nickname);
@@ -376,6 +382,34 @@ async function buildServer() {
     httpMethods: ['GET'],
   });
 
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/account',
+    rewritePrefix: '/api/account',
+    httpMethods: ['GET', 'POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/login',
+    rewritePrefix: '/api/auth/2fa/login',
+    httpMethods: ['POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/enable',
+    rewritePrefix: '/api/auth/2fa/enable',
+    httpMethods: ['POST'],
+  });
+
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/auth/2fa/disable',
+    rewritePrefix: '/api/auth/2fa/disable',
+    httpMethods: ['POST'],
+  });
+
   server.setNotFoundHandler((request, reply) => {
     if (request.raw.method === 'GET' && !request.raw.url?.startsWith('/api')) {
       reply.sendFile('index.html');
@@ -387,8 +421,32 @@ async function buildServer() {
   return server;
 }
 
+async function gracefulShutdown(signal: string, server: FastifyInstance) {  
+    try {
+      await server.close();
+      console.log('Graceful shutdown completed');
+      process.exit(0); 
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  }
+
+// --- Start Server ---
 async function start() {
   const server = await buildServer();
+  
+  process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION', server);
+  });
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('UNHANDLED_REJECTION', server);
+  });
+
   try {
     await server.listen({ port: 3000, host: '0.0.0.0' });
     server.log.info(`API Gateway running at https://localhost:3000`);

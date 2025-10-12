@@ -6,7 +6,6 @@ interface MatchHistory {
   opponent_score: number;
   result: 'won' | 'lost' | 'draw';
   game_type: string;
-  game_mode?: string;
   played_at: string;
 }
 
@@ -198,7 +197,8 @@ export class StatisticsManager {
   }
 
   private renderMatchCard(match: MatchHistory): string {
-    const opponent = match.opponent_nickname || 'AI';
+    let opponent = match.opponent_nickname || '[Deleted User]';
+    if (match.game_type == 'single') opponent = 'AI';
     const gameDate = new Date(match.played_at);
     const timeAgo = this.getTimeAgo(gameDate);
 
@@ -214,10 +214,10 @@ export class StatisticsManager {
             <div>
               <div class="font-medium text-gray-200">${opponent}</div>
               <div class="text-sm text-gray-400">
-                ${match.game_type} ${match.game_mode ? `• ${match.game_mode}` : ''}
-              </div>
+                ${match.game_type}
             </div>
           </div>
+        </div>
 
           <!-- Score -->
           <div class="text-center">
@@ -303,8 +303,6 @@ export function getStatistics() {
   // Initialize manager if not exists
   if (!statisticsManager) {
     statisticsManager = new StatisticsManager();
-    statisticsManager.loadStatistics();
-  } else {
-    console.error('Statistics page element not found');
   }
+  statisticsManager.loadStatistics();
 }

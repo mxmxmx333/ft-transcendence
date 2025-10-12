@@ -17,6 +17,7 @@
     "better-sqlite3": "^12.0.0",
     "dotenv": "^16.5.0",
     "fastify": "^5.4.0",
+    "otpauth": "^9.4.1",
     "qrcode": "^1.5.4",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",

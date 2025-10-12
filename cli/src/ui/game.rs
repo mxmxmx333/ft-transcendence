@@ -60,6 +60,8 @@ pub struct Game {
     guest_score_widget: Rect,
     last_sizes: (u16, u16),
     needs_update: bool,
+    is_starting: bool,
+    is_paused: bool,
 }
 
 impl Game {
@@ -79,6 +81,8 @@ impl Game {
             guest_score_widget,
             last_sizes: (frame.area().width, frame.area().height),
             needs_update: true,
+            is_starting: true,
+            is_paused: false,
         }
     }
 
@@ -89,7 +93,13 @@ impl Game {
         self.player_b.score = state_event.guest_score;
         self.ball.pos_y = state_event.ball_y;
         self.ball.pos_x = state_event.ball_x;
+        self.is_starting = false;
         self.needs_update = true;
+    }
+
+    pub fn set_paused(&mut self, is_paused: bool) {
+      self.is_paused = is_paused;
+      self.needs_update = true;
     }
 
     pub async fn tick(&mut self, socket: &mut SocketIoClient) -> Result<(), EventError> {
@@ -109,12 +119,14 @@ impl Game {
             .y_bounds([0.0, 600.0])
             .marker(Marker::Braille)
             .paint(|ctx| {
-                ctx.draw(&Ball {
-                    x: self.ball.pos_x - 10.0,
-                    y: 600.0 - self.ball.pos_y,
-                    radius: 10.0,
-                    color: Color::Rgb(255, 255, 0),
-                });
+                if !self.is_starting {
+                  ctx.draw(&Ball {
+                      x: self.ball.pos_x - 10.0,
+                      y: 600.0 - self.ball.pos_y,
+                      radius: 10.0,
+                      color: Color::Rgb(255, 255, 0),
+                  });
+                }
             });
 
         frame.render_widget(canvas, self.game_widget);
@@ -140,6 +152,13 @@ impl Game {
                     height: 100.0,
                     color: Color::Rgb(0, 255, 255),
                 });
+
+                if self.is_starting {
+                  ctx.print(350.0, 300.0, "Game will start soon".yellow());
+                }
+                else if self.is_paused {
+                  ctx.print(350.0, 300.0, "Game is paused".yellow());
+                }
             });
 
         frame.render_widget(canvas, self.game_widget);
@@ -177,6 +196,10 @@ impl Game {
     }
 
     fn update_movement(&mut self, key: KeyCode, kind: KeyEventKind) -> Option<PageResults> {
+        if self.is_starting {
+          return None;
+        }
+
         let direction = match (key, kind) {
             (_, KeyEventKind::Release) => PaddleMoveDirection::None,
             (KeyCode::Up, _) => PaddleMoveDirection::Up,
@@ -202,6 +225,12 @@ impl Game {
             match key.code {
                 KeyCode::Esc => return Some(PageResults::BackToMenu),
                 KeyCode::Up | KeyCode::Down => return self.update_movement(key.code, key.kind),
+                KeyCode::Char('p') => {
+                  if key.kind == KeyEventKind::Repeat || key.kind == KeyEventKind::Release {
+                    return None;
+                  }
+                  return Some(PageResults::GamePaused(!self.is_paused));
+                },
                 _ => (),
             }
         }

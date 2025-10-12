@@ -3,6 +3,7 @@ import { PongGame } from './multiPlayerGame.js';
 import { SocketManager } from './socketManager.js';
 import { ProfileOptions } from './profileOptions.js';
 import { setupMobileMenu } from './mobilMenu';
+import encodeQR from 'qr';
 import { getStatistics } from './statistics';
 
 import { displayLiveChat, initLiveChat } from './LiveChat/liveChat.js';
@@ -21,6 +22,10 @@ const nicknamePage = document.querySelector('.nickname-page') as HTMLElement;
 const tournamentLobby = document.querySelector('.tournament-lobby') as HTMLElement;
 const liveChatPage = document.querySelector('.live-chat') as HTMLElement;
 const statisticsPage = document.querySelector('.statistics-page') as HTMLElement;
+const totpPage = document.querySelector('.totp-page') as HTMLElement;
+const accountSettingsPage = document.querySelector('.account-settings-page') as HTMLElement;
+const deleteAccountPage = document.querySelector('.delete-account-page') as HTMLElement;
+
 let currentPage = loginPage;
 
 export function showPage(pageToShow: HTMLElement) {
@@ -89,6 +94,16 @@ const routes: Route[] = [
     path: '/choose-nickname',
     view: showNicknamePage,
     preAuthRequired: true,
+  },
+  {
+    path: '/2fa',
+    view: show2FaPage,
+    preAuthRequired: true,
+  },
+  {
+    path: '/account',
+    view: showAccountPage,
+    authRequired: true,
   },
 ];
 
@@ -522,34 +537,37 @@ async function showOAuthResultPage() {
   let header = 'Authentication Error';
   let text = 'Error when trying to login through 42.';
 
-  if (code !== null && state !== null) {
-    const result = await fetch('/api/auth/42/callback?' + urlParams.toString());
-    if (result.ok) {
-      const data = await result.json();
+  try {
+    if (code !== null && state !== null) {
+      const result = await fetch('/api/auth/42/callback?' + urlParams.toString());
+      if (result.ok) {
+        const data = await result.json();
 
-      console.log(data);
-      if (data.token && data.action_required !== false) {
-        localStorage.setItem('preAuthToken', data.token);
-        const location =
-          data.action_required === 'nickname'
+        console.log(data);
+        if (data.token && data.action_required !== false) {
+          localStorage.setItem('preAuthToken', data.token);
+          const location = data.action_required === 'nickname'
             ? '/choose-nickname'
             : data.action_required === '2fa'
               ? '/2fa'
               : null;
-        if (location) {
-          window.location.href = location;
+          if (location) {
+            window.location.href = location;
+            return;
+          }
+        } else if (data.token && data.action_required === false) {
+          // TODO: Check if the user should be redirected back to CLI instead of setting it in the browser
+          localStorage.setItem('authToken', data.token);
+          navigateTo('/profile');
+          return;
+        } else if (!data.token && isAuthenticated()) {
+          navigateTo('/profile');
           return;
         }
-      } else if (data.token && data.action_required === false) {
-        // TODO: Check if the user should be redirected back to CLI instead of setting it in the browser
-        localStorage.setItem('authToken', data.token);
-        navigateTo('/profile');
-        return;
-      } else if (!data.token && isAuthenticated()) {
-        navigateTo('/profile');
-        return;
       }
     }
+  } catch (error) {
+    console.log('Network error from 42 callback: ', error);
   }
 
   if (oauth_result_header) {
@@ -566,6 +584,97 @@ async function showOAuthResultPage() {
 function showNicknamePage() {
   manageNavbar();
   showPage(nicknamePage);
+}
+
+function show2FaPage() {
+  manageNavbar();
+
+  const totp_field = document.getElementById('totp-field') as HTMLInputElement;
+
+  if (totp_field) {
+    totp_field.value = '';
+  }
+  showPage(totpPage);
+}
+
+export async function showAccountPage() {
+  manageNavbar();
+
+  const disable_totp_field = document.getElementById('current-totp') as HTMLInputElement;
+  const enable_totp_field = document.getElementById('enable-totp-code') as HTMLInputElement;
+  const current_password_field = (document.getElementById('current-password') as HTMLInputElement);
+  const new_password_field = (document.getElementById('new-password') as HTMLInputElement);
+
+  if (disable_totp_field) {
+    disable_totp_field.value = '';
+  }
+  if (enable_totp_field) {
+    enable_totp_field.value = '';
+  }
+  if (current_password_field) {
+    current_password_field.value = '';
+  }
+  if (new_password_field) {
+    new_password_field.value = '';
+  }
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Missing authentication token');
+    }
+
+    const response = await fetch('/api/account', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.auth_method != 'local' && data.auth_method != 'remote') {
+      throw new Error('Unexpected value for auth method');
+    }
+
+    if (data.auth_method == 'local') {
+      const email = data.email;
+      const totp_enabled = data.totp_enabled;
+      document.querySelector('#account-settings-local-container')?.classList.remove('hidden');
+      document.querySelector('#delete-account-container-oauth')?.classList.add('hidden');
+      if (totp_enabled) {
+        document.querySelector('#disable-2fa-container')?.classList.remove('hidden');
+        document.querySelector('#enable-totp-form')?.classList.add('hidden');
+      } else {
+        document.querySelector('#enable-totp-form')?.classList.remove('hidden');
+        document.querySelector('#disable-2fa-container')?.classList.add('hidden');
+        const qr_field = document.getElementById('qr-code') as HTMLDivElement;
+        const svgElement = encodeQR(data.enable_totp_uri, "svg");
+        qr_field.innerHTML = svgElement;
+      }
+      const mail_field = document.getElementById('settings-email');
+      if (mail_field) {
+        (mail_field as HTMLInputElement).value = email;
+      }
+    } else {
+      document.querySelector('#delete-account-container-oauth')?.classList.remove('hidden');
+      document.querySelector('#account-settings-local-container')?.classList.add('hidden');
+    }
+
+    showPage(accountSettingsPage);
+  } catch (error) {
+    console.log('Account settings request error', error);
+    localStorage.removeItem('authToken');
+    navigateTo('/');
+  }
+}
+
+export async function showDeleteAccountPage() {
+  manageNavbar();
+  showPage(deleteAccountPage);
 }
 
 async function loadUserProfileData(userId: number) {
@@ -937,7 +1046,7 @@ async function loadProfileData() {
     const response = await fetch('/api/profile', {
       headers: {
         Authorization: `Bearer ${token}`,
-        // 'Content-Type': 'application/json',
+        'Content-Type': 'application/json',
       },
     });
 
@@ -990,6 +1099,9 @@ async function handleLogout() {
     document.querySelector('.user-search-page')?.classList.add('hidden');
     document.querySelector('.user-profile-page')?.classList.add('hidden');
     document.querySelector('.tournament-lobby')?.classList.add('hidden');
+    document.querySelector('.totp-page')?.classList.add('hidden');
+    document.querySelector('.account-settings-page')?.classList.add('hidden');
+    document.querySelector('.delete-account-page')?.classList.add('hidden');
 
     manageNavbar();
     navigateTo('/');

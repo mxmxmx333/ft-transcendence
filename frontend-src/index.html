@@ -40,6 +40,7 @@
 			</li>
             <li><a href="/statistics" data-link class="neon-text-blue hover:neon-text-pink">Game Statistics</a></li>
             <li><a href="/profile" data-link class="neon-text-blue hover:neon-text-pink">Profile</a></li>
+            <li><a href="/account" data-link class="neon-text-blue hover:neon-text-pink">Account</a></li>
             <li><a href="/logout" data-link class="neon-text-blue hover:neon-text-pink">Logout</a></li>
         </ul>
 
@@ -154,7 +155,6 @@
       <!-- ✅ DEFAULT AVATAR ile başlat -->
       <img id="profile-avatar-img" src="/imgs/avatars/default.png" 
            class="w-full h-full rounded-full object-cover border-2 border-pink-400"
-           onerror="handleAvatarError(this)"
            alt="Profile Avatar">
     </div>
     
@@ -699,6 +699,128 @@
                   </button>
               </div>
           </div>
+      </section>
+
+      <!-- 2FA Page -->
+      <section class="totp-page hidden w-full max-w-md">
+        <div class="bg-gray-900 bg-opacity-90 rounded-xl neon-border-yellow p-6 sm:p-8 backdrop-blur-sm">
+          <div class="text-center">
+            <h2 class="neon-text-yellow text-2xl mb-2">Welcome to our Pong Game</h2>
+            <p class="mb-6 text-gray-300">Enter your 2FA code to login!</p>
+            <div class="space-y-4">
+              <form id="totp-form" class="space-y-4">
+                <div>
+                  <input id="totp-field" type="text" placeholder="Two-Factor Authentication Code"
+                    class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300"
+                    required>
+                </div>
+                <button id="totp-submit" type="submit"
+                  class="w-full py-3 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
+                  Submit
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Account Settings Page -->
+      <section class="account-settings-page w-full max-w-2xl px-4 hidden">
+        <div class="bg-gray-900 rounded-xl neon-border-blue p-8">
+          <h2 class="neon-text-blue text-2xl mb-6 text-center">Account Settings</h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden" id="account-settings-local-container">
+
+            <!-- Account Credentials/Deletion -->
+            <div class="space-y-4">
+              <h3 class="neon-text-yellow text-lg">Login Credentials</h3>
+
+              <form id="account-form" class="space-y-4">
+                <input type="email" id="settings-email" placeholder="E-Mail Address" required
+                  class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue">
+                <input type="password" id="current-password" placeholder="Current Password" minlength="8" required
+                  class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue">
+                <input type="password" id="new-password" placeholder="New Password (optional)" minlength="8"
+                  class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue">
+
+                <button type="submit" class="w-full py-2 neon-bg-blue text-black font-bold rounded-lg hover:neon-bg-yellow">
+                  Save Changes
+                </button>
+              </form>
+              <h3 class="neon-text-yellow text-lg">Danger Zone</h3>
+              <div class="space-y-3" id="delete-account-container">
+                <button class="w-full py-2 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow"
+                  id="delete-account-button-local">
+                  Delete Account
+                </button>
+              </div>
+            </div>
+
+            <!-- 2Fa Selection -->
+            <div class="space-y-4">
+              <h3 class="neon-text-yellow text-lg">Two-Factor Authentication</h3>
+              <div class="hidden" id="disable-2fa-container">
+                <div class="block mb-2">
+                  <label class="text-gray-300">Current Status: </label>
+                  <label class="neon-text-yellow bold">enabled</label>
+                </div>
+                <form id="disable-totp-form" class="space-y-4">
+                  <input type="text" id="current-totp" placeholder="Current 2FA Code"
+                    class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue" />
+                  <button type="submit" class="w-full py-2 neon-bg-blue text-black font-bold rounded-lg hover:neon-bg-yellow">
+                    Disable 2FA
+                  </button>
+                </form>
+              </div>
+              <form id="enable-totp-form" class="space-y-4 hidden">
+                <div id="qr-code" class="bg-white"></div>
+                <input type="text" id="enable-totp-code" placeholder="Confirmation 2FA code"
+                  class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue" />
+                <button type="submit" class="w-full py-2 neon-bg-blue text-black font-bold rounded-lg hover:neon-bg-yellow">
+                  Enable 2FA
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Account Deletion button for users registered via 42 -->
+          <div class="mt-8 mb-8 hidden" id="delete-account-container-oauth">
+            <h3 class="neon-text-yellow text-lg mb-4">Danger Zone</h3>
+            <div class="space-y-3" id="delete-account-container">
+              <button class="w-full py-2 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow"
+                id="delete-account-button-remote">
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="delete-account-page w-full max-w-md hidden">
+        <div class="bg-gray-900 bg-opacity-90 rounded-xl neon-border-yellow p-6 sm:p-8 backdrop-blur-sm">
+          <div class="text-center">
+            <h2 class="neon-text-yellow text-2xl mb-2">Account Deletion</h2>
+            <p class="mb-6 text-gray-300">Are you sure you want to delete your Account?</p>
+            <div class="space-y-4">
+              <form id="delete-form" class="space-y-4">
+                <div>
+                  <input id="delete-confirm-password" type="password" placeholder="Current Password" minlength="8"
+                    class="w-full px-4 py-3 bg-gray-800 rounded-lg text-white border border-gray-700 focus:neon-border-blue focus:outline-none transition-all duration-300 hidden">
+                </div>
+                <div class="text-center">
+                  <button id="account-delete-submit" type="submit"
+                    class="w-full px-4 py-2 mb-2 neon-bg-pink text-black font-bold rounded-lg hover:neon-bg-yellow transition-all duration-300">
+                    Confirm Deletion
+                  </button>
+                  <button id="back-to-account"
+                    class="w-full px-4 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg hover:neon-bg-pink">
+                    Back to Account Settings
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </section>
 
 <!-- Tournament Lobby -->

@@ -1,5 +1,5 @@
 {
-  "name": "live-chat",
+  "name": "live-chat-service",
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {

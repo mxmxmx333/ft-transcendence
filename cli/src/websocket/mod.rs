@@ -230,6 +230,14 @@ impl SocketIoClient {
         .await
     }
 
+    pub async fn pause_game(&mut self, is_paused: bool) -> Result<(), EventError> {
+        self.send_event_noresponse(&EventRequest::new(
+            "game_pause",
+            &EventTypes::GamePause(is_paused),
+        ))
+        .await
+    }
+
     pub async fn close(&mut self) -> Result<(), EventError> {
         self.socket
             .close(None)
@@ -273,6 +281,10 @@ impl SocketIoClient {
                     "game_state" => Ok(WebSocketEvents::GameState(
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
+                    )),
+                    "game_pause_state" => Ok(WebSocketEvents::GamePauseState(
+                      serde_json::from_value(parsed.get_value().clone())
+                        .map_err(EventError::SerializingError)?,
                     )),
                     "game_aborted" => Ok(WebSocketEvents::GameAborted(
                         serde_json::from_value(parsed.get_value().clone())

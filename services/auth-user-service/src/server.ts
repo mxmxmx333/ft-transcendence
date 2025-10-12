@@ -76,6 +76,20 @@ interface LoginBody {
   password: string;
 }
 
+interface TotpBody {
+  totp_code: string;
+}
+
+interface UpdateAccountBody {
+  email: string;
+  current_password: string;
+  new_password: string | null;
+}
+
+interface DeleteAccountBody {
+  password: string | null;
+}
+
 // I added new features don't delete
 interface UpdateProfileBody {
   nickname?: string;
@@ -92,6 +106,32 @@ interface FriendResponseBody {
   response: 'accepted' | 'declined';
 }
 
+// --- Shutdown ---
+async function gracefulShutdown(signal: string) {  
+  try {
+    await server.close();
+    console.log('Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
+// --- Start Server ---
 async function start() {
   //   const server = await buildServer();
   // Register plugins
@@ -179,6 +219,66 @@ async function start() {
     const result = await authController.oAuthLoginCallback(request, reply);
 
     request.log.info({ result }, 'OAuth Login callback response');
+
+    return result;
+  });
+
+  server.post<{Body: TotpBody}>('/api/auth/2fa/login', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming login 2fa headers');
+
+    const result = await authController.login2Fa(request, reply);
+
+    request.log.info({result}, 'Login 2FA response');
+
+    return result;
+  });
+
+  server.post<{Body: TotpBody}>('/api/auth/2fa/enable', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming enable 2fa headers');
+
+    const result = await authController.enable2Fa(request, reply);
+
+    request.log.info({result}, 'Enable 2FA response');
+
+    return result;
+  });
+
+  server.post<{Body: TotpBody}>('/api/auth/2fa/disable', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming disable 2fa headers');
+
+    const result = await authController.disable2Fa(request, reply);
+
+    request.log.info({result}, 'Disable2FA response');
+
+    return result;
+  });
+
+  server.get('/api/account', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming account headers');
+
+    const result = await authController.getAccountInfos(request, reply);
+
+    request.log.info({result}, '/account response');
+
+    return result;
+  });
+
+  server.post<{Body: UpdateAccountBody}>('/api/account/update', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming account update headers');
+
+    const result = await authController.updateAccountInfos(request, reply);
+
+    request.log.info({result}, 'Account update response');
+
+    return result;
+  });
+
+  server.post<{Body: DeleteAccountBody}>('/api/account/delete', async (request, reply) => {
+    request.log.info({headers: request.headers}, 'Incoming account delete headers');
+
+    const result = await authController.deleteAccount(request, reply);
+
+    request.log.info({result}, 'Account delete response');
 
     return result;
   });

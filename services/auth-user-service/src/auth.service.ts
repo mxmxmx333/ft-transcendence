@@ -137,6 +137,28 @@ export default class AuthService {
     return user;
   }
 
+  enable2Fa(id: number, totp_secret: string) {
+    const stmt = this.db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?');
+    const info = stmt.run(totp_secret, id);
+  }
+
+  disable2Fa(id: number) {
+    const stmt = this.db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?');
+    const info = stmt.run(null, id);
+  }
+
+  updateAccount(id: number, email: string, password_hash: string) {
+    const stmt = this.db.prepare('UPDATE users SET email = ?, password_hash = ? WHERE id = ?');
+
+    const info = stmt.run(email, password_hash, id);
+    return info.changes > 0;
+  }
+
+  deleteAccount(id: number) {
+    let stmt = this.db.prepare('DELETE FROM users WHERE id = ?');
+    stmt.run(id);
+  }
+
   getUserByEmail(email: string): User | null {
     const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
     return stmt.get(email);
