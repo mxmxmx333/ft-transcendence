@@ -19,6 +19,10 @@ export const frontendUrl = process.env.FRONTEND_URL;
 if (!frontendUrl) {
   throw new Error('FRONTEND_URL environment variable is not set');
 }
+export const liveChatUpstream = process.env.LIVE_CHAT_UPSTREAM;
+if (!liveChatUpstream) {
+  throw new Error('LIVE_CHAT_UPSTREAM environment variable is not set');
+}
 const isDevelopment = process.env.NODE_ENV === 'development';
 let certDir = process.env.CERT_DIR || '../certs';
 if (isDevelopment) {
