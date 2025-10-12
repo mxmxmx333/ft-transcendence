@@ -11,6 +11,7 @@ import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
 import { MatchResultBody } from './user';
 import tlsReloadPlugin from './tls-reload';
+import httpsAgent from './https-client-plugin';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
@@ -68,6 +69,8 @@ server.setErrorHandler((error, request, reply) => {
   server.log.error(error);
   reply.status(500).send({ error: 'Internal Server Error' });
 });
+
+server.register(httpsAgent);
 
 interface SignupBody {
   nickname: string;
