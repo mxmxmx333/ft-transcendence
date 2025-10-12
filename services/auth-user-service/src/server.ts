@@ -11,6 +11,7 @@ import OAuthService from './oauth';
 import { SqliteError } from 'better-sqlite3';
 import { MatchResultBody } from './user';
 import tlsReloadPlugin from './tls-reload';
+import httpsAgent from './https-client-plugin';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
@@ -18,6 +19,10 @@ const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '..
 export const frontendUrl = process.env.FRONTEND_URL;
 if (!frontendUrl) {
   throw new Error('FRONTEND_URL environment variable is not set');
+}
+export const liveChatUpstream = process.env.LIVE_CHAT_UPSTREAM;
+if (!liveChatUpstream) {
+  throw new Error('LIVE_CHAT_UPSTREAM environment variable is not set');
 }
 const isDevelopment = process.env.NODE_ENV === 'development';
 let certDir = process.env.CERT_DIR || '../certs';
@@ -64,6 +69,8 @@ server.setErrorHandler((error, request, reply) => {
   server.log.error(error);
   reply.status(500).send({ error: 'Internal Server Error' });
 });
+
+server.register(httpsAgent);
 
 interface SignupBody {
   nickname: string;

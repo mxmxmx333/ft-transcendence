@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import AuthService from './auth.service';
 import OAuthService, { OAuthCallbackRequestSchema, OAuthClientTypes, OAuthError } from './oauth';
 import User from './user';
-import { frontendUrl } from './server';
+import { frontendUrl, liveChatUpstream } from './server';
 import z, { ZodError } from 'zod';
 import * as OTPAuth from "otpauth";
 
@@ -432,6 +432,21 @@ export default class AuthController {
         }
       }
       this.authService.deleteAccount(Number(sub));
+      const response = await fetch(`${liveChatUpstream}/auth/info/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: Number(sub),
+          nickname: null,
+          avatar: null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to inform livechat about user deletion");
+      }
       return reply.send({success: true});
     } catch (error) {
       if (error instanceof ZodError) {
