@@ -1205,7 +1205,7 @@ async function handleCreateRoom() {
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
       socketManager.onGameStart = () => {
         showPage(gamePage);
-        startMultiplayerGame(game);
+        if (game) startMultiplayerGame(game);
       };
     } else {
       throw new Error('No room ID received');
@@ -1236,7 +1236,7 @@ async function handleJoinRoom() {
       statusElement.textContent = 'Joined successfully! Starting game...';
       socketManager.onGameStart = () => {
         showPage(gamePage);
-        startMultiplayerGame(game);
+        if (game) startMultiplayerGame(game);
       };
     } else {
       throw new Error('Failed to join room');
