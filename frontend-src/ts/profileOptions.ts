@@ -56,8 +56,6 @@ export class ProfileOptions {
         // Form alanlarını doldur
         (document.getElementById('options-nickname') as HTMLInputElement).value =
           data.nickname || '';
-        (document.getElementById('options-status') as HTMLSelectElement).value =
-          data.status || 'online';
 
         // Profil sayfasındaki bilgileri güncelle
         this.updateProfileDisplay(data);
@@ -465,7 +463,6 @@ export class ProfileOptions {
 
   private async saveProfileChanges() {
     const nickname = (document.getElementById('options-nickname') as HTMLInputElement).value;
-    const status = (document.getElementById('options-status') as HTMLSelectElement).value;
 
     try {
       const token = localStorage.getItem('authToken');
