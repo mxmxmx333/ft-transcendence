@@ -979,6 +979,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    
+    if (target.id === 'create-room-btn') {
+      e.preventDefault();
+      handleCreateRoom();
+    }
+    
+    if (target.id === 'join-room-btn') {
+      e.preventDefault();
+      handleJoinRoom();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
 
     // Create Tournament
     if (target.closest('#create-tournament-btn')) {
@@ -1017,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   handleRouting();
 });
+
 setupMobileMenu(); // For mobile toggle issues.
 document.addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
@@ -1130,7 +1145,7 @@ async function initPongGame(singlePlayer: boolean, remote: boolean) {
     showPage(multiplayerLobby);
     setupLobbyUI(singlePlayer, remote);
     try {
-      await socketManager.ensureConnection();
+      // await socketManager.ensureConnection();
       document.getElementById('lobby-status')!.textContent = 'Connected to server';
     } catch (error) {
       document.getElementById('lobby-status')!.textContent = 'Connection failed';
@@ -1161,7 +1176,6 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
   const existingGame = socketManager.getGameInstance();
   if (existingGame && existingGame.gameRunning) {
     console.error('setupLobbyUI called while game is running - this should not happen');
-    alert('A game is already running. Please wait for it to finish first.');
     showGamePage();
     return;
   }
@@ -1175,60 +1189,66 @@ function setupLobbyUI(singlePlayer: boolean, remote: boolean) {
     startSinglePlayerGame(game, singlePlayer, remote);
     return;
   }
+}
 
-  document.getElementById('create-room-btn')?.addEventListener('click', async () => {
-    const statusElement = document.getElementById('lobby-status')!;
-    statusElement.textContent = 'Creating room...';
-    try {
-      const roomId = await socketManager.createRoom();
+async function handleCreateRoom() {
+  const statusElement = document.getElementById('lobby-status')!;
+  statusElement.textContent = 'Creating room...';
 
-      if (roomId) {
-        statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
+  const socketManager = SocketManager.getInstance();
+  const game = socketManager.getGameInstance();
+  
+  try {
+    const roomId = await socketManager.createRoom();
 
-        socketManager.onGameStart = () => {
-          showPage(gamePage);
-          startMultiplayerGame(game);
-        };
-      } else {
-        throw new Error('No room ID received');
-      }
-    } catch (error) {
-      console.error('Join room failed:', error);
-      statusElement.textContent = 'Failed to join room';
-
-      setTimeout(() => {
-        showGamePage();
-      }, 2000);
+    if (roomId) {
+      statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
+      socketManager.onGameStart = () => {
+        showPage(gamePage);
+        startMultiplayerGame(game);
+      };
+    } else {
+      throw new Error('No room ID received');
     }
-  });
-  document.getElementById('join-room-btn')?.addEventListener('click', async () => {
-    const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
-    if (!roomId) return;
+  } catch (error) {
+    console.error('Join room failed:', error);
+    statusElement.textContent = 'Failed to join room';
 
-    const statusElement = document.getElementById('lobby-status')!;
-    statusElement.textContent = 'Joining room...';
+    setTimeout(() => {
+      showGamePage();
+    }, 2000);
+  }
+}
 
-    try {
-      const success = await socketManager.joinRoom(roomId);
-      if (success) {
-        statusElement.textContent = 'Joined successfully! Starting game...';
-        socketManager.onGameStart = () => {
-          showPage(gamePage);
-          startMultiplayerGame(game);
-        };
-      } else {
-        throw new Error('Failed to join room');
-      }
-    } catch (error) {
-      console.error('Join room failed:', error);
-      statusElement.textContent = 'Failed to join room';
+async function handleJoinRoom() {
+  const roomId = (document.getElementById('room-id-input') as HTMLInputElement).value.trim();
+  if (!roomId) return;
 
-      // BEI ERROR ZURÜCK ZUR GAME SELECTION
-      setTimeout(() => {
-        showGamePage(); // Zurück zur Game-Auswahl
-      }, 2000);
+  const statusElement = document.getElementById('lobby-status')!;
+  statusElement.textContent = 'Joining room...';
+
+  const socketManager = SocketManager.getInstance();
+  const game = socketManager.getGameInstance();
+
+  try {
+    const success = await socketManager.joinRoom(roomId);
+    if (success) {
+      statusElement.textContent = 'Joined successfully! Starting game...';
+      socketManager.onGameStart = () => {
+        showPage(gamePage);
+        startMultiplayerGame(game);
+      };
+    } else {
+      throw new Error('Failed to join room');
     }
-  });
+  } catch (error) {
+    console.error('Join room failed:', error);
+    statusElement.textContent = 'Failed to join room';
+
+    setTimeout(() => {
+      showGamePage(); // Zurück zur Game-Auswahl
+    }, 2000);
+  }
 }
 
 export function startMultiplayerGame(game: PongGame) {
@@ -1236,9 +1256,7 @@ export function startMultiplayerGame(game: PongGame) {
   if (existingGame) {
     existingGame.stop();
   }
-
   (window as any).currentGame = game;
-  // game.start();
 }
 
 // TOURNAMENT

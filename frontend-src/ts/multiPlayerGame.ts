@@ -498,7 +498,7 @@ export class PongGame {
   }
 
   private handlePaddleMovement() {
-    console.debug('Handling paddle movement');
+    // console.debug('Handling paddle movement');
     if (this.isPaused) {
       return;
     }
@@ -649,7 +649,7 @@ export class PongGame {
   }
 
   private gameLoop = (timestamp: number) => {
-    console.debug(`Game loop running: ${this.gameRunning}`);
+    // console.debug(`Game loop running: ${this.gameRunning}`);
     if (!this.gameRunning) return;
     if (timestamp - this.lastPaddleUpdate >= this.paddleUpdateInterval) {
       this.lastPaddleUpdate = timestamp;
