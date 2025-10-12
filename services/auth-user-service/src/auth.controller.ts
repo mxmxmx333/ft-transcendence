@@ -70,14 +70,14 @@ export default class AuthController {
       // Validations
       if (!nickname || !email || !password) {
         return reply.status(400).send({
-          error: 'Tüm alanlar zorunludur',
+          error: 'All fields must be filled',
           details: ['nickname', 'email', 'password'],
         });
       }
       const existingUser = this.authService.getUserByEmail(email);
       if (existingUser) {
         return reply.status(409).send({
-          error: 'Bu email zaten kayıtlı',
+          error: 'This emain already exist',
           email: email,
         });
       }
