@@ -438,9 +438,9 @@ export default class AuthController {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userID: Number(sub),
-          updateOf: "account",
-          newValue: "delete",
+          id: Number(sub),
+          nickname: null,
+          avatar: null,
         }),
       });
 
