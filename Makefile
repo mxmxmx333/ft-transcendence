@@ -22,7 +22,9 @@ fi')
 DOMAIN       ?= ft-transcendence.at
 HOSTS_FILE   ?= /etc/hosts
 HOSTS_LINE   := $(LAN_IP) $(DOMAIN)
-
+SERVICES	 := api-gateway auth-user-service game-service web-application-firewall ai-opponent
+SERV_AGENTS  := api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent
+VAULT_NODES  := vault-1 vault-2 vault-3
 ################################################################################
 # TARGETS
 ################################################################################
@@ -131,7 +133,7 @@ prod: vault-deps-prod
 	$(COMPOSE) --profile "prod" up --exit-code-from setup-volume-ownerships setup-volume-ownerships
 	$(COMPOSE) --profile "prod" up --exit-code-from vault-bootstrap-prod vault-bootstrap-prod
 	npm run build
-	$(COMPOSE) --profile "prod" up -d api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent
+	$(COMPOSE) --profile "prod" up -d $(SERV_AGENTS)
 	$(COMPOSE) --profile "prod" up -d vault-2 vault-2-agent vault-3 vault-3-agent vault-1-agent
 
 clean-networks:
@@ -143,7 +145,6 @@ clean-networks:
 # Remove all docker volumes of this project
 PROJECT_NAME := transcendence
 VOLUME_SUFFIXES := \
-	database \
 	web-application-firewall-certs \
 	game-service-certs \
 	cli-certs \
@@ -226,14 +227,23 @@ clean: down destroy-docker-volumes clean-networks
 	@echo "🧹 Project cleaned (volumes + networks)."
 
 down:
-	@echo "🛑 Stopping all services (dev + prod profiles) for project $(PROJECT_NAME)..."
-	@$(COMPOSE) -p $(PROJECT_NAME) --profile prod down -v --remove-orphans || true
-	@$(COMPOSE) -p $(PROJECT_NAME) --profile dev  down -v --remove-orphans || true
-	@echo "🔎 Ensuring no lingering containers remain..."
-	@docker ps -q --filter "label=com.docker.compose.project=$(PROJECT_NAME)" | xargs -r docker stop >/dev/null 2>&1 || true
-	@docker ps -aq --filter "label=com.docker.compose.project=$(PROJECT_NAME)" | xargs -r docker rm -f >/dev/null 2>&1 || true
-	@echo "✅ All services stopped and cleaned up."
+	@echo "🛑 Stopping all services (keeping volumes)..."
+	@$(COMPOSE) down --remove-orphans $(SERVICES)
+	@$(COMPOSE) down --remove-orphans $(SERV_AGENTS)
+	@$(COMPOSE) --profile prod down --remove-orphans
 
+up:
+	@echo "🚀 Starting all services..."
+	@$(COMPOSE) up -d $(VAULT_NODES)
+	@$(COMPOSE) up -d vault-unseal-prod
+	@$(COMPOSE) up -d $(SERVICES)
+	@$(COMPOSE) up -d $(SERV_AGENTS)
 
 re: clean destroy-service-images prod
 	@echo "🔄 Project rebuilt and restarted."
+
+re-services: 
+	@echo "🔄 Rebuilding and restarting all services (keeping volumes)..."
+	@$(COMPOSE) up -d --build --no-deps --remove-orphans $(SERVICES)
+	@$(COMPOSE) up -d --no-deps --remove-orphans $(SERV_AGENTS)
+	@echo "✅ Services rebuilt and restarted."

@@ -5,7 +5,7 @@ import type {
   ClientToServerEvents,
 } from './types/socket-interfaces';
 import { io, Socket } from 'socket.io-client';
-import { handleTournamentMatchStart, handleTournamentEnd, updateTournamentPlayers } from './router';
+import { handleTournamentMatchStart, handleTournamentEnd, updateTournamentPlayers, navigateTo } from './router';
 
 export class SocketManager {
   private static instance: SocketManager;
@@ -114,6 +114,7 @@ export class SocketManager {
     this.socket.on('connect_error', (error: Error) => {
       console.error('Connection error:', error);
       reject(error);
+      this.handleConnectionFailure(error);
     });
 
     this.socket.on('disconnect', () => {
@@ -126,6 +127,22 @@ export class SocketManager {
     });
 
     this.setupTournamentEventListeners();
+  }
+  
+  private handleConnectionFailure(error: any): void {
+    console.log('Connection failed:', error);
+    this.socket?.disconnect();
+    this.gameInstance?.stop();
+    this.showErrorMessage('Connection failed. Do you have an active game already?');
+    navigateTo('/game');
+  }
+
+  private showErrorMessage(message: string): void {
+    const messageElement = document.getElementById('lobby-status-text');
+    if (messageElement) {
+      messageElement.textContent = message;
+      messageElement.classList.remove('hidden');
+    }
   }
 
   private setupGameEventListeners(): void {
