@@ -2,6 +2,7 @@ import {server} from './server'
 import { Socket, Server as SocketIOServer} from 'socket.io';
 import { UserChatInfo} from './types/types';
 import { authUserServiceUpstream } from './server';
+import { fr } from 'zod/v4/locales';
 
 const tournamentID = 0;
 const activeUsers = new Map<number, UserChatInfo>();
@@ -21,16 +22,16 @@ export function registerIoHandlers(io: SocketIOServer)
 		const userID = Number(socket.user!.id);
 		const userNickname = socket.user.nickname;
 
-		try {
-			  const resp = await fetch(`${authUserServiceUpstream}/someroute`, {
-				method: 'GET',
-				headers: { "x-user-id": userID.toString() }, // Convert number to string
-			  });
+		// try {
+		// 	  const resp = await fetch(`${authUserServiceUpstream}/someroute`, {
+		// 		method: 'GET',
+		// 		headers: { "x-user-id": userID.toString() }, // Convert number to string
+		// 	  });
 		
-			  const interfaceData = await resp.json(); // or resp.text(), resp.blob(), etc.
-			} catch (error) {
-			  console.error('Fetch error:', error);
-			}
+		// 	  const interfaceData = await resp.json(); // or resp.text(), resp.blob(), etc.
+		// 	} catch (error) {
+		// 	  console.error('Fetch error:', error);
+		// 	}
 
 		const info: UserChatInfo = {
 			socket: socket,
@@ -62,7 +63,6 @@ export function registerIoHandlers(io: SocketIOServer)
 		onGetOnlineStatus(socket);
 		onLoadTournamentMessages(socket, userID);
 		onLoadMoreTournamentMessages(socket, userID);
-		onRecordTournamentMessage(socket, userID);
 		onRecordOrCheckGameInvitation(socket, userID);
 		onDeleteInvitation(socket, userID);
 		onRoomIdCreated(socket, userID);
@@ -138,6 +138,7 @@ function onGetOnlineStatus(socket: Socket)
 	});
 }
 
+
 // --- For rendering lists + search bar results ---
 
 function onSearchUsers(socket: Socket)
@@ -145,8 +146,8 @@ function onSearchUsers(socket: Socket)
 	socket.on("search in users", (input: string, callback: (users: any[]) => void) => {
 		try
 		{
-			const stmt = server.db.prepare(`SELECT id, nickname FROM users WHERE nickname LIKE ?`);
-			const users = stmt.all(`%${input}%`) as {id: number, nickname: string}[];
+			const stmt = server.db.prepare(`SELECT id, nickname, avatar FROM users WHERE nickname LIKE ?`);
+			const users = stmt.all(`%${input}%`) as {id: number, nickname: string, avatar: string}[];
 			const filtered = users.filter(u => u.nickname !== socket.user!.nickname)
 			callback(filtered);
 		}
@@ -177,12 +178,11 @@ function onGetFriends(socket: Socket, userID: number)
 			if (friendsIDs.length === 0) { callback([]); return; }
 			
 			const stmt2 = server.db.prepare(`
-					SELECT id, nickname FROM users
+					SELECT id, nickname, avatar FROM users
 					WHERE id IN (${friendsIDs.map(() => '?').join(',')})
 					ORDER BY nickname ASC`);
 			const friends = stmt2.all(...friendsIDs);
 			callback(friends);
-			console.log("GET FRIENDS SUCCEEDED");
 		}
 		catch (err)
 		{
@@ -198,12 +198,12 @@ function onGetBlocked(socket: Socket, userID: number)
 		try
 		{
 			const stmt = server.db.prepare(`
-				SELECT users.id, users.nickname
+				SELECT users.id, users.nickname, users.avatar
 				FROM lc_friendships
 				JOIN users ON (user1_id = ? AND user2_blocked = true AND users.id = user2_id)
 							OR (user2_id = ? AND user1_blocked = true AND users.id = user1_id)
 				ORDER BY users.nickname`);
-			const blocked = stmt.all(userID, userID) as {id: number, nickname: string}[];
+			const blocked = stmt.all(userID, userID) as {id: number, nickname: string, avatar: string}[];
 			callback(blocked);
 		}
 		catch (err)
@@ -233,16 +233,15 @@ function onGetRequests(socket: Socket, userID: number)
 			// callback(requests);
 			
 			const stmt = server.db.prepare(`
-				SELECT users.id, users.nickname, lc_requests.status
+				SELECT users.id, users.nickname, users.avatar, lc_requests.status
 				FROM lc_requests
 				JOIN users ON users.id = lc_requests.sender_id
 				WHERE lc_requests.receiver_id = ?
 				ORDER BY lc_requests.created_at DESC`);
 			
-			const requests = stmt.all(userID) as {id: number, nickname: string, status: string}[];
+			const requests = stmt.all(userID) as {id: number, nickname: string, avatar: string, status: string}[];
 			
 			callback(requests);
-			console.log("GET REQUESTS SUCCEEDED");
 		}
 		catch (err)
 		{
@@ -251,6 +250,7 @@ function onGetRequests(socket: Socket, userID: number)
 		}
 	});
 }
+
 
 // --- Friends Management ---
 
@@ -288,12 +288,9 @@ function onRecordRequest(socket: Socket, userID: number)
 			// Send real time notification to user if active
 			const receiver = activeUsers.get(target_id);
 			if (receiver)
-			{
 				receiver.socket.emit("received request", userID);
-				console.log("EMITTED RECEIVED REQUEST, USER WAS ACTIVE");
-			}
+
 			callback("success");
-			console.log("RECORD REQUEST SUCCEEDED");
 		}
 		catch (err) {
 			console.error("[DB] Error: ", err);
@@ -499,6 +496,7 @@ function onCheckBlocks(socket: Socket, userID: number)
 	})
 }
 
+
 // --- For Messages ---
 
 function onLoadMessages(socket: Socket, userID: number)
@@ -569,11 +567,11 @@ function onRecordMessage(socket: Socket, userID: number)
 			const user1_id = Math.min(userID, target_id);
 			const user2_id = Math.max(userID, target_id);
 			const stmt = server.db.prepare(`
-				SELECT u.nickname, f.id AS convo_id, f.user1_id, f.user2_id, f.user1_blocked, f.user2_blocked
+				SELECT u.nickname, u.avatar, f.id AS convo_id, f.user1_id, f.user2_id, f.user1_blocked, f.user2_blocked
 				FROM lc_friendships f
 				JOIN users u ON u.id = ?
 				WHERE f.user1_id = ? AND f.user2_id = ?`);
-			const raw_f_result = stmt.get(userID, user1_id, user2_id) as {nickname: string, convo_id: number,
+			const raw_f_result = stmt.get(userID, user1_id, user2_id) as {nickname: string, avatar: string, convo_id: number,
 				user1_id: number, user2_id: number, user1_blocked: number, user2_blocked: number};
 			
 			if (!raw_f_result)
@@ -583,6 +581,7 @@ function onRecordMessage(socket: Socket, userID: number)
 			// so I need to convert it to be able to use true/false here
 			const f_result = {
 				sender_nickname: raw_f_result.nickname,
+				avatar: raw_f_result.avatar,
 				convo_id: raw_f_result.convo_id,
 				user1_id: raw_f_result.user1_id,
 				user2_id: raw_f_result.user2_id,
@@ -603,7 +602,7 @@ function onRecordMessage(socket: Socket, userID: number)
 				if (receiver && receiver.activeChatID === userID)
 				{
 					// User is active an have an open chat -> no notification, just send message
-					receiver.socket.emit("received message", userID, f_result.sender_nickname, msg, timeDbFormat);
+					receiver.socket.emit("received message", userID, f_result.sender_nickname, f_result.avatar, msg, timeDbFormat);
 					callback("success");
 					return;
 				}
@@ -621,7 +620,7 @@ function onRecordMessage(socket: Socket, userID: number)
 				// Send current unread count and msg for the last Msg preview
 				// if the user is online
 				if (receiver)
-					receiver.socket.emit("update notification", userID, f_result.sender_nickname, msg, returned.amount);
+					receiver.socket.emit("update notification", userID, f_result.sender_nickname, f_result.avatar, msg, returned.amount);
 				callback("success");
 			}
 		}
@@ -665,7 +664,7 @@ function onLoadChats(socket: Socket, userID: number)
 			*/
 			
 			const stmt = server.db.prepare(`
-				SELECT u.id, u.nickname, m.message, uc.amount, m.created_at AS created_at
+				SELECT u.id, u.nickname, u.avatar, m.message, uc.amount, m.created_at AS created_at
 				FROM lc_friendships f
 				JOIN (
 					SELECT conversation_id, MAX(created_at) AS newest_timestamp
@@ -680,7 +679,7 @@ function onLoadChats(socket: Socket, userID: number)
 				
 				UNION ALL
 				
-				SELECT ${tournamentID} AS id, 'Tournament' AS nickname, message, tuc.amount, tm.created_at AS created_at
+				SELECT ${tournamentID} AS id, 'Tournament' AS nickname, 'T' AS avatar, message, tuc.amount, tm.created_at AS created_at
 				FROM (
 					SELECT *
 					FROM tournament_msgs
@@ -691,7 +690,7 @@ function onLoadChats(socket: Socket, userID: number)
 				
 				ORDER BY created_at DESC`);
 			const result = stmt.all(userID, userID, userID, userID, userID) as {
-				id: number, nickname: string, message: string, amount: number | null, created_at: string}[];
+				id: number, nickname: string, avatar: string, message: string, amount: number | null, created_at: string}[];
 			result.forEach(e => {
 				if (!e.amount)
 					e.amount = 0;
@@ -723,6 +722,7 @@ function onLoadChats(socket: Socket, userID: number)
 	})
 }
 
+
 // --- For Tournament Messages ---
 
 function onLoadTournamentMessages(socket: Socket, userID: number)
@@ -743,7 +743,7 @@ function onLoadTournamentMessages(socket: Socket, userID: number)
 				const stmt2 = server.db.prepare(`
 					INSERT INTO tournament_unread_counter (receiver_id, amount)
 					VALUES (?, ?)
-					ON CONFLICT receiver_id
+					ON CONFLICT (receiver_id)
 					DO UPDATE SET amount = 0`);
 				stmt2.run(userID, 0);
 			}
@@ -778,46 +778,39 @@ function onLoadMoreTournamentMessages(socket: Socket, userID: number)
 	});
 }
 
-
-// This is just a 'template'. I write it the same as for sockets for now.
-// Later will adjust to api endpoints
-function onRecordTournamentMessage(socket: Socket, userID: number)
+export function onRecordTournamentMessage(msg: string, userID: number)
 {
-	socket.on("record tournament message", (msg: string, time: string, callback: (status: string) => void) => {
-		try
+	try
+	{
+		const time = new Date().toISOString();
+
+		const stmt = server.db.prepare(`
+			INSERT INTO tournament_msgs (receiver_id, message, created_at)
+			VALUES (?, ?, ?)`);
+		stmt.run(userID, msg, time);
+		
+		// if user getting the notification has an open tournament chat:
+		const receiver = activeUsers.get(userID);
+		if (receiver && receiver.activeChatID === tournamentID)
 		{
-			// this will stay the same, just adjust variables names
-			const stmt = server.db.prepare(`
-				INSERT INTO tournament_msgs (receiver_id, message, created_at)
-				VALUES (?, ?, ?)`);
-			stmt.run(userID, msg, time);
-			
-			// if user getting the notification has an open tournament chat:
-			const receiver = activeUsers.get(userID);
-			if (receiver && receiver.activeChatID === 0)
-			{
-				receiver.socket.emit("received message", tournamentID, 'Tournament System', msg, time);
-				callback("success");
-				return;
-			}
-			
-			const stmt2 = server.db.prepare(`
-				INSERT INTO tournament_unread_counter (receiver_id, amount)
-				VALUES (?, ?)
-				ON CONFLICT receiver_id
-				DO UPDATE SET amount = amount + 1
-				RETURNING amount`);
-			const returned = stmt2.get(userID, 1) as {amount: number};
-			
-			if (receiver)
-				receiver.socket.emit("update notification", tournamentID, 'Tournament System', msg, returned.amount);
-			callback("success");
+			receiver.socket.emit("received message", tournamentID, 'Tournament System', msg, time);
+			return;
 		}
-		catch (err) {
-			console.error("[DB] Error: ", err);
-			callback("error");
-		}
-	});
+		
+		const stmt2 = server.db.prepare(`
+			INSERT INTO tournament_unread_counter (receiver_id, amount)
+			VALUES (?, ?)
+			ON CONFLICT (receiver_id)
+			DO UPDATE SET amount = amount + 1
+			RETURNING amount`);
+		const returned = stmt2.get(userID, 1) as {amount: number};
+		
+		if (receiver)
+			receiver.socket.emit("update notification", tournamentID, 'Tournament System', msg, returned.amount);
+	}
+	catch (err) {
+		console.error("[DB] Error: ", err);
+	}
 }
 
 
@@ -846,11 +839,11 @@ function onRecordOrCheckGameInvitation(socket: Socket, userID: number)
 			const user1_id = Math.min(userID, target_id);
 			const user2_id = Math.max(userID, target_id);
 			const stmt = server.db.prepare(`
-				SELECT u.nickname, f.id AS convo_id, f.user1_id, f.user2_id, f.user1_blocked, f.user2_blocked
+				SELECT u.nickname, u.avatar, f.id AS convo_id, f.user1_id, f.user2_id, f.user1_blocked, f.user2_blocked
 				FROM lc_friendships f
 				JOIN users u ON u.id = ?
 				WHERE f.user1_id = ? AND f.user2_id = ?`);
-			const raw_f_result = stmt.get(userID, user1_id, user2_id) as {nickname: string, convo_id: number,
+			const raw_f_result = stmt.get(userID, user1_id, user2_id) as {nickname: string, avatar: string, convo_id: number,
 				user1_id: number, user2_id: number, user1_blocked: number, user2_blocked: number};
 			
 			if (!raw_f_result) // Not friends
@@ -858,6 +851,7 @@ function onRecordOrCheckGameInvitation(socket: Socket, userID: number)
 			
 			const f_result = {
 				sender_nickname: raw_f_result.nickname,
+				avatar: raw_f_result.avatar,
 				convo_id: raw_f_result.convo_id,
 				user1_id: raw_f_result.user1_id,
 				user2_id: raw_f_result.user2_id,
@@ -875,19 +869,10 @@ function onRecordOrCheckGameInvitation(socket: Socket, userID: number)
 			
 			// If user has chat open, just send invitation
 			if (receiver.activeChatID === userID)
-				receiver.socket.emit("received game invitation", userID, f_result.sender_nickname);
+				receiver.socket.emit("received game invitation", userID, f_result.sender_nickname, f_result.avatar);
 			else
-			{
-				// const stmt2 = server.db.prepare(`
-				// 		INSERT INTO unread_counter (conversation_id, receiver_id, amount)
-				// 		VALUES (?, ?, ?)
-				// 		ON CONFLICT (conversation_id, receiver_id)
-				// 		DO UPDATE SET amount = amount + 1
-				// 		RETURNING amount`);
-				// 	const returned = stmt2.get(f_result.convo_id, target_id, 1) as {amount: number};
-				
-				receiver.socket.emit("update notification - game", userID, f_result.sender_nickname);
-			}
+				receiver.socket.emit("update notification - game", userID, f_result.sender_nickname, f_result.avatar);
+
 			callback("success");
 		}
 		catch (err) {

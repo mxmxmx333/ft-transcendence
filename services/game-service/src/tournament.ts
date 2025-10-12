@@ -3,6 +3,9 @@ import { io } from './server';
 import { startGame, abortGame } from './game';
 import { deleteRoom } from './room';
 
+export const liveChatUpstream =
+  process.env.LIVE_CHAT_UPSTREAM || 'https://localhost:3004';
+
 export function startTournament(roomId: string) {
   const room = tournamentRooms[roomId];
   if (!room) {
@@ -15,7 +18,7 @@ export function startTournament(roomId: string) {
   startMatch(room);
 }
 
-function startMatch(room: TournamentRoom) {
+async function startMatch(room: TournamentRoom) {
   if (!room) {
     console.error(`[Server] TournamentRoom not found`);
     return;
@@ -69,11 +72,28 @@ function startMatch(room: TournamentRoom) {
       player1: owner.nickname,
       player2: guest.nickname,
     });
-    // fetch to broadcast message in chat
     console.log(`[Server] Tournament match start broadcasted for room ${room.id}`);
   } catch (error) {
     console.log(`[Server] Tournament match start broadcast failed for room ${room.id}:`, error);
+  } 
+  try {
+    let msg = {
+      msg : 'Your next match will start in a few seconds. Get ready!',
+      user1_id: Number(owner.id),
+      user2_id: Number(guest.id)
+    }
+    await fetch(`${liveChatUpstream}/tournament/notificiation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(msg),
+      // @ts-ignore
+    });
+  } catch (error) {
+    console.log('[Server] Tournament message not sent');
   }
+
   startGame(room as any);
 }
 

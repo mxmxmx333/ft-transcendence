@@ -19,7 +19,7 @@ export function updateLastMsgDateISO(update: string) {lastMsgDateISO = update;}
 // ------------ View Profile functions ------------
 DOM.headerPicArea.addEventListener("click", () => {
 	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-	if (!DOM.headerPic.src.match("none"))
+	if (!DOM.headerPic.src.match("T"))
 	{
 		DOM.profileViewPic.src = DOM.headerPic.src;
 		DOM.profileViewPic.classList.remove('hidden');
@@ -30,7 +30,7 @@ DOM.headerPicArea.addEventListener("click", () => {
 
 DOM.headerName.addEventListener("click", () => {
 	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-	if (!DOM.headerPic.src.match("none"))
+	if (!DOM.headerPic.src.match("T"))
 	{
 		DOM.profileViewPic.src = DOM.headerPic.src;
 		DOM.profileViewPic.classList.remove('hidden');
@@ -74,7 +74,7 @@ const viewProfileBtns = document.querySelectorAll<HTMLButtonElement>('.view-prof
 viewProfileBtns.forEach(btn => {
 	btn.addEventListener('mouseup', () => {
 		DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-		if (!DOM.headerPic.src.match("none"))
+		if (!DOM.headerPic.src.match("T"))
 		{
 			DOM.profileViewPic.src = DOM.headerPic.src;
 			DOM.profileViewPic.classList.remove('hidden');
@@ -270,7 +270,7 @@ DOM.sendMsgBtn.addEventListener('click', async () => {
 	}
 	const target = DOM.chatHistory.querySelector(`li[data-id="${currentTargetID}"]`);
 	if (!target) // Not in chat history yet --> New conversation
-		addChatHistory(DOM.headerName.innerHTML, null, formatted, currentTargetID, 0, "prepend");
+		addChatHistory(DOM.headerName.innerHTML, DOM.headerPic.src, formatted, currentTargetID, 0, "prepend");
 	else
 	{
 		const msgPreview = target.querySelector('.msg-preview') as HTMLParagraphElement;
@@ -630,7 +630,7 @@ export async function openChat()
 	{
 		time = convertISOtoLocaleHM(msg.created_at);
 		prevMsgType = displayDateTag(prevMsgDate, msg.created_at, "prepend") ? "date" : prevMsgType;
-		if (msg.sender_id === currentTargetID)
+		if (msg.sender_id === currentTargetID || currentTargetID === tournamentID)
 		{
 			displayMessage("received", msg.message, "prepend", time, prevMsgType);
 			prevMsgType = "received";

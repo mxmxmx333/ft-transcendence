@@ -355,8 +355,9 @@ function updateHeaderInfo(target: HTMLLIElement | null)
 	if (target && target.dataset.username)
 	{
 		const name = target.dataset.username;
-		const picSrc = target.dataset.picSrc ? target.dataset.picSrc : "none";
+		const picSrc = target.dataset.picSrc!;
 		
+		console.log("AVATAR PATH : ", picSrc);
 		DOM.headerName.innerHTML = name;
 		if (name.length > 24)
 		{
@@ -367,38 +368,39 @@ function updateHeaderInfo(target: HTMLLIElement | null)
 			DOM.headerName.innerHTML = extracted;
 		}
 		DOM.headerPic.src = picSrc;
-		if (DOM.headerPic.src.match("none")) DOM.headerPic.classList.add('hidden');
-		else DOM.headerPic.classList.remove('hidden');
+		// if (DOM.headerPic.src.match("none")) DOM.headerPic.classList.add('hidden');
+		DOM.headerPic.classList.remove('hidden');
 	}
 }
 
-function addElementToList(list: HTMLUListElement, name: string, picSrc: string | null, id: number, status: string)
+function addElementToList(list: HTMLUListElement, name: string, picSrc: string, id: number, status: string)
 {
 	const SVG_NS = "http://www.w3.org/2000/svg";
 	const resultElement = document.createElement('li');
 	const wholeBox = document.createElement('div');
 	const div = document.createElement('div');
 	const profilePic = document.createElement('img');
-	const defaultProfilePic = document.createElementNS(SVG_NS, 'svg');
+	// const defaultProfilePic = document.createElementNS(SVG_NS, 'svg');
 	const profileName = document.createElement('p');
-	const circle = document.createElementNS(SVG_NS, 'circle');
-	const path = document.createElementNS(SVG_NS, 'path');
+	// const circle = document.createElementNS(SVG_NS, 'circle');
+	// const path = document.createElementNS(SVG_NS, 'path');
 	const notificationIcon = document.createElement('div');
 	const separationLine = document.createElement('div');
+	const defaultAvatarPath = "/imgs/avatars/default.png"; // MAYBE?
 	
 	resultElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-8 h-8 rounded-full overflow-hidden bg-white";
 	profilePic.className = "w-full h-full object-cover hidden";
-	profilePic.src = picSrc ? picSrc : "none";
-	if (picSrc) profilePic.classList.remove('hidden');
+	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
+	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
-	defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
-	defaultProfilePic.setAttribute("viewBox", "0 0 64 64");
-	circle.setAttribute("cx", "32");
-	circle.setAttribute("cy", "20");
-	circle.setAttribute("r", "12");
-	path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
+	// defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
+	// defaultProfilePic.setAttribute("viewBox", "0 0 64 64");
+	// circle.setAttribute("cx", "32");
+	// circle.setAttribute("cy", "20");
+	// circle.setAttribute("r", "12");
+	// path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
 	profileName.className = "ml-3 font-bold text-[15px] max-w-40 whitespace-nowrap overflow-hidden text-ellipsis";
 	profileName.innerHTML = name;
 	notificationIcon.className = "notification-dot w-3 h-3 ml-auto mr-3 rounded-full notification-dot-color";
@@ -408,15 +410,15 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string |
 	resultElement.appendChild(wholeBox);
 	wholeBox.appendChild(div);
 	div.appendChild(profilePic);
-	div.appendChild(defaultProfilePic);
-	defaultProfilePic.appendChild(circle);
-	defaultProfilePic.appendChild(path);
+	// div.appendChild(defaultProfilePic);
+	// defaultProfilePic.appendChild(circle);
+	// defaultProfilePic.appendChild(path);
 	wholeBox.appendChild(profileName);
 	// resultElement.appendChild(separationLine);
 	
 	resultElement.dataset.id = String(id);
 	resultElement.dataset.username = name;
-	resultElement.dataset.picSrc = picSrc ? picSrc : "none";
+	resultElement.dataset.picSrc = profilePic.src;
 
 	if (list === DOM.requestsList && status === "not viewed")
 		wholeBox.appendChild(notificationIcon);
@@ -428,35 +430,36 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string |
 	list.appendChild(resultElement);
 }
 
-export function addChatHistory(name: string, picSrc: string | null, lastMsg: string, target_id: number, unread_amount: number, option: string, type: string = "msg")
+export function addChatHistory(name: string, picSrc: string, lastMsg: string, target_id: number, unread_amount: number, option: string, type: string = "msg")
 {
 	const SVG_NS = "http://www.w3.org/2000/svg";
 	const chatElement = document.createElement('li');
 	const wholeBox = document.createElement('div');
 	const div = document.createElement('div');
 	const profilePic = document.createElement('img');
-	const defaultProfilePic = document.createElementNS(SVG_NS, 'svg');
+	// const defaultProfilePic = document.createElementNS(SVG_NS, 'svg');
 	const chatMsgInfo = document.createElement('div');
 	const profileName = document.createElement('p');
 	const msgPreview = document.createElement('p');
-	const circle = document.createElementNS(SVG_NS, 'circle');
-	const path = document.createElementNS(SVG_NS, 'path');
+	// const circle = document.createElementNS(SVG_NS, 'circle');
+	// const path = document.createElementNS(SVG_NS, 'path');
 	const notificationIcon = document.createElement('div');
 	const separationLine = document.createElement('div');
+	const defaultAvatarPath = "/imgs/avatars/default.png"; // MAYBE?
 	
 	chatElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-9 h-9 rounded-full overflow-hidden bg-white";
 	profilePic.className = "w-full h-full object-cover hidden";
-	profilePic.src = picSrc ? picSrc : "none";
-	if (picSrc) profilePic.classList.remove('hidden');
+	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
+	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
-	defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
-	defaultProfilePic.setAttribute("viewBox", "0 0 64 64");
-	circle.setAttribute("cx", "32");
-	circle.setAttribute("cy", "20");
-	circle.setAttribute("r", "12");
-	path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
+	// defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
+	// defaultProfilePic.setAttribute("viewBox", "0 0 64 64");
+	// circle.setAttribute("cx", "32");
+	// circle.setAttribute("cy", "20");
+	// circle.setAttribute("r", "12");
+	// path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
 	chatMsgInfo.className = "flex flex-col max-w-40";
 	profileName.className = "ml-3 font-bold text-[15px] whitespace-nowrap overflow-hidden text-ellipsis";
 	msgPreview.className = "msg-preview ml-3 text-[13px] -mt-1 whitespace-nowrap overflow-hidden text-ellipsis";
@@ -482,9 +485,9 @@ export function addChatHistory(name: string, picSrc: string | null, lastMsg: str
 	{
 		wholeBox.appendChild(div);
 		div.appendChild(profilePic);
-		div.appendChild(defaultProfilePic);
-		defaultProfilePic.appendChild(circle);
-		defaultProfilePic.appendChild(path);
+		// div.appendChild(defaultProfilePic);
+		// defaultProfilePic.appendChild(circle);
+		// defaultProfilePic.appendChild(path);
 	}
 	
 	chatMsgInfo.appendChild(profileName);
@@ -495,7 +498,7 @@ export function addChatHistory(name: string, picSrc: string | null, lastMsg: str
 	
 	chatElement.dataset.id = String(target_id);
 	chatElement.dataset.username = name;
-	chatElement.dataset.picSrc = picSrc ? picSrc : "none";
+	chatElement.dataset.picSrc = profilePic.src;
 	
 	// DOM.noChats.remove(); // Same as DOM.chatHistory.removeChild(DOM.noChats) - if it's not there, nothing happens - safe
 	DOM.noChats.classList.add('hidden');
@@ -642,7 +645,7 @@ async function searchUsers(input: string)
 	{
 		DOM.noResults.classList.add('hidden');
 		result.forEach(e => {
-			addElementToList(DOM.searchList, e.nickname, null, e.id, "");
+			addElementToList(DOM.searchList, e.nickname, e.avatar, e.id, "");
 		})
 	}
 	else
@@ -658,7 +661,7 @@ async function getChatHistory()
 	if (chats.length > 0)
 	{
 		chats.forEach(chat => {
-			addChatHistory(chat.nickname, null, chat.message, chat.id, chat.amount, "append");
+			addChatHistory(chat.nickname, chat.avatar, chat.message, chat.id, chat.amount, "append");
 			if (chat.amount)
 				unread = true;
 		})
@@ -680,7 +683,7 @@ export async function getFriendsAll()
 	if (friends.length > 0)
 	{
 		friends.forEach(friend => {
-			addElementToList(DOM.friendsList, friend.nickname, null, friend.id, "");
+			addElementToList(DOM.friendsList, friend.nickname, friend.avatar, friend.id, "");
 		})
 	}
 	// else
@@ -695,7 +698,7 @@ export async function getFriendsBlocked()
 	if (blocked.length > 0)
 	{
 		blocked.forEach(user => {
-			addElementToList(DOM.blockedList, user.nickname, null, user.id, "")
+			addElementToList(DOM.blockedList, user.nickname, user.avatar, user.id, "")
 		})
 		// DOM.noBlocked.classList.add('hidden');
 	}
@@ -712,7 +715,7 @@ async function getFriendsRequests()
 	if (requests.length > 0)
 	{
 		requests.forEach(requester => {
-			addElementToList(DOM.requestsList, requester.nickname, null, requester.id, requester.status);
+			addElementToList(DOM.requestsList, requester.nickname, requester.avatar, requester.id, requester.status);
 		})
 	}
 	// else
@@ -941,7 +944,7 @@ function RegisterSocketListeners()
 	});
 
 	// This event comes when the chat is open
-	chatSocket.on("received message", (from_id: number, name: string, msg: string, timeDbFormat: string) => {
+	chatSocket.on("received message", (from_id: number, name: string, avatar: string, msg: string, timeDbFormat: string) => {
 		// Double check, theoretically unnecessary
 		// Cause server emits this event only when chat is open
 		if (currentTargetID === from_id)
@@ -974,7 +977,7 @@ function RegisterSocketListeners()
 			
 			// It could be that it's an open chat from newly added friend (so no chat history yet) 
 			if (!currentChat)
-				addChatHistory(name, null, msg, from_id, 0, "prepend"); // In this function I check if it was tournamentID
+				addChatHistory(name, avatar, msg, from_id, 0, "prepend"); // In this function I check if it was tournamentID
 			else
 			{
 				const msgPreview = currentChat.querySelector('.msg-preview') as HTMLParagraphElement;
@@ -985,7 +988,7 @@ function RegisterSocketListeners()
 	});
 
 	// When message comes, but chat is not open
-	chatSocket.on("update notification", (from_id: number, name: string, lastMsgPreview: string, unread_amount: number) => {
+	chatSocket.on("update notification", (from_id: number, name: string, avatar: string, lastMsgPreview: string, unread_amount: number) => {
 		if (activeMenu !== "Chats")
 			DOM.chatsNotification.classList.remove('hidden');
 		if (window.location.pathname !== "/livechat")
@@ -993,7 +996,7 @@ function RegisterSocketListeners()
 		
 		const target = DOM.chatHistory.querySelector(`li[data-id="${from_id}"]`) as HTMLLIElement | null;
 		if (!target)
-			addChatHistory(name, null, lastMsgPreview, from_id, unread_amount, "prepend");
+			addChatHistory(name, avatar, lastMsgPreview, from_id, unread_amount, "prepend");
 		else
 		{
 			const notification = target.querySelector('.notification-dot') as HTMLDivElement;
@@ -1001,7 +1004,7 @@ function RegisterSocketListeners()
 			notification.innerHTML = unread_amount > 99 ? "99+" : String(unread_amount);
 			const msgPreview = target.querySelector('.msg-preview') as HTMLParagraphElement;
 			msgPreview.innerHTML = lastMsgPreview;
-			msgPreview.classList.remove('text-yellow-300', 'italic', 'font-semibold'); // Reset for notmal message
+			msgPreview.classList.remove('text-yellow-300', 'italic', 'font-semibold'); // Reset for normal message
 			DOM.chatHistory.prepend(target);
 		}
 	});
@@ -1026,21 +1029,21 @@ function RegisterSocketListeners()
 		}
 	});
 	
-	chatSocket.on("received game invitation", (from_id:number, nickname: string) => {
+	chatSocket.on("received game invitation", (from_id:number, nickname: string, avatar: string) => {
 		if (currentTargetID === from_id)
 		{
 			const currentChat = DOM.chatHistory.querySelector(`li[data-id="${currentTargetID}"]`);
 			
 			// It could be that it's an open chat from newly added friend (so no chat history yet) 
 			if (!currentChat)
-				addChatHistory(nickname, null, "Game Invitation", from_id, 0, "prepend"); // In this function I check if it was tournamentID
+				addChatHistory(nickname, avatar, "Game Invitation", from_id, 0, "prepend"); // In this function I check if it was tournamentID
 			
 			DOM.gameInviteFrom.innerHTML = nickname;
 			DOM.gameInviteBanner.classList.remove('hidden');
 		}
 	});
 	
-	chatSocket.on("update notification - game", (from_id: number, name: string) => {
+	chatSocket.on("update notification - game", (from_id: number, name: string, avatar: string) => {
 		if (activeMenu !== "Chats")
 			DOM.chatsNotification.classList.remove('hidden');
 		if (window.location.pathname !== "/livechat")
@@ -1048,7 +1051,7 @@ function RegisterSocketListeners()
 		
 		const target = DOM.chatHistory.querySelector(`li[data-id="${from_id}"]`) as HTMLLIElement | null;
 		if (!target)
-			addChatHistory(name, null, "Game Invitation", from_id, 0, "prepend", "invitation");
+			addChatHistory(name, avatar, "Game Invitation", from_id, 0, "prepend", "invitation");
 		else
 		{
 			const notification = target.querySelector('.notification-dot') as HTMLDivElement;
