@@ -245,8 +245,8 @@ DOM.sideBarMenu.addEventListener('click', (e) => {
 		DOM.chatHistory.scrollTop = 0;
 		if (!DOM.chatHistory.children.length) DOM.noChats.classList.remove('hidden');
 		else DOM.noChats.classList.add('hidden');
-		// addChatHistory("Tournament System", null, "Test message", 0, 1, "append");
-		// addChatHistory("Test user", null, "Test user message", 500, 1, "append");
+		// addChatHistory("Tournament System", "default", "Test message", 0, 1, "append");
+		// addChatHistory("Test user", "default", "Test user message", 500, 1, "append");
 		
 		// addChatHistory("Tom Smithgewgwegewewbvuygukgyuguygfuyfffuyfyfyufug", null, "Very long message preview"); // TO DELETE !!!!!!
 		// addChatHistory("James", null, "Last message preview", 1); // TO DELETE !!!!!!
