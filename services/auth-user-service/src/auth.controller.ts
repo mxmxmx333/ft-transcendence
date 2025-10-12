@@ -77,7 +77,7 @@ export default class AuthController {
       const existingUser = this.authService.getUserByEmail(email);
       if (existingUser) {
         return reply.status(409).send({
-          error: 'This emain already exist',
+          error: 'This email already exist',
           email: email,
         });
       }
