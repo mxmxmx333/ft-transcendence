@@ -170,372 +170,300 @@
     </div>
   </div>
 </section>
-		
-		<!-- LIVE CHAT  View Other User Profile Page -->
-		<section id="profile-pop-up" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-			<section class="user-profile-page mb-32 w-full max-w-md">
-				<div class="bg-gray-900 rounded-xl neon-border-pink p-8 text-center">
-					<div class="flex justify-end">
-						<button id="close-profile-view-btn" class="w-9 h-9 -mr-4 -mt-4 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">X</button>
-					</div>
-					<div class="w-24 h-24 mb-6 mx-auto rounded-full overflow-hidden bg-gray-900">
-						<img id="profile-view-pic" src="" alt="Profile picture"
-							class="hidden w-full h-full object-cover">
-						<svg class=" w-full h-full fill-pink-400 drop-shadow-[0_0_5px_rgba(255,0,255,0.7)]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-							<circle cx="32" cy="20" r="12"/>
-							<path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
-						</svg>
-					</div>
-					<!-- CHECK USERNAME MAX LENGHT AND TRIM!!!!!!-->
-					<h2 id="profile-view-name" class="neon-text-pink text-2xl mb-8">Jack</h2>
-					<div class="space-y-3 text-left max-w-xs mx-auto">
-						<p class="neon-text-yellow">Nick Name: <span id="user-profile-nickname" class="neon-text-blue font-bold"></span></p>
-						<p class="neon-text-yellow">Email: <span id="user-profile-email" class="neon-text-blue font-bold"></span></p>
-						<p class="neon-text-yellow">Last Game: <span id="user-profile-gamestatistics" class="neon-text-blue font-bold"></span></p>
-					</div>
-				</div>
-			</section>
-		</section>
+<!--Live-chat popups this gave me so much trouble as it was missing--> 		
+<section id="profile-pop-up" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+    <section class="user-profile-page mb-32 w-full max-w-md">
+        <div class="bg-gray-900 rounded-xl neon-border-pink p-8 text-center">
+            <div class="flex justify-end">
+                <button id="close-profile-view-btn" class="w-9 h-9 -mr-4 -mt-4 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">X</button>
+            </div>
+            <div class="w-24 h-24 mb-6 mx-auto rounded-full overflow-hidden bg-gray-900">
+                <img id="profile-view-pic" src="" alt="Profile picture"
+                    class="hidden w-full h-full object-cover">
+                <svg class=" w-full h-full fill-pink-400 drop-shadow-[0_0_5px_rgba(255,0,255,0.7)]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                    <circle cx="32" cy="20" r="12"/>
+                    <path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
+                </svg>
+            </div>
+            <h2 id="profile-view-name" class="neon-text-pink text-2xl mb-8">Jack</h2>
+            <div class="space-y-3 text-left max-w-xs mx-auto">
+                <p class="neon-text-yellow">Nick Name: <span id="user-profile-nickname" class="neon-text-blue font-bold"></span></p>
+                <p class="neon-text-yellow">Email: <span id="user-profile-email" class="neon-text-blue font-bold"></span></p>
+                <p class="neon-text-yellow">Last Game: <span id="user-profile-gamestatistics" class="neon-text-blue font-bold"></span></p>
+            </div>
+        </div>
+    </section>
+</section>
+<!-- Live Chat - With mobile friendly -->
+<section class="live-chat hidden w-full max-w-full lg:w-[55%] h-[80vh] lg:h-[63vh] mx-2 lg:mx-0">
+    <div class="reconnect-info hidden flex justify-center items-center text-center text-2xl lg:text-4xl rounded-xl neon-border-pink h-full bg-gray-900">Connection lost</div>
+    
+    <div class="chat-container flex flex-col lg:flex-row rounded-xl neon-border-pink h-full bg-gray-900 overflow-hidden">
+        <!-- Left Sidebar: in mobile top , defaultly on the lef -->
+        <section class="chat-sidebar flex flex-col w-full lg:w-1/3 bg-gray-950 border-b lg:border-r neon-border-blue overflow-hidden order-1 lg:order-1">
+            <div id="side-bar-menu" class="flex justify-between px-4 lg:px-10 py-3">
+                <button class="flex py-1 px-2 hover:bg-gray-700 rounded-full font-bold neon-text-blue duration-100 cursor-pointer text-sm lg:text-base">
+                    Chats
+                    <div id="notification-dot-chats" class="hidden w-2 h-2 ml-1 mt-0.5 lg:mt-1 rounded-full notification-dot-color"></div>
+                </button>
+                <button class="flex py-1 px-2 hover:bg-gray-700 rounded-full font-bold duration-100 cursor-pointer text-sm lg:text-base">
+                    Friends
+                    <div id="notification-dot-friends" class="hidden w-2 h-2 ml-1 mt-0.5 lg:mt-1 rounded-full notification-dot-color"></div>
+                </button>
+                <button class="py-1 px-2 hover:bg-gray-700 rounded-full font-bold duration-100 cursor-pointer text-sm lg:text-base">
+                    Users
+                </button>
+            </div>
+            
+            <div class="mx-2">
+                <input id="search-bar" type="search" placeholder="Search" class="mb-4 w-full pl-1 bg-gray-700 rounded text-white text-sm lg:text-base">
+            </div>
+            
+            <div id="friends-menu-extension" class="hidden flex p-2 mt-2 mb-1">
+                <button class="mx-auto py-1 px-2 hover:bg-gray-700 bg-gray-800 border border-zinc-400 rounded-full font-bold text-xs lg:text-sm duration-100 cursor-pointer neon-text-blue">
+                    All
+                </button>
+                <button class="mx-auto py-1 px-2 hover:bg-gray-700 rounded-full font-bold text-xs lg:text-sm duration-100 cursor-pointer">
+                    Blocked
+                </button>
+                <button class="flex mx-auto py-1 px-2 hover:bg-gray-700 rounded-full font-bold text-xs lg:text-sm duration-100 cursor-pointer">
+                    Requests
+                    <div id="notification-dot-requests" class="hidden w-2 h-2 ml-1 mt-0.5 rounded-full notification-dot-color"></div>
+                </button>
+            </div>
 
-		<!-- Live Chat -->
-		<section class="live-chat hidden w-[55%] h-[63vh]">
-			<div class="reconnect-info hidden flex justify-center items-center text-center text-4xl rounded-xl neon-border-pink h-full bg-gray-900">Connection lost</div>
-			<div class="chat-container flex rounded-xl neon-border-pink h-full bg-gray-900 overflow-hidden">
-				<!-- Left Sidebar: Nav Menu / Search bar / Friends Menu Extension / Chat history -->
-				<section class="chat-sidebar flex flex-col w-1/3 bg-gray-950 border-r neon-border-blue overflow-hidden">
-					<div id="side-bar-menu" class="flex justify-between px-10 py-3">
-						<button class="flex py-1 px-2 hover:bg-gray-700 rounded-full font-bold neon-text-blue duration-100 cursor-pointer">
-							Chats
-							<div id="notification-dot-chats" class="hidden w-2 h-2 ml-1 mt-0.5 rounded-full notification-dot-color"></div>
-						</button>
-						<button class="flex py-1 px-2 hover:bg-gray-700 rounded-full font-bold duration-100 cursor-pointer">
-							Friends
-							<div id="notification-dot-friends" class="hidden w-2 h-2 ml-1 mt-0.5 rounded-full notification-dot-color"></div>
-						</button>
-						<button class="py-1 px-2 hover:bg-gray-700 rounded-full font-bold duration-100 cursor-pointer">
-							Users
-						</button>
-					</div>
-					<div class="mx-2 ">
-						<input id="search-bar" type="search" placeholder="Search" class="mb-4 w-full pl-1 bg-gray-700 rounded text-white">
-					</div>
-					<div id="friends-menu-extension" class="hidden flex p-2 mt-2 mb-1">
-						<button class="mx-auto py-1 px-2 hover:bg-gray-700 bg-gray-800 border border-zinc-400 rounded-full font-bold text-sm duration-100 cursor-pointer neon-text-blue">
-							All
-						</button>
-						<button class="mx-auto py-1 px-2 hover:bg-gray-700 rounded-full font-bold text-sm duration-100 cursor-pointer">
-							Blocked
-						</button>
-						<button class="flex mx-auto py-1 px-2 hover:bg-gray-700 rounded-full font-bold text-sm duration-100 cursor-pointer">
-							Requests
-							<div id="notification-dot-requests" class="hidden w-2 h-2 ml-1 mt-0.5 rounded-full notification-dot-color"></div>
-						</button>
-					</div>
-					<!-- When searching -->
-					<p id="find-user" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-xl text-gray-400">Find user</p>
-					<div id="search-results" class="hidden min-h-0 flex flex-col">
-						<p id="search-list-info" class="pl-2 mb-2 mt-2 font-bold"></p>
-						<p id="no-results" class="hidden flex mt-5 justify-center items-center font-bold text-lg text-gray-400">No results</p>
-						<ul id="search-list" class="overflow-y-auto">
-							<!-- <li class="flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer">
-								<div class="flex items-center p-2">
-									<div class="w-8 h-8 rounded-full overflow-hidden bg-white">
-										<img src="" alt="Profile picture"
-											class="w-full h-full object-cover hidden">
-										<svg class="w-full h-full fill-pink-400" viewBox="0 0 64 64">
-											<circle cx="32" cy="20" r="12"/>
-											<path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
-										</svg>
-									</div>
-									<p class="ml-3 font-bold text-[15px] max-w-40 whitespace-nowrap overflow-hidden text-ellipsis">Profile Name</p>
-								</div>
-								<div class="ml-14 border-b-[0.5px] border-gray-600"></div>
-							</li> -->
-						</ul>
-					</div>
+            <!-- Search results -->
+            <p id="find-user" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-lg lg:text-xl text-gray-400">Find user</p>
+            <div id="search-results" class="hidden min-h-0 flex flex-col">
+                <p id="search-list-info" class="pl-2 mb-2 mt-2 font-bold text-sm lg:text-base"></p>
+                <p id="no-results" class="hidden flex mt-5 justify-center items-center font-bold text-base lg:text-lg text-gray-400">No results</p>
+                <ul id="search-list" class="overflow-y-auto">
+                    <!-- Search results-->
+                </ul>
+            </div>
 
-					<!-- Chat history display -->
-          <p id="no-chats" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-xl text-gray-400">No chats</p>
-					<ul id="chat-history" class="overflow-y-auto">
-						<!-- <li class="flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer">
-							<div class="flex items-center p-2">
-								<div class="w-9 h-9 rounded-full overflow-hidden bg-white">
-									<img src="" alt="Profile picture"
-										class="w-full h-full object-cover hidden">
-									<svg class="w-full h-full fill-pink-400" viewBox="0 0 64 64">
-										<circle cx="32" cy="20" r="12"/>
-										<path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
-									</svg>
-								</div>
-								<div class="flex flex-col max-w-40">
-									<p class="ml-3 font-bold text-[15px] whitespace-nowrap overflow-hidden text-ellipsis">Profile Name</p>
-									<p class="ml-3 text-[13px] -mt-1 whitespace-nowrap overflow-hidden text-ellipsis">Preview of last message</p>
-								</div>
-								<div class="notification-dot flex h-[18px] min-w-[18px] max-w-fit ml-auto mr-2 p-1 justify-center items-center rounded-full text-xs font-bold notification-dot-color"></div>
-							</div>
-							<div class="ml-14 border-b-[0.5px] border-gray-600"></div>
-						</li> -->
-						
-						
-						<!-- TOURNAMENT Chat--> 
-						<!-- <li id="tournament-chat" class="flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer">
-							<div class="flex items-center p-2">
-								<div class="w-9 h-9 flex justify-center items-center text-yellow-400 text-2xl font-bold rounded-full bg-slate-700">
-									T
-								</div>
-								<div class="flex flex-col max-w-40">
-									<p class="ml-3 font-bold text-[15px]">Tournament Info</p>
-									<p class="ml-3 text-[13px] -mt-1 whitespace-nowrap overflow-hidden text-ellipsis">Preview of last messageeeeeeeeee</p>
-								</div>
-								<div class="notification-dot flex h-[18px] min-w-[18px] max-w-fit ml-auto mr-2 p-1 justify-center items-center rounded-full text-xs font-bold notification-dot-color">1</div>
-							</div>
-							<div class="hidden ml-14 border-b-[0.5px] border-gray-600"></div>
-						</li> -->
-					</ul>
-					
-					<!-- Friends list display -->
-          <p id="no-friends" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-xl text-gray-400">No friends</p>
-					<ul id="friends-list" class="hidden overflow-y-auto">
-					</ul>
-					
-					<!-- Blocked list display -->
-          <p id="no-blocked" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-xl text-gray-400">No blocked users</p>
-					<ul id="blocked-list" class="hidden overflow-y-auto">
-					</ul>
-					
-					<!-- Requests list display -->
-          <p id="no-requests" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-xl text-gray-400">No requests</p>
-					<ul id="requests-list" class="hidden overflow-y-auto">
-					</ul>
-				</section>
+            <!-- Chat history -->
+            <p id="no-chats" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-lg lg:text-xl text-gray-400">No chats</p>
+            <ul id="chat-history" class="overflow-y-auto flex-grow">
+                <!-- Chat history -->
+            </ul>
 
-				
-				
-				<!-- Before selecting chat, just "Live chat"? -->
-				<div id="info-title" class="hidden flex flex-grow justify-center items-center text-[4vh] font-bold text-gray-500">Live Chat</div>
-				<!-- Right Main Area Chat -->
-				<section id="chat-main" class="hidden flex flex-col flex-grow bg-gray-900 relative">
-					<section id="tournament-header" class="hidden flex items-center bg-gray-950 p-2">
-							<div class="ml-1 w-10 h-10 rounded-full flex justify-center items-center text-yellow-400 text-[28px] font-bold bg-slate-700">T</div>
-							<p class="ml-3 font-bold">Tournament System</p>
-          </section>
-					<section id="chat-header" class="flex items-center bg-gray-950 p-2">
-						<div id="header-pic" class="ml-1 w-10 h-10 rounded-full overflow-hidden bg-white cursor-pointer">
-							<!-- Later src= path to picture -->
-							<img id="header-profile-pic" src="" alt="Profile picture"
-								class="w-full h-full object-cover hidden">
-						</div>
-						<div class="flex flex-col">
-							<p id="header-user-name" class="ml-3 font-bold cursor-pointer"></p>
-							<div class="flex items-center">
-								<div id="status-dot" class="w-2 h-2 ml-[14px] mb-[3px] bg-green-500 rounded-full"></div>
-								<p id="online-status" class="ml-1 -mt-1 text-sm">Online</p>
-							</div>
-						</div>
-						<button id="chat-friend-options-btn" class="ml-auto px-4 py-2 mr-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold text-sm hover:neon-bg-pink hover:text-black transition-all duration-300">
-							Options
-						</button>
-					</section>
-					
-					
-					<!-- Invitation to play -->
-					<section id="game-invitation-banner" class="hidden z-50 absolute flex flex-col w-80 rounded-2xl self-center top-16 px-3 pt-2 pb-0.5 border border-yellow-500 bg-black bg-opacity-90">
-						<p class="text-center text-lg font-semibold leading-6 italic"><span id="game-invite-from" class="font-bold text-yellow-300"></span><br>invites you to play</p>
-						<div class="flex justify-center items-center space-x-6 pb-2 pt-3">
-							<button id="accept-game-invite-btn" class="bg-green-500 bg-opacity-90 px-6 py-1 rounded-full font-bold text-opacity-90">Accept</button>
-							<button id="decline-game-invite-btn" class="bg-red-600 bg-opacity-90 px-6 py-1 rounded-full font-bold text-opacity-90">Decline</button>
-						</div>
-					</section>
-					
-					<!-- Messages area -->
-					<section id="chat-messages-area" class="flex flex-col flex-grow overflow-y-auto p-2">
-						<!-- Received -->
-						<div class="bg-cyan-600 rounded-md mb-1 p-1 px-2 max-w-sm w-fit">
-							Received text sample
-						</div>
-						<!-- Sent -->
-						<div class="self-end bg-pink-600 rounded-md mb-1 p-1 px-2 max-w-sm w-fit">
-							Sent text sample
-						</div>
-					</section>
-					
-					<!-- Go to bottom button -->
-					<div id="go-to-bottom-icon" class="absolute bottom-[14%] right-[3%] opacity-0 transition-opacity duration-300 pointer-events-none">
-						<div class="absolute h-3 -mt-1.5 -ml-1.5">
-							<div id="new-msgs-count" class="hidden flex h-4 min-w-4 w-fit p-1 mb-5 text-xs font-semibold rounded-full justify-center items-center bg-red-600"></div>
-						</div>
-						<button id="go-to-bottom-btn" class="flex h-7 w-7 rounded-full bg-yellow-400 justify-center items-center">
-							<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-								<polyline points="6 10 12 16 18 10"></polyline>
-							</svg>
-						</button>
-					</div>
-					
-					<!-- Input area -->
-					<div id="chat-footer" class="flex p-2 bg-gray-950">
-						<textarea id="chat-input" placeholder="Type your message..." maxlength="400"
-								class="flex grow p-1 mr-3 ml-1 rounded bg-gray-700 text-white outline-none resize-none h-8 max-h-14 overflow-y-auto"></textarea>
-						<button id="send-msg-btn" class="px-6 mr-1 h-8 mt-auto neon-bg-pink rounded-lg">Send</button>
-					</div>
-					
-					
-					<!-- Footer when Blocked-->
-					<div id="chat-footer-blocked" class="hidden flex p-2 justify-center bg-gray-950 text-gray-300 text-lg italic font-bold"></div>
-					
-					
-					
-					<!-- Chats Menu Friend Options -->
-					<section id="chat-friend-options" class="hidden flex flex-col grow">
-						<div class="flex justify-end w-full mb-3">
-							<button class="close-chat-options-btn w-9 h-9 mt-5 mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">X</button>
-						</div>
-						<div class="flex flex-col grow mb-[68px] justify-center items-center">
-							<button class="invite-to-play-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Invite to play</button>
-							<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-							<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-							<button class="block-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
-						</div>
-					</section>
-					
-					<!-- Chats Menu Blocked Friend Options -->
-					<section id="chat-blocked-friend-options" class="hidden flex flex-col grow">
-						<div class="flex justify-end w-full mb-3">
-							<button class="close-chat-options-btn w-9 h-9 mt-5 mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">X</button>
-						</div>
-						<div class="flex flex-col grow mb-[68px] justify-center items-center">
-							<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-							<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-							<button class="unblock-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Unblock</button>
-						</div>
-					</section>
-					
-					<!-- Chats Menu Blocked By Friend Options -->
-					<section id="chat-blocked-by-friend-options" class="hidden flex flex-col grow">
-						<div class="flex justify-end w-full mb-3">
-							<button class="close-chat-options-btn w-9 h-9 mt-5 mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">X</button>
-						</div>
-						<div class="flex flex-col grow mb-[68px] justify-center items-center">
-							<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-							<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-							<button class="block-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
-						</div>
-					</section>
-					
-					<!-- Friends Menu ALL Right Area Options -->
-					<section id="friends-nav-options" class="hidden flex flex-col grow justify-center items-center">
-						<button class="open-chat-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Open chat</button>
-						<button class="invite-to-play-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Invite to play</button>
-						<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-						<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-						<button class="block-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
-					</section>
-					
-					<!-- Friends Menu BLOCKED Right Area Options -->
-					<section id="friends-blocked-nav-options" class="hidden flex flex-col grow justify-center items-center">
-						<button class="open-chat-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Open chat</button>
-						<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-						<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-						<button class="unblock-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Unblock</button>
-					</section>
-					
-					<!-- Friends Menu REQUESTS Right Area Options -->
-					<section id="friends-requests-nav-options" class="hidden flex flex-col grow items-center">
-						<div class="flex flex-col w-full h-3/5 pt-20 justify-center items-center">
-							<p class="text-xl pb-6 text-center max-w-80"> <span id="request-from" class="font-extrabold text-yellow-300"></span> <br>wants to be your friend</p>
-							<div class="flex">
-								<button id="accept-request-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-green-500 neon-border-pink rounded-full font-bold hover:bg-green-500 hover:text-black transition-all duration-300">Accept</button>
-								<button id="decline-request-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-red-600 neon-border-pink rounded-full font-bold hover:bg-red-600 hover:text-black transition-all duration-300">Decline</button>
-							</div>
-						</div>
-						<div class="flex w-full justify-center pt-10">
-							<button class="view-profile-btn px-4 py-2 max-w-60 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-						</div>
-					</section>
-					
-					<!-- Users Menu Right Area Options -->
-					<section id="users-nav-options" class="hidden flex flex-col grow justify-center items-center">
-						<button id="add-friend-btn" class="px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Add Friend</button>
-						<p id="request-sent-info" class="hidden px-4 py-2 mb-3 max-w-56 w-full bg-dark text-center neon-text-yellow neon-border-pink rounded-full cursor-default">Request sent!</p>
-						<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-					</section>
-					
-					<!-- When blocked by user Options-->
-					<section id="blocked-by-user-options" class="hidden flex flex-col grow justify-center items-center">
-						<button class="open-chat-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Open chat</button>
-						<button class="view-profile-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-						<button class="remove-from-friends-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-						<button class="block-btn px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
-					</section>
-					
-					<!-- Ask for confirmation when remove from friends -->
-					<section id="confirm-remove-friend" class="hidden flex flex-col grow pb-6 justify-center items-center">
-						
-						<!-- Blocking background -->
-						<div class="fixed inset-0 z-40 bg-black bg-opacity-60"></div>
-						
-						<!-- Content -->
-						<div class="flex flex-col grow mb-6 justify-center items-center z-50">
-							<p class="text-xl pb-6 text-center max-w-80">
-								Remove <span id="remove-friend-nickname" class="font-bold text-yellow-300"></span>
-								from friends?<br>All messages will be lost
-							</p>
-							<div class="flex">
-								<button id="remove-friend-yes-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-lg text-green-500 neon-border-pink rounded-full font-bold hover:bg-green-500 hover:text-black transition-all duration-300">Yes</button>
-								<button id="remove-friend-no-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-lg text-red-600 neon-border-pink rounded-full font-bold hover:bg-red-600 hover:text-black transition-all duration-300">No</button>
-							</div>
-						</div>
-					</section>
-				</section>
-				
-				
-				<!-- TOURNAMENT right main area-->
-				<section id="tournament-chat-main" class="flex flex-col flex-grow bg-gray-900">
-					
-					<!-- TOURNAMENT Header -->
-					<section id="tournament-header-test" class="flex items-center bg-gray-950 p-2 relative">
-							<div class="ml-1 w-10 h-10 rounded-full flex justify-center items-center text-yellow-400 text-[28px] font-bold bg-slate-700">
-								T
-							</div>
-							<p class="ml-3 font-bold">Tournament System</p>
+            <!-- Friends list -->
+            <p id="no-friends" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-lg lg:text-xl text-gray-400">No friends</p>
+            <ul id="friends-list" class="hidden overflow-y-auto flex-grow">
+            </ul>
+
+            <!-- Blocked list -->
+            <p id="no-blocked" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-lg lg:text-xl text-gray-400">No blocked users</p>
+            <ul id="blocked-list" class="hidden overflow-y-auto flex-grow">
+            </ul>
+
+            <!-- Requests list -->
+            <p id="no-requests" class="hidden flex flex-grow mb-[20%] justify-center items-center font-bold text-lg lg:text-xl text-gray-400">No requests</p>
+            <ul id="requests-list" class="hidden overflow-y-auto flex-grow">
+            </ul>
+        </section>
+
+        <!-- Right Main Area - in mobile at the bottom, on desktop at the right -->
+        <section class="chat-main-area flex flex-col flex-grow w-full lg:w-2/3 order-2 lg:order-2">
+            <!-- Info title (when no chat selected) -->
+            <div id="info-title" class="hidden lg:flex flex-grow justify-center items-center text-2xl lg:text-2xl font-bold text-gray-500">Live Chat</div>
+            
+            <!-- Mobile info title -->
+            <div id="mobile-info-title" class="lg:hidden hidden flex-grow justify-center items-center text-xl font-bold text-gray-500 p-4 text-center">
+                Select a chat to start messaging
+            </div>
+
+            <!-- Right Main Area Chat -->
+            <section id="chat-main" class="hidden flex flex-col flex-grow bg-gray-900 relative">
+                <!-- Tournament header -->
+                <section id="tournament-header" class="hidden flex items-center bg-gray-950 p-2">
+                    <div class="ml-1 w-8 h-8 lg:w-10 lg:h-10 rounded-full flex justify-center items-center text-yellow-400 text-xl lg:text-[28px] font-bold bg-slate-700">T</div>
+                    <p class="ml-3 font-bold text-sm lg:text-base">Tournament System</p>
+                </section>
+                
+                <!-- Chat header -->
+                <section id="chat-header" class="flex items-center bg-gray-950 p-2">
+                    <!-- Back button for mobile -->
+                    <button id="mobile-back-button" class="lg:hidden mr-2 text-gray-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <div id="header-pic" class="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden bg-white cursor-pointer">
+                        <img id="header-profile-pic" src="" alt="Profile picture" class="w-full h-full object-cover hidden">
+                        <svg class="w-full h-full fill-pink-400" viewBox="0 0 64 64">
+                            <circle cx="32" cy="20" r="12"/>
+                            <path d="M12 52c0-11 9-20 20-20s20 9 20 20"/>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col ml-2 lg:ml-3">
+                        <p id="header-user-name" class="font-bold cursor-pointer text-sm lg:text-base"></p>
+                        <div class="flex items-center">
+                            <div id="status-dot" class="w-2 h-2 ml-1 lg:ml-[14px] mb-[2px] lg:mb-[3px] bg-green-500 rounded-full"></div>
+                            <p id="online-status" class="ml-1 -mt-1 text-xs lg:text-sm">Online</p>
+                        </div>
+                    </div>
+                    <button id="chat-friend-options-btn" class="ml-auto px-3 py-1 lg:px-4 lg:py-2 mr-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold text-xs lg:text-sm hover:neon-bg-pink hover:text-black transition-all duration-300">
+                        Options
+                    </button>
+                </section>
+
+                <!-- Game invitation banner -->
+                <section id="game-invitation-banner" class="hidden z-50 absolute flex flex-col w-11/12 lg:w-80 rounded-2xl self-center top-16 lg:top-16 px-3 pt-2 pb-0.5 border border-yellow-500 bg-black bg-opacity-90">
+                    <p class="text-center text-base lg:text-lg font-semibold leading-6 italic">
+                        <span id="game-invite-from" class="font-bold text-yellow-300"></span><br>invites you to play
+                    </p>
+                    <div class="flex justify-center items-center space-x-4 lg:space-x-6 pb-2 pt-3">
+                        <button id="accept-game-invite-btn" class="bg-green-500 bg-opacity-90 px-4 lg:px-6 py-1 rounded-full font-bold text-opacity-90 text-sm lg:text-base">Accept</button>
+                        <button id="decline-game-invite-btn" class="bg-red-600 bg-opacity-90 px-4 lg:px-6 py-1 rounded-full font-bold text-opacity-90 text-sm lg:text-base">Decline</button>
+                    </div>
+                </section>
+
+                <!-- Messages area -->
+                <section id="chat-messages-area" class="flex flex-col flex-grow overflow-y-auto p-2 lg:p-2">
+                    <!-- Messages -->
+                </section>
+
+                <!-- Go to bottom button -->
+                <div id="go-to-bottom-icon" class="absolute bottom-[16%] lg:bottom-[14%] right-[3%] opacity-0 transition-opacity duration-300 pointer-events-none">
+                    <div class="absolute h-3 -mt-1.5 -ml-1.5">
+                        <div id="new-msgs-count" class="hidden flex h-4 min-w-4 w-fit p-1 mb-5 text-xs font-semibold rounded-full justify-center items-center bg-red-600"></div>
+                    </div>
+                    <button id="go-to-bottom-btn" class="flex h-6 w-6 lg:h-7 lg:w-7 rounded-full bg-yellow-400 justify-center items-center">
+                        <svg class="w-4 h-4 lg:w-5 lg:h-5" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 10 12 16 18 10"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Input area -->
+                <div id="chat-footer" class="flex p-2 bg-gray-950">
+                    <textarea id="chat-input" placeholder="Type your message..." maxlength="400"
+                            class="flex grow p-1 mr-2 lg:mr-3 ml-1 rounded bg-gray-700 text-white outline-none resize-none h-8 max-h-14 overflow-y-auto text-sm lg:text-base"></textarea>
+                    <button id="send-msg-btn" class="px-4 lg:px-6 mr-1 h-8 mt-auto neon-bg-pink rounded-lg text-sm lg:text-base">Send</button>
+                </div>
+
+                <!-- Footer when Blocked -->
+                <div id="chat-footer-blocked" class="hidden flex p-2 justify-center bg-gray-950 text-gray-300 text-base lg:text-lg italic font-bold"></div>
+
+                <!-- Chat Options Menus -->
+                <section id="chat-friend-options" class="hidden flex flex-col grow">
+                    <div class="flex justify-end w-full mb-3">
+                        <button class="close-chat-options-btn w-8 h-8 lg:w-9 lg:h-9 mt-4 lg:mt-5 mr-4 lg:mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm">X</button>
+                    </div>
+                    <div class="flex flex-col grow mb-16 lg:mb-[68px] justify-center items-center px-4">
+                        <button class="invite-to-play-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Invite to play</button>
+                        <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                        <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                        <button class="block-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Block</button>
+                    </div>
+                </section>
+
+                <section id="chat-blocked-friend-options" class="hidden flex flex-col grow">
+                    <div class="flex justify-end w-full mb-3">
+                        <button class="close-chat-options-btn w-8 h-8 lg:w-9 lg:h-9 mt-4 lg:mt-5 mr-4 lg:mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm">X</button>
+                    </div>
+                    <div class="flex flex-col grow mb-16 lg:mb-[68px] justify-center items-center px-4">
+                        <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                        <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                        <button class="unblock-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Unblock</button>
+                    </div>
+                </section>
+
+                <section id="chat-blocked-by-friend-options" class="hidden flex flex-col grow">
+                    <div class="flex justify-end w-full mb-3">
+                        <button class="close-chat-options-btn w-8 h-8 lg:w-9 lg:h-9 mt-4 lg:mt-5 mr-4 lg:mr-6 flex items-center justify-center bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm">X</button>
+                    </div>
+                    <div class="flex flex-col grow mb-16 lg:mb-[68px] justify-center items-center px-4">
+                        <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                        <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                        <button class="block-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Block</button>
+                    </div>
+                </section>
+                
             </section>
-					
-					<!-- Invitation to play -->
-					<!-- <section id="game-invitation-banner-test" class="z-50 absolute flex flex-col w-80 rounded-2xl self-center top-20 px-3 pt-2 pb-0.5 border border-yellow-500 bg-black">
-						<p class="text-center text-lg font-semibold leading-6 italic"><span id="game-invite-from" class="font-bold text-yellow-300">Gabi</span><br>invites you to play</p>
-						<div class="flex justify-center items-center space-x-6 pb-2 pt-3">
-							<button id="accept-game-invite-btn" class="bg-green-500 bg-opacity-90 px-6 py-1 rounded-full font-bold text-opacity-90">Accept</button>
-							<button id="decline-game-invite-btn" class="bg-red-600 bg-opacity-90 px-6 py-1 rounded-full font-bold text-opacity-90">Decline</button>
-						</div>
-					</section> -->
-					
-					<section id="friends-nav-options" class="flex flex-col grow justify-center items-center">
-						<button class="px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Open chat</button>
-						<button id="invite-btn-test" class="px-4 py-2 mb-3 max-w-56 w-full bg-dark text-yellow-300 text-opacity-50  rounded-full font-bold transition-all duration-300">Invite to play</button>
-						<button class="px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
-						<button class="px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
-						<button class="px-4 py-2 mb-3 max-w-56 w-full bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
-					</section>
-					
-					<!-- TOURNAMENT Messages area -->
-					<!-- <section id="tournament-messages-area" class="flex flex-col flex-grow overflow-y-auto p-2 relative"> -->
-						<!-- Received -->
-						<!-- <div class="self-center w-fit mb-4 bg-black text-yellow-300 text-opacity-90 rounded-full px-3 text-sm font-semibold justify-center items-center">25.10.2025</div>
-						<div class="bg-cyan-600 rounded-xl mb-1 p-1 px-2 max-w-xs w-fit break-words">
-								Welcome message and some b clarification what this chat is
-								<div class="float-right mt-0.5">
-									<span class="align-bottom text-[11px] font-medium text-neutral-300 text-opacity-80 ml-3">17:01</span>
-								</div>
-						</div>
-						<div class="self-end bg-pink-600 rounded-xl mb-1 p-1 px-2 max-w-xs w-fit break-words hyphens-auto ">
-							Received notification fheufhe fheuifheiuff ehwuifh
-							<div class="float-right mt-0.5">
-								<span class="align-bottom text-xs font-medium text-gray-200 ml-3">17:05</span>
-							</div>
-						</div>
-					</section> -->
-				</section>
-			</div>
-		</section>
+
+            <!-- Friends Menu Options -->
+            <section id="friends-nav-options" class="hidden flex flex-col grow justify-center items-center">
+                <button class="open-chat-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Open chat</button>
+                <button class="invite-to-play-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Invite to play</button>
+                <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                <button class="block-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Block</button>
+            </section>
+
+            <section id="friends-blocked-nav-options" class="hidden flex flex-col grow justify-center items-center">
+                <button class="open-chat-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Open chat</button>
+                <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                <button class="unblock-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Unblock</button>
+            </section>
+
+            <section id="friends-requests-nav-options" class="hidden flex flex-col grow items-center">
+                <div class="flex flex-col w-full h-3/5 pt-20 justify-center items-center">
+                    <p class="text-xl pb-6 text-center max-w-80"> <span id="request-from" class="font-extrabold text-yellow-300"></span> <br>wants to be your friend</p>
+                    <div class="flex">
+                        <button id="accept-request-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-green-500 neon-border-pink rounded-full font-bold hover:bg-green-500 hover:text-black transition-all duration-300">Accept</button>
+                        <button id="decline-request-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-red-600 neon-border-pink rounded-full font-bold hover:bg-red-600 hover:text-black transition-all duration-300">Decline</button>
+                    </div>
+                </div>
+                <div class="flex w-full justify-center pt-10">
+                    <button class="view-profile-btn px-4 py-2 w-full max-w-60 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
+                </div>
+            </section>
+
+            <!-- Users Menu Options -->
+            <section id="users-nav-options" class="hidden flex flex-col grow justify-center items-center">
+                <button id="add-friend-btn" class="px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Add Friend</button>
+                <p id="request-sent-info" class="hidden px-4 py-2 mb-3 w-full max-w-56 bg-dark text-center neon-text-yellow neon-border-pink rounded-full cursor-default">Request sent!</p>
+                <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
+            </section>
+
+            <!-- Blocked By User Options -->
+            <section id="blocked-by-user-options" class="hidden flex flex-col grow justify-center items-center">
+                <button class="open-chat-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Open chat</button>
+                <button class="view-profile-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">View profile</button>
+                <button class="remove-from-friends-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Remove from friends</button>
+                <button class="block-btn px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">Block</button>
+            </section>
+
+            <!-- Confirm Remove Friend -->
+            <section id="confirm-remove-friend" class="hidden flex flex-col grow pb-6 justify-center items-center">
+                <div class="fixed inset-0 z-40 bg-black bg-opacity-60"></div>
+                <div class="flex flex-col grow mb-6 justify-center items-center z-50">
+                    <p class="text-xl pb-6 text-center max-w-80">
+                        Remove <span id="remove-friend-nickname" class="font-bold text-yellow-300"></span>
+                        from friends?<br>All messages will be lost
+                    </p>
+                    <div class="flex">
+                        <button id="remove-friend-yes-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-lg text-green-500 neon-border-pink rounded-full font-bold hover:bg-green-500 hover:text-black transition-all duration-300">Yes</button>
+                        <button id="remove-friend-no-btn" class="px-4 py-2 mb-3 mx-3 w-40 bg-dark text-lg text-red-600 neon-border-pink rounded-full font-bold hover:bg-red-600 hover:text-black transition-all duration-300">No</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tournament chat main area -->
+            <section id="tournament-chat-main" class="flex flex-col flex-grow bg-gray-900">
+                <!-- Tournament header -->
+                <section id="tournament-header-test" class="flex items-center bg-gray-950 p-2">
+                    <div class="ml-1 w-8 h-8 lg:w-10 lg:h-10 rounded-full flex justify-center items-center text-yellow-400 text-xl lg:text-[28px] font-bold bg-slate-700">T</div>
+                    <p class="ml-3 font-bold text-sm lg:text-base">Tournament System</p>
+                </section>
+                
+                <!-- Tournament content -->
+                <section id="friends-nav-options" class="flex flex-col grow justify-center items-center px-4">
+                    <button class="px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Open chat</button>
+                    <button id="invite-btn-test" class="px-4 py-2 mb-3 w-full max-w-56 bg-dark text-yellow-300 text-opacity-50 rounded-full font-bold transition-all duration-300 text-sm lg:text-base">Invite to play</button>
+                    <button class="px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">View profile</button>
+                    <button class="px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Remove from friends</button>
+                    <button class="px-4 py-2 mb-3 w-full max-w-56 bg-dark neon-text-yellow neon-border-pink rounded-full font-bold hover:neon-bg-pink hover:text-black transition-all duration-300 text-sm lg:text-base">Block</button>
+                </section>
+            </section>
+        </section>
+    </div>
+</section>
 		
 		
         <!-- Options Page -->

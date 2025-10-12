@@ -121,7 +121,53 @@
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
+@layer utilities {
+  /* Mobile-first responsive text sizes */
+  .text-mobile-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-mobile-base {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-mobile-lg {
+    @apply text-base sm:text-lg;
+  }
+  
+  /* Chat container responsive heights */
+  .chat-mobile-height {
+    @apply h-[70vh] sm:h-[75vh] lg:h-[63vh];
+  }
+}
+#side-bar-menu button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+}
 
+/* Notification dot için düzeltme */
+.notification-dot-color {
+    align-self: flex-start;
+    margin-top: 2px;
+}
+/* Mobile optimizations for chat */
+@media (max-width: 1023px) {
+  .chat-sidebar {
+    max-height: 40vh;
+  }
+  
+  .chat-main-area {
+    max-height: 60vh;
+  }
+  
+  /* Improve touch targets */
+  #side-bar-menu button,
+  #friends-menu-extension button {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
 @keyframes pulse {
   0%,
   100% {
