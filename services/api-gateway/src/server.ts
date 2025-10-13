@@ -7,6 +7,8 @@ import fastifyStatic from '@fastify/static'; // IMPORTANT FOR SENDFILE
 import vaultClient from './vault-client';
 import vAuth from './auth';
 import tlsReloadPlugin from './tls-reload';
+import { register } from 'module';
+import { send } from 'process';
 dotenv.config();
 
 const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
@@ -117,7 +119,8 @@ async function buildServer() {
       '/socket.io',
       '/api/account',
       '/api/auth/2fa/enable',
-      '/api/auth/2fa/disable'
+      '/api/auth/2fa/disable',
+      '/api/verify'
     ];
     const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));
 
@@ -177,6 +180,10 @@ async function buildServer() {
         message: 'Token verification failed',
       });
     }
+  });
+
+  await server.get('/api/verify', async (request, reply) => {
+    reply.code(200).send({ status: 'ok' });
   });
 
   // === ROUTE GAME SERVICE ===

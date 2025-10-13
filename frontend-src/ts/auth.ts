@@ -314,8 +314,29 @@ export async function handleSetNickname(formData: { nickname: string }) {
   }
 }
 
-export function isAuthenticated(): boolean {
-  return !!localStorage.getItem('authToken');
+export async function isAuthenticated(): Promise<boolean> {
+  try{
+    const authToken = localStorage.getItem('authToken');
+    
+      if (!authToken) {
+        throw new Error('Missing preAuthToken');
+      }
+      const response = await fetch('/api/verify', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + authToken,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to verify authToken');
+    }
+  }
+  catch (error) {
+    // navigateTo('/login');
+    return false;
+  }
+  return true;
+
 }
 
 export function isPreAuthenticated(): boolean {

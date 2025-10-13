@@ -49,8 +49,8 @@ type Route = {
 const routes: Route[] = [
     {
     path: '/',
-    view: () => {
-      if (isAuthenticated()) {
+    view: async () => {
+      if (await isAuthenticated()) {
         navigateTo('/profile');
         return;
       }
@@ -118,12 +118,12 @@ const routes: Route[] = [
   },
 ];
 
-export function manageNavbar() {
+export async function manageNavbar() {
   const navbar = document.querySelector('.main-nav') as HTMLElement;
 
   if (!navbar) return;
 
-  if (isAuthenticated()) {
+  if (await isAuthenticated()) {
     // Kullanıcı giriş yaptıysa navbar'ı göster
     navbar.classList.remove('hidden');
     navbar.classList.add('md:flex');
@@ -176,8 +176,8 @@ function setupOptionsPageListeners() {
   });
 }
 
-function showOptionsPage() {
-  if (!isAuthenticated()) {
+async function showOptionsPage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -202,8 +202,8 @@ async function loadOptionsData() {
   }
 }
 
-function showUserSearchPage() {
-  if (!isAuthenticated()) {
+async function showUserSearchPage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -215,8 +215,8 @@ function showUserSearchPage() {
   setupUserSearch();
 }
 
-function showStatistics() {
-  if (!isAuthenticated()) {
+async function showStatistics() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -509,8 +509,8 @@ async function sendFriendRequest(targetUserId: number): Promise<boolean> {
   }
 }
 
-function showUserProfilePage() {
-  if (!isAuthenticated()) {
+async function showUserProfilePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -574,7 +574,7 @@ async function showOAuthResultPage() {
           localStorage.setItem('authToken', data.token);
           navigateTo('/profile');
           return;
-        } else if (!data.token && isAuthenticated()) {
+        } else if (!data.token && await isAuthenticated()) {
           navigateTo('/profile');
           return;
         }
@@ -832,8 +832,8 @@ function showAuthPage() {
   showPage(loginPage);
 }
 
-function showProfilePage() {
-  if (!isAuthenticated()) {
+async function showProfilePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -842,8 +842,8 @@ function showProfilePage() {
   loadProfileData();
 }
 
-export function showGamePage() {
-  if (!isAuthenticated()) {
+export async function showGamePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -868,14 +868,14 @@ export function navigateTo(path: string) {
   handleRouting();
 }
 
-function handleRouting() {
+async function handleRouting() {
   const currentPath = window.location.pathname;
 
   // Parametreli route'ları kontrol et
   if (currentPath.startsWith('/user/')) {
     const userId = currentPath.split('/').pop();
     if (userId && !isNaN(parseInt(userId))) {
-      if (!isAuthenticated()) {
+      if (!(await isAuthenticated())) {
         navigateTo('/');
         return;
       }
@@ -887,7 +887,7 @@ function handleRouting() {
   // Normal route'ları kontrol et
   const route = routes.find((r) => r.path === currentPath) || routes[0];
 
-  if (route.authRequired && !isAuthenticated()) {
+  if (route.authRequired && !(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -904,9 +904,9 @@ function handleRouting() {
 window.addEventListener('popstate', handleRouting);
 
 // Routing to start when dom loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   manageNavbar();
-  if (isAuthenticated())
+  if (await isAuthenticated())
     initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -1143,7 +1143,7 @@ async function handleLogout() {
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
-  if (!isAuthenticated()) {
+  if (!(await isAuthenticated())) {
     alert('Please log in.');
     navigateTo('/');
     return;
@@ -1526,7 +1526,7 @@ async function leaveTournament(): Promise<void> {
 }
 
 async function showTournamentPage(): Promise<void> {
-  if (!isAuthenticated()) {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
