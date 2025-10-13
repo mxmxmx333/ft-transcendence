@@ -26,7 +26,7 @@ const totpPage = document.querySelector('.totp-page') as HTMLElement;
 const accountSettingsPage = document.querySelector('.account-settings-page') as HTMLElement;
 const deleteAccountPage = document.querySelector('.delete-account-page') as HTMLElement;
 
-let currentPage = loginPage;
+let currentPage = document.createElement('div') as HTMLElement;
 
 export function showPage(pageToShow: HTMLElement) {
   if (currentPage === pageToShow) return;
