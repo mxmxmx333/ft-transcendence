@@ -36,6 +36,7 @@ export async function showOptions(optionsMenu: HTMLElement)
 
 export function loadChatData()
 {
+	resetLiveChatState();
 	getChatHistory(); // Load chats
 	getFriendsAll(); // Load friends list
 	getFriendsBlocked(); // Load blocked list
@@ -55,6 +56,30 @@ export async function initLiveChat(chatSocket: ChatSocketManager)
 	}
 }
 
+function resetLiveChatState()
+{
+	currentOptionsWindow.classList.add('hidden');
+	DOM.profileView.classList.add('hidden');
+	DOM.chatMainArea.classList.add('hidden');
+	DOM.infoTitle.classList.remove('hidden');
+	DOM.chatFooter.classList.add('hidden');
+	DOM.chatFooterBlocked.classList.add('hidden');
+	DOM.gameInviteBanner.classList.add('hidden');
+	DOM.feedbackBanner.classList.add('hidden');
+	DOM.chatHeader.classList.add('hidden');
+	DOM.tournamentHeader.classList.add('hidden');
+	DOM.noRequests.classList.add('hidden');
+	DOM.noFriends.classList.add('hidden');
+	DOM.noBlocked.classList.add('hidden');
+	DOM.noChats.classList.add('hidden');
+	DOM.findUser.classList.add('hidden');
+	DOM.noResults.classList.add('hidden');
+	activeMenu = "Chats";
+	activeExMenu = "All";
+	activeHeaderMenu = "Other";
+	currentTargetID = -2;
+	msgsOnScrollCount = 0;
+}
 
 export function displayLiveChat()
 {
@@ -516,6 +541,7 @@ DOM.friendsList.addEventListener("mousedown", (e) => {
 	if (!target || !DOM.friendsList.contains(target)) return;
 	
 	currentTargetID = Number(target.dataset.id);
+	console.log("currentTargetID: %d   <-- friendsList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -533,6 +559,7 @@ DOM.blockedList.addEventListener("mousedown", (e) => {
 	if (!target || !DOM.blockedList.contains(target)) return;
 	
 	currentTargetID = Number(target.dataset.id);
+	console.log("currentTargetID: %d   <-- blockedList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -549,6 +576,7 @@ DOM.requestsList.addEventListener("mousedown", (e) => {
 		|| !(DOM.requestsList.contains(target))) return;
 	
 	currentTargetID = Number(target.dataset.id);
+	console.log("currentTargetID: %d   <-- requestsList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -573,6 +601,7 @@ DOM.searchList.addEventListener("mousedown", (e) => {
 	
 	e.preventDefault();
 	currentTargetID = Number(target.dataset.id);
+	console.log("currentTargetID: %d   <-- searchList", currentTargetID);
 	updateHeaderInfo(target);
 	DOM.infoTitle.classList.add('hidden');
 	
@@ -634,6 +663,7 @@ DOM.chatHistory.addEventListener("click", (e) => {
 	// }
 	
 	currentTargetID = Number(target.dataset.id);
+	console.log("currentTargetID: %d   <-- chatHistory", currentTargetID);
 	updateHeaderInfo(target);
 	openChat();
 });
@@ -1132,6 +1162,7 @@ function RegisterSocketListeners()
 	chatSocket.on("user info update", (updated: sendUserEvent) => {
 		const lists = [DOM.chatHistory, DOM.friendsList, DOM.blockedList, DOM.requestsList, DOM.searchList];
 		
+		console.log("USER INFO UPDATED INITIATED");
 		lists.forEach(list => {
 			const target = list.querySelector(`li[data-id="${updated.id}"]`) as HTMLLIElement;
 			if (target)

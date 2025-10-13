@@ -1125,7 +1125,6 @@ async function handleLogout() {
     document.querySelector('.options-page')?.classList.add('hidden');
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     document.querySelector('.user-search-page')?.classList.add('hidden');
-    document.querySelector('.user-profile-page')?.classList.add('hidden');
     document.querySelector('.tournament-lobby')?.classList.add('hidden');
     document.querySelector('.totp-page')?.classList.add('hidden');
     document.querySelector('.account-settings-page')?.classList.add('hidden');
