@@ -7,6 +7,11 @@ const validateEmail = (email: string): boolean => {
   return re.test(email.trim());
 };
 
+const validateNickname = (nickname: string): boolean => {
+  const re = /^[a-zA-Z0-9_\-\.]+$/;
+  return re.test(nickname);
+}
+
 const validatePassword = (password: string): boolean => {
   // for 8 chars and a number.
   const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
@@ -189,13 +194,12 @@ const setupSignupValidation = () => {
       return;
     }
 
-    const asciiRegex = /^[a-zA-Z0-9_\-\.]+$/;
-    if (!asciiRegex.test(nickname)) {
+    if (!validateNickname(nickname)) {
       alert('Nickname can only contain letters, numbers, underscores, dashes, and dots.');
       return;
     }
 
-    if (!asciiRegex.test(password)) {
+    if (!validatePassword(password)) {
       alert('Password can only contain letters, numbers, underscores, dashes, and dots.');
       return;
     }
