@@ -216,13 +216,13 @@ DOM.chatInput.addEventListener('input', () => {
 		DOM.chatMsgArea.scrollTop += difference;
 		if (difference > 0)
 		{
-			DOM.goToBottomIcon.classList.remove("bottom-16");
+			DOM.goToBottomIcon.classList.remove("bottom-20");
 			DOM.goToBottomIcon.classList.add("bottom-24");
 		}
 		else
 		{
 			DOM.goToBottomIcon.classList.remove("bottom-24");
-			DOM.goToBottomIcon.classList.add("bottom-16");
+			DOM.goToBottomIcon.classList.add("bottom-20");
 		}
 	}
 	oldInputHeight = DOM.chatInput.clientHeight;

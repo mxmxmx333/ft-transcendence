@@ -12,7 +12,8 @@ node_modules/
 
 # === Database ===
 pong.db*
-services/live-chat/database/pongChat.db*
+database/pong.db*
+services/live-chat/database/livechat.db*
 
 # === Bootstrap Artifacts / Secrets ===
 services/vault/certs/*.key
@@ -46,5 +47,3 @@ client.key
 # === ai model ===
 global_ai_model.json*
 services/ai-opponent/src/hybrid_ai_system.ts
-
-services/live-chat/database/liveChat.db*
