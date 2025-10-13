@@ -1,0 +1,48 @@
+Um dein Projekt, das auf einer virtuellen Maschine (VM) läuft (z. B. VirtualBox mit Linux-Gast), von der Host-Maschine aus zu erreichen, musst du sicherstellen, dass:
+
+die VM korrekt im Netzwerk erreichbar ist, und
+
+dein Projekt auf der richtigen IP und dem richtigen Port lauscht.
+
+🔍 Ausgangssituation (aus deinem ifconfig):
+
+Deine VM hat die IP-Adresse 10.0.2.15 auf enp0s3 (typisch für NAT-Netzwerkmodus in VirtualBox).
+
+Viele Docker- und virtuelle Interfaces sind sichtbar – wahrscheinlich läuft dein Projekt in einem Container.
+
+Du willst von der Host-Maschine (z. B. dein Windows/Mac/Linux-System) auf dein Projekt in der VM zugreifen.
+
+💡 Problem: NAT ist standardmäßig isoliert
+
+Der aktuelle Netzwerkmodus ist vermutlich NAT. In diesem Modus:
+
+Die VM kann nach außen (ins Internet), aber du kannst nicht direkt von außen (Host) rein.
+
+Lösung: Port-Weiterleitung einrichten, oder Netzwerkmodus ändern.
+
+✅ Lösung 1: Port-Weiterleitung einrichten (für NAT)
+📌 Beispiel (für eine Webanwendung auf Port 3000):
+
+VM ausschalten.
+
+Öffne VirtualBox → Einstellungen deiner VM → Netzwerk → Adapter 1 → NAT.
+
+Klicke auf „Erweitert“ → „Portweiterleitung“.
+
+Füge eine Regel hinzu:
+
+Name: z. B. WebApp
+
+Protokoll: TCP
+
+Host-IP: leer lassen (oder 127.0.0.1)
+
+Host-Port: 3000 (oder was du willst)
+
+Gast-IP: leer lassen
+
+Gast-Port: 3000 (muss mit dem Port deines Projekts in der VM übereinstimmen)
+
+Starte die VM.
+
+Jetzt kannst du von deiner Host-Maschine (z. B. im Browser oder mit curl) aufrufen:

@@ -220,6 +220,7 @@ services:
       CERT_DIR: /app/certs
       AI_OPPONENT_SERVICE_UPSTREAM: https://ai-opponent:3003
       AUTH_USER_SERVICE_UPSTREAM: https://auth-user-service:3002
+      LIVE_CHAT_UPSTREAM: https://live-chat:3004
     volumes:
       - game-service-certs:/app/certs:ro
     security_opt:
@@ -399,6 +400,7 @@ services:
       VAULT_ADDR: "https://vault-1:8200"
       FRONTEND_URL: "web-application-firewall:8443"
       AVATAR_UPLOAD_DIR: /app/uploads/avatars
+      LIVE_CHAT_UPSTREAM: https://live-chat:3004
     volumes:
       - database:/app/database
       - database-upload:/app/uploads/avatars:rw
