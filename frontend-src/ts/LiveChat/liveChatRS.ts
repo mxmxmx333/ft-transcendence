@@ -29,6 +29,11 @@ DOM.headerPicArea.addEventListener("click", () => {
 });
 
 DOM.headerName.addEventListener("click", () => {
+	
+});
+
+async function getProfileInfo()
+{
 	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
 	if (!DOM.headerPic.src.match("T"))
 	{
@@ -37,7 +42,20 @@ DOM.headerName.addEventListener("click", () => {
 	}
 	// plus the rest of information from database -> TBD
 	DOM.profileView.classList.remove('hidden');
-});
+
+	// try
+	// {
+	// 	const response = await fetch()
+	// }
+
+// 	const body = {
+//         games_played: gameStats.games_played,
+//         average_score: gameStats.average_score,
+//         win_rate: gameStats.win_rate,
+//       };
+
+// /api/profile/chat-game-statistics
+}
 
 DOM.closeProfileViewBtn.addEventListener("mouseup", () => {
 	DOM.profileView.classList.add('hidden');
@@ -210,7 +228,7 @@ DOM.chatInput.addEventListener('input', () => {
 	DOM.chatInput.style.height = DOM.chatInput.scrollHeight + 'px'; // grow to content
 	// DOM.chatInput.scrollTop = DOM.chatInput.scrollHeight; // while typing it scrolls down so the text is fully visible
 	let difference = DOM.chatInput.clientHeight - oldInputHeight;
-	
+	console.log("DIFFERENCE: %d", difference);
 	if (difference)
 	{
 		DOM.chatMsgArea.scrollTop += difference;
@@ -612,8 +630,8 @@ export async function openChat()
 	DOM.chatOptionsBtn.classList.remove('hidden');
 	DOM.chatInput.value = "";
 	DOM.chatInput.style.height = "32px";
-	DOM.goToBottomIcon.classList.remove("bottom-[20%]");
-	DOM.goToBottomIcon.classList.add("bottom-[14%]");
+	DOM.goToBottomIcon.classList.remove("bottom-24");
+	DOM.goToBottomIcon.classList.add("bottom-20");
 	oldInputHeight = 32;
 	
 	const msgs = currentTargetID === tournamentID

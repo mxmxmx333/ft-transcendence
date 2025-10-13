@@ -67,14 +67,10 @@ export async function handleLogin(formData: { email: string; password: string })
     // Re-show the nav-bar (I know I shoud crate a function that adds and removes hidden from classlists later on.)
     document.querySelector('.main-nav')?.classList.remove('hidden');
 
-    try {
+
       const socketManager = SocketManager.getInstance();
       await socketManager.ensureConnection();
       console.log('Socket connected after login');
-    } catch (socketError) {
-      console.error('Socket connection error after login:', socketError);
-    }
-
     navigateTo('/profile');
     initLiveChat(ChatSocketManager.getInstance());
     return data;
@@ -82,7 +78,6 @@ export async function handleLogin(formData: { email: string; password: string })
     console.error('Login error:', error);
     localStorage.removeItem('authToken');
     document.querySelector('.main-nav')?.classList.add('hidden');
-    throw error;
   }
 }
 

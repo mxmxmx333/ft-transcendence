@@ -73,6 +73,9 @@ const feedbackBanner = document.getElementById('invite-feedback') as HTMLElement
 const feedbackFrom = document.getElementById('feedback-from-player') as HTMLElement;
 const feedbackMsg = document.getElementById('feedback-msg') as HTMLElement;
 const infoTitle = document.getElementById('info-title') as HTMLDivElement;
+const userWinRate = document.getElementById('user-win-rate') as HTMLSpanElement;
+const userAverageScore = document.getElementById('user-average-score') as HTMLSpanElement;
+const userGamesPlayed = document.getElementById('user-games-played') as HTMLSpanElement;
 
 export const DOM = {
 	searchBar,
@@ -147,7 +150,10 @@ export const DOM = {
 	feedbackBanner,
 	feedbackFrom,
 	feedbackMsg,
-	infoTitle
+	infoTitle,
+	userWinRate,
+	userAverageScore,
+	userGamesPlayed
 };
 
 

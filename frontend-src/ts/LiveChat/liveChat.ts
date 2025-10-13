@@ -518,6 +518,7 @@ DOM.friendsList.addEventListener("mousedown", (e) => {
 	currentTargetID = Number(target.dataset.id);
 	updateHeaderInfo(target);
 	closeChat();
+	DOM.infoTitle.classList.add('hidden');
 
 	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
@@ -534,6 +535,7 @@ DOM.blockedList.addEventListener("mousedown", (e) => {
 	currentTargetID = Number(target.dataset.id);
 	updateHeaderInfo(target);
 	closeChat();
+	DOM.infoTitle.classList.add('hidden');
 	
 	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
@@ -549,6 +551,7 @@ DOM.requestsList.addEventListener("mousedown", (e) => {
 	currentTargetID = Number(target.dataset.id);
 	updateHeaderInfo(target);
 	closeChat();
+	DOM.infoTitle.classList.add('hidden');
 
 	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
@@ -571,6 +574,7 @@ DOM.searchList.addEventListener("mousedown", (e) => {
 	e.preventDefault();
 	currentTargetID = Number(target.dataset.id);
 	updateHeaderInfo(target);
+	DOM.infoTitle.classList.add('hidden');
 	
 	// That will have to be removed when Tournament is made as Friend
 	// DOM.tournamentMainChatArea.classList.add('hidden');
