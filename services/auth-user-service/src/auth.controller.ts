@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import AuthService from './auth.service';
 import OAuthService, { OAuthCallbackRequestSchema, OAuthClientTypes, OAuthError } from './oauth';
 import User from './user';
-import { frontendUrl, liveChatUpstream } from './server';
+import { OAUTH_REDIRECT_URL, liveChatUpstream } from './server';
 import z, { ZodError } from 'zod';
 import * as OTPAuth from "otpauth";
 
@@ -465,7 +465,7 @@ export default class AuthController {
 
     const state = this.oAuthService.generateRandomState(cli_port);
 
-    const callbackUrl = frontendUrl + '/oAuthCallback';
+    const callbackUrl = OAUTH_REDIRECT_URL + '/oAuthCallback';
 
     const url = new URL('https://api.intra.42.fr/oauth/authorize');
     url.searchParams.append('client_id', this.oAuthService.oauth_client_id!);
@@ -619,7 +619,7 @@ export default class AuthController {
       if (!user) {
         return reply.status(404).send({ error: 'User not found' });
       }
-      
+
       const gameStats = await this.authService.getUserGameStats(parseInt(userId));
       const body = {
         games_played: gameStats.games_played,
