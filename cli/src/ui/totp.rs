@@ -7,7 +7,7 @@ use ratatui::{
 };
 use tui_input::{Input, backend::crossterm::EventHandler};
 
-use crate::auth::{LoginErrors, TotpErrors};
+use crate::auth::TotpErrors;
 
 use super::pages::PageResults;
 

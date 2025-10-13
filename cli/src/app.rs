@@ -1,8 +1,8 @@
 use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr, time::Duration};
 
 use futures_util::{FutureExt, StreamExt, future};
-use http::{method, Method, Response, StatusCode};
-use hyper::{body::{Body, Bytes}, server::conn::http1, service::service_fn, Request};
+use http::{Response, StatusCode};
+use hyper::{body::{Bytes}, server::conn::http1, service::service_fn, Request};
 use ratatui::DefaultTerminal;
 use tokio::{
     net::TcpListener, select, sync::mpsc::{self, Sender}, time
