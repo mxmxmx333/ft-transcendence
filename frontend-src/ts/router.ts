@@ -35,7 +35,7 @@ export function showPage(pageToShow: HTMLElement) {
   currentPage = pageToShow;
 }
 
-const socketManager = SocketManager.getInstance();
+export const socketManager = SocketManager.getInstance();
 const chatSocketManager = ChatSocketManager.getInstance();
 
 type Route = {

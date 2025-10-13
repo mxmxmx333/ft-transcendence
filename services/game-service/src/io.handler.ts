@@ -13,6 +13,7 @@ import {
 import type { Server, Socket } from 'socket.io';
 import type { PaddleMovePayload, CreateRoomPayload, GameRoom, TournamentRoom } from './types/types';
 import { abortGame } from './game';
+import { SocketAddress } from 'net';
 
 export function registerIoHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
@@ -25,6 +26,7 @@ export function registerIoHandlers(io: Server) {
       socket.disconnect();
       return;
     }
+
 
     const { id, nickname } = socket.user;
     const player: Player = {
@@ -41,7 +43,32 @@ export function registerIoHandlers(io: Server) {
       console.log(`[Socket] Player ${player.id} disconnected`);
       handleDisconnect(player);
     });
+    socket.on('update_nickname', (payload: any) => {
+      try {
+        // Accept both a plain string or an object like { nickname: "..." }
+        let next = '';
+        if (typeof payload === 'string') {
+          next = payload;
+        } else if (payload && typeof payload === 'object') {
+          const candidate = (payload.nickname ?? payload.name ?? payload.newNickname);
+          if (typeof candidate === 'string') next = candidate;
+        }
 
+        // Normalize: trim, collapse whitespace, length cap
+        next = (next || '').toString().trim().replace(/\s+/g, ' ').slice(0, 32);
+        if (!next) return; // ignore empty/invalid updates
+
+        socket.player!.nickname = next;
+        socket.user!.nickname = next;
+        // Acknowledge to sender and inform room (if any)
+        socket.emit('nickname_updated', { nickname: next });
+        if (socket.room) {
+          io.to(socket.room.id).emit('player_nickname_changed', { playerId: socket.player!.id, nickname: next });
+        }
+      } catch (err) {
+        console.error('[Socket] update_nickname error:', err);
+      }
+    });
     socket.on('paddle_move', (payload: PaddleMovePayload) => {
       try {
         if (!socket.room) {

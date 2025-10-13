@@ -311,6 +311,16 @@ export class SocketManager {
       this.gameInstance?.handleConnectionLost();
     }
   }
+  public async updateNickname(newNickname: string): Promise<void> {
+    console.log('Has active connection:', this.hasActiveConnection());
+    console.log('Nickname to change:', newNickname);
+    if (this.hasActiveConnection()) {
+      this.socket!.emit('update_nickname', { nickname: newNickname });
+      console.log('[Client] update_nickname emitted:', newNickname);
+    } else {
+      console.log('Cannot update nickname: No active connection');
+    }
+  }
 
   public async createTournament(): Promise<any> {
     await this.ensureConnection();
