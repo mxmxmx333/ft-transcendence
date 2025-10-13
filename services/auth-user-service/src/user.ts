@@ -12,6 +12,12 @@ export default interface User {
   updated_at?: string;
 }
 
+export interface sendUserEvent {
+  id: number;
+  nickname: string | null;
+  avatar: string | null;
+}
+
 export interface MatchHistory {
   id?: number;
   player1_id: number;
