@@ -148,10 +148,14 @@ export default class AuthService {
   }
 
   updateAccount(id: number, email: string, password_hash: string) {
-    const stmt = this.db.prepare('UPDATE users SET email = ?, password_hash = ? WHERE id = ?');
+    try {
+      const stmt = this.db.prepare('UPDATE users SET email = ?, password_hash = ? WHERE id = ?');
 
-    const info = stmt.run(email, password_hash, id);
-    return info.changes > 0;
+      const info = stmt.run(email, password_hash, id);
+      return info.changes > 0;
+    } catch (error) {
+      return false;
+    }
   }
 
   deleteAccount(id: number) {
