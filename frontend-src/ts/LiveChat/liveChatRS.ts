@@ -216,13 +216,15 @@ DOM.chatInput.addEventListener('input', () => {
 		DOM.chatMsgArea.scrollTop += difference;
 		if (difference > 0)
 		{
-			DOM.goToBottomIcon.classList.remove("bottom-[14%]");
-			DOM.goToBottomIcon.classList.add("bottom-[20%]");
+			console.log("MOVING goToBtmBtn UP");
+			DOM.goToBottomIcon.classList.remove("bottom-16");
+			DOM.goToBottomIcon.classList.add("bottom-24");
 		}
 		else
 		{
-			DOM.goToBottomIcon.classList.remove("bottom-[20%]");
-			DOM.goToBottomIcon.classList.add("bottom-[14%]");
+			console.log("MOVING goToBtmBtn DOWN");
+			DOM.goToBottomIcon.classList.remove("bottom-24");
+			DOM.goToBottomIcon.classList.add("bottom-16");
 		}
 	}
 	oldInputHeight = DOM.chatInput.clientHeight;
@@ -310,10 +312,11 @@ inviteToPlayBtns.forEach(btn => {
 DOM.declineGameInviteBtn.addEventListener('click', async () => {
 	await chatSocket.removeInvitation("received");
 	DOM.gameInviteBanner.classList.add('hidden');
+	manageInviteBtnStatus(currentOptionsWindow);
 });
 
 DOM.acceptGameInviteBtn.addEventListener('click', () => {
-	acceptAndCreateRoom();
+	acceptAndCheck();
 });
 
 
@@ -418,6 +421,7 @@ async function removeFromFriends()
 
 async function blockFriend()
 {
+	DOM.gameInviteBanner.classList.add('hidden');
 	const status = await chatSocket.blockUser(currentTargetID);
 	
 	if (status === "error")
@@ -678,7 +682,7 @@ export async function manageInviteBtnStatus(nextOptionsWindow: HTMLElement, onOn
 			inviteBtnCurrent.removeChild(btnInfo);
 		inviteBtnCurrent.classList.remove("text-yellow-300", "text-opacity-50", "pointer-events-none");
 		inviteBtnCurrent.classList.add("neon-text-yellow", "neon-border-pink", "hover:neon-bg-pink", "hover:text-black");
-		
+
 		// This is only for when this function is used in events on online status change in real time
 		if (onOnlineStatusChange)
 		{
@@ -791,6 +795,14 @@ async function onChatScroll()
 
 async function sendGameInvitation(inviteBtn: HTMLButtonElement)
 {
+	const socketManager = SocketManager.getInstance();
+	const existingGame = socketManager.getGameInstance();
+
+	if (existingGame && existingGame.gameRunning) {
+		alert('You are still in a game');
+		return;
+	}
+
 	const invitationStatus = await chatSocket.recordOrCheckGameInvitation("record");
 	if (invitationStatus !== "success")
 		return (alert( invitationStatus === "offline" ? "This user is currently offline"
@@ -806,40 +818,18 @@ async function sendGameInvitation(inviteBtn: HTMLButtonElement)
 	inviteBtn.appendChild(btnInfo);
 }
 
-async function acceptAndCreateRoom()
+async function acceptAndCheck() 
 {
-	const socketManager = SocketManager.getInstance();
-	const existingGame = socketManager.getGameInstance();
-  	
-	if (existingGame && existingGame.gameRunning) {
-   		console.error('setupLobbyUI called while game is running - this should not happen');
-    	alert('A game is already running. Please wait for it to finish first.');
-    	showGamePage();
-   		return;
-	}
-	
-	const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-	const game = new PongGame(canvas, socketManager);
-	
-	socketManager.setGameInstance(game);
-	game.isSinglePlayer = false;
-	game.isRemote = true;
-	
-	const roomId = await socketManager.createRoom();
-
-
-	if (roomId)
+	DOM.gameInviteBanner.classList.add('hidden');
+	const status = await chatSocket.checkIfAvailable();
+	if (status === "offline")
 	{
-		socketManager.onGameStart = () => {
-			showPage(gamePage);
-			startMultiplayerGame(game);
-		};
-
-		const status = await chatSocket.waitForOtherPlayer(roomId);
+		DOM.feedbackFrom.innerHTML = DOM.headerName.innerHTML;
+		DOM.feedbackMsg.innerHTML = "is currently offline";
+		DOM.feedbackBanner.classList.remove('hidden');
+		setTimeout(() => {
+			DOM.feedbackBanner.classList.add('hidden');
+		}, 5000);
 	}
-	else { throw new Error('No room ID received'); }
-	// call gamesocket create room,
-	// after getting id, on error (handle somehow)
-	// send it to inviter, so he can join room on his side
-
 }
+

@@ -1,5 +1,5 @@
 import { PongGame } from "../multiPlayerGame";
-import { gamePage, showGamePage, showPage, startMultiplayerGame } from "../router";
+import { gamePage, navigateTo, showGamePage, showPage, startMultiplayerGame } from "../router";
 import { SocketManager } from "../socketManager";
 import { DOM } from "./chatElements"
 import { ChatSocketManager } from "./chatSocketManager";
@@ -51,7 +51,6 @@ export async function initLiveChat(chatSocket: ChatSocketManager)
 	}
 	catch (error) {
 		console.error(error);
-		
 	}
 }
 
@@ -669,7 +668,7 @@ async function getChatHistory()
 	else
 		DOM.noChats.classList.remove('hidden');
 
-	if (unread)
+	if (unread && window.location.pathname !== "/livechat")
 		DOM.liveChatNotification.classList.remove('hidden');
 
 	console.log("Was getting the chats - length: ", chats.length);
@@ -914,12 +913,14 @@ function RegisterSocketListeners()
 		// blockedOptions are already there and take priority
 		if (currentTargetID === by_id)
 		{
+			DOM.gameInviteBanner.classList.add('hidden');
+			chatSocket.removeInvitation("received");
+			chatSocket.removeInvitation("sent");
+			manageInviteBtnStatus(currentOptionsWindow);
+
 			// If chat window is open
 			if (!DOM.chatMsgArea.classList.contains('hidden'))
-			{
 				manageChatFooter();
-				DOM.gameInviteBanner.classList.add('hidden');
-			}
 			else if (currentOptionsWindow === DOM.chatsMenuOptions)
 				showOptions(DOM.chatsMenuBlockedByOptions);
 			else if (currentOptionsWindow == DOM.friendsMenuOptions)
@@ -981,6 +982,7 @@ function RegisterSocketListeners()
 			else
 			{
 				const msgPreview = currentChat.querySelector('.msg-preview') as HTMLParagraphElement;
+				msgPreview.classList.remove('text-yellow-300', 'italic', 'font-semibold'); // Reset from game style to normal message
 				msgPreview.innerHTML = msg;
 				DOM.chatHistory.prepend(currentChat!);
 			}
@@ -1004,7 +1006,7 @@ function RegisterSocketListeners()
 			notification.innerHTML = unread_amount > 99 ? "99+" : String(unread_amount);
 			const msgPreview = target.querySelector('.msg-preview') as HTMLParagraphElement;
 			msgPreview.innerHTML = lastMsgPreview;
-			msgPreview.classList.remove('text-yellow-300', 'italic', 'font-semibold'); // Reset for normal message
+			msgPreview.classList.remove('text-yellow-300', 'italic', 'font-semibold'); // Reset from game style to normal message
 			DOM.chatHistory.prepend(target);
 		}
 	});
@@ -1032,6 +1034,8 @@ function RegisterSocketListeners()
 	chatSocket.on("received game invitation", (from_id:number, nickname: string, avatar: string) => {
 		if (currentTargetID === from_id)
 		{
+			if (window.location.pathname !== "/livechat")
+				DOM.liveChatNotification.classList.remove('hidden');
 			const currentChat = DOM.chatHistory.querySelector(`li[data-id="${currentTargetID}"]`);
 			
 			// It could be that it's an open chat from newly added friend (so no chat history yet) 
@@ -1040,6 +1044,7 @@ function RegisterSocketListeners()
 			
 			DOM.gameInviteFrom.innerHTML = nickname;
 			DOM.gameInviteBanner.classList.remove('hidden');
+			manageInviteBtnStatus(currentOptionsWindow);
 		}
 	});
 	
@@ -1085,10 +1090,79 @@ function RegisterSocketListeners()
 			DOM.gameInviteBanner.classList.add('hidden');
 	});
 
+	chatSocket.on("can you play", (from_id: number) => {
+		const socketManager = SocketManager.getInstance();
+		const existingGame = socketManager.getGameInstance();
+
+		const status = (existingGame && existingGame.gameRunning) ? "not available" : "available";
+		
+		chatSocket.emit("status response", status, from_id); // responding with from_id so server knows where to send response
+	});
+
+	chatSocket.on("received player status", (status: string) => {
+		// At this point invitation was accepted and the sender is either already playing with someone or is available - in both cases reset invitation
+		chatSocket.removeInvitation("received");
+		chatSocket.removeInvitation("sent");
+		manageInviteBtnStatus(currentOptionsWindow);
+
+		if (status === "not available")
+		{
+			DOM.feedbackFrom.innerHTML = DOM.headerName.innerHTML;
+			DOM.feedbackMsg.innerHTML = "is currently playing";
+			DOM.feedbackBanner.classList.remove('hidden');
+			setTimeout(() => {
+				DOM.feedbackBanner.classList.add('hidden');
+			}, 5000);
+		}
+		else
+			createRoomAndNotify();
+	});
+
 	chatSocket.on("join the room", (roomID: string) => {
 		joinGame(roomID);
 	});
 }
+
+async function createRoomAndNotify()
+{
+	const socketManager = SocketManager.getInstance();
+	const existingGame = socketManager.getGameInstance();
+
+	if (existingGame && existingGame.gameRunning) {
+		console.error('setupLobbyUI called while game is running - this should not happen');
+		alert('A game is already running. Please wait for it to finish first.');
+		showGamePage();
+		return;
+	}
+
+	const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+	const game = new PongGame(canvas, socketManager);
+
+	socketManager.setGameInstance(game);
+	game.isSinglePlayer = false;
+	game.isRemote = true;
+
+	const roomId = await socketManager.createRoom();
+
+	if (roomId)
+	{
+		// const status = await chatSocket.informOtherPlayer(roomId);
+		chatSocket.emit("room id created", roomId, currentTargetID);
+
+		socketManager.onGameStart = () => {
+			navigateTo("/game");
+			showPage(gamePage);
+			startMultiplayerGame(game);
+		};
+	}
+	else
+	{
+		alert("Something went wrong. Please try again later");
+		DOM.gameInviteBanner.classList.add('hidden');
+		throw new Error('No room ID received');
+	}
+}
+
 
 async function joinGame(roomID: string)
 {
@@ -1096,9 +1170,9 @@ async function joinGame(roomID: string)
 		const existingGame = socketManager.getGameInstance();
 		
 		if (existingGame && existingGame.gameRunning) {
-			console.error('setupLobbyUI called while game is running - this should not happen');
-			alert('A game is already running. Please wait for it to finish first.');
-			showGamePage();
+			// console.error('setupLobbyUI called while game is running - this should not happen');
+			// alert('A game is already running. Please wait for it to finish first.');
+			// showGamePage();
 			return;
 		}
 		
@@ -1112,6 +1186,7 @@ async function joinGame(roomID: string)
 		const success = await socketManager.joinRoom(roomID);
 		if (success) {
 		socketManager.onGameStart = () => {
+			navigateTo("/game");
 			showPage(gamePage);
 			startMultiplayerGame(game);
 		};
