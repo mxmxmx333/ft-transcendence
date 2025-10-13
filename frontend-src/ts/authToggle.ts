@@ -2,20 +2,20 @@ import { handleSignup, handleLogin, handleSetNickname, handle2FaLogin, handleDis
 import { navigateTo, showAccountPage, showDeleteAccountPage } from './router.js';
 
 // For input security issues I'll use these as I got errors for now it's hashed.
-// const validateEmail = (email: string): boolean => {
-//   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
-//   return re.test(email.trim());
-// };
+const validateEmail = (email: string): boolean => {
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
+  return re.test(email.trim());
+};
 
-// const validatePassword = (password: string): boolean => {
-//   // for 8 chars and a number.
-//   const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-//   return re.test(password);
-// };
+const validatePassword = (password: string): boolean => {
+  // for 8 chars and a number.
+  const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+  return re.test(password);
+};
 
-// const sanitizeInput = (input: string): string => {
-//   return input.trim().replace(/\s+/g, ' ');
-// };
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/\s+/g, ' ');
+};
 // Form submits
 const setupLoginValidation = () => {
   const form = document.getElementById('loginForm') as HTMLFormElement;
@@ -26,15 +26,15 @@ const setupLoginValidation = () => {
     const email = (document.getElementById('login-email') as HTMLInputElement).value;
     const password = (document.getElementById('login-pw') as HTMLInputElement).value;
 
-    // if (!validateEmail(email)) {
-    //   alert('enter a valid email');
-    //   return;
-    // }
+    if (!validateEmail(email)) {
+      alert('enter a valid email');
+      return;
+    }
 
-    // if (!validatePassword(password)) {
-    //   alert('At least 8 characters!');
-    //   return;
-    // }
+    if (!validatePassword(password)) {
+      alert('At least 8 characters!');
+      return;
+    }
 
     try {
       await handleLogin({ email, password });

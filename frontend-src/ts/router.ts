@@ -1537,6 +1537,10 @@ async function showTournamentPage(): Promise<void> {
       showPage(gamePage);
       return;
     }
+    else {
+      showPage(tournamentLobby);
+      return;
+    }
   }
 
   showTournamentLobby();

@@ -76,6 +76,7 @@ export async function handleLogin(formData: { email: string; password: string })
     return data;
   } catch (error) {
     console.error('Login error:', error);
+    alert(`Login error: ${error}`);
     localStorage.removeItem('authToken');
     document.querySelector('.main-nav')?.classList.add('hidden');
   }
