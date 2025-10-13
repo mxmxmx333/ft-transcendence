@@ -1144,7 +1144,7 @@ async function handleLogout() {
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
   if (!isAuthenticated()) {
-    alert('Multiplayer oynamak için giriş yapmalısınız');
+    alert('Please log in.');
     navigateTo('/');
     return;
   }
@@ -1605,7 +1605,6 @@ export function handleTournamentEnd(data: any): void {
     status.textContent = `🏆 Tournament finished!\n${data.winner} won!`;
   }
 
-  // NUR hier zur Tournament-Lobby zurück
   setTimeout(() => {
     resetTournamentUI();
   }, 9000);
