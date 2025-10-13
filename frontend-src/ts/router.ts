@@ -30,7 +30,6 @@ let currentPage = loginPage;
 
 export function showPage(pageToShow: HTMLElement) {
   if (currentPage === pageToShow) return;
-  console.debug(`[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA] Navigating from ${currentPage.className} to ${pageToShow.className}`);
   currentPage.classList.add('hidden');
   pageToShow.classList.remove('hidden');
   currentPage = pageToShow;
