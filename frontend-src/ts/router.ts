@@ -119,16 +119,16 @@ const routes: Route[] = [
 
 export async function manageNavbar() {
   const navbar = document.querySelector('.main-nav') as HTMLElement;
-
   if (!navbar) return;
 
+  // Always keep mobile (sm) hidden to avoid flash
+  navbar.classList.add('hidden');
+
   if (await isAuthenticated()) {
-    // Kullanıcı giriş yaptıysa navbar'ı göster
-    navbar.classList.remove('hidden');
+    // Show on desktop/tablet: md and up
     navbar.classList.add('md:flex');
   } else {
-    // Kullanıcı giriş yapmadıysa navbar'ı gizle
-    navbar.classList.add('hidden');
+    // Hide on md+ as well when not authenticated
     navbar.classList.remove('md:flex');
   }
 }
