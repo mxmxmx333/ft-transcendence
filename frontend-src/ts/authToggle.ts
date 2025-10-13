@@ -37,7 +37,7 @@ const setupLoginValidation = () => {
     }
 
     if (!validatePassword(password)) {
-      alert('At least 8 characters!');
+      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
       return;
     }
 
@@ -200,7 +200,7 @@ const setupSignupValidation = () => {
     }
 
     if (!validatePassword(password)) {
-      alert('Password can only contain letters, numbers, underscores, dashes, and dots.');
+      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
       return;
     }
 
