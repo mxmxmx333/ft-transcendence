@@ -80,40 +80,78 @@ export class PongGame {
   }
 
   private setupCanvas() {
-    const aspectRatio = 16 / 9;
-    const maxWidth = 800;
-    const maxHeight = 600;
+    // Canvas boyutlarını CSS'e bırak, sadece pixel ratio'yu güncelle
+    this.updateCanvasSize();
+    
+    // Resize observer ekle
+    this.setupResizeObserver();
+}
 
-    const container = this.canvas.parentElement;
-    const containerWidth = container?.clientWidth || maxWidth;
-    const containerHeight = container?.clientHeight || maxHeight;
+private updateCanvasSize() {
+    const rect = this.canvas.getBoundingClientRect();
+    this.canvas.width = rect.width;
+    this.canvas.height = rect.height;
+    this.updateScalingFactors();
+}
 
-    let width = Math.min(containerWidth, maxWidth);
-    let height = width / aspectRatio;
-
-    if (height > containerHeight) {
-      height = containerHeight;
-      width = height * aspectRatio;
-    }
-
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
-
-    this.canvasSizeRatioX = this.canvas.width / maxWidth;
-    this.canvasSizeRatioY = this.canvas.height / maxHeight;
+private updateScalingFactors() {
+    const baseWidth = 800;
+    const baseHeight = 600;
+    
+    this.canvasSizeRatioX = this.canvas.width / baseWidth;
+    this.canvasSizeRatioY = this.canvas.height / baseHeight;
     this.canvasSizeRatio = Math.min(this.canvasSizeRatioX, this.canvasSizeRatioY);
+    
     this.paddleHeight = 100 * this.canvasSizeRatioY;
     this.paddleWidth = 15 * this.canvasSizeRatioX;
     this.ballRadius = 10 * this.canvasSizeRatio;
+}
 
-    window.addEventListener('resize', () => this.resizeCanvas());
-  }
+private setupResizeObserver() {
+    const resizeObserver = new ResizeObserver(() => {
+        this.updateCanvasSize();
+        if (this.gameRunning) this.draw();
+    });
+    
+    resizeObserver.observe(this.canvas);
+}
 
-  private resizeCanvas() {
-    this.setupCanvas();
-  }
+//Commented out for testing resize'in canvas I temporarily left css to handle it.
+  // private setupCanvas() {
+  //   const aspectRatio = 16 / 9;
+  //   const maxWidth = 800;
+  //   const maxHeight = 600;
+
+  //   const container = this.canvas.parentElement;
+  //   const containerWidth = container?.clientWidth || maxWidth;
+  //   const containerHeight = container?.clientHeight || maxHeight;
+
+  //   let width = Math.min(containerWidth, maxWidth);
+  //   let height = width / aspectRatio;
+
+  //   if (height > containerHeight) {
+  //     height = containerHeight;
+  //     width = height * aspectRatio;
+  //   }
+
+  //   this.canvas.width = width;
+  //   this.canvas.height = height;
+  //   this.canvas.style.width = `${width}px`;
+  //   this.canvas.style.height = `${height}px`;
+
+  //   this.canvasSizeRatioX = this.canvas.width / maxWidth;
+  //   this.canvasSizeRatioY = this.canvas.height / maxHeight;
+  //   this.canvasSizeRatio = Math.min(this.canvasSizeRatioX, this.canvasSizeRatioY);
+  //   this.paddleHeight = 100 * this.canvasSizeRatioY;
+  //   this.paddleWidth = 15 * this.canvasSizeRatioX;
+  //   this.ballRadius = 10 * this.canvasSizeRatio;
+
+  //   window.addEventListener('resize', () => this.resizeCanvas());
+  // }
+
+  // private resizeCanvas() {
+  //   this.setupCanvas();
+  // }
 
   private setupControls() {
     // Keyboard
