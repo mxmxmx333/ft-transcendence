@@ -332,12 +332,22 @@ export class ChatSocketManager
 		});
 	}
 
-	public waitForOtherPlayer(roomID: string): Promise<string>
+	public checkIfAvailable(): Promise<string>
 	{
 		return new Promise((resolve) => {
-			this.socket?.emit("room id created", roomID, currentTargetID, (status: string) => {
+			this.socket?.emit("check if available", currentTargetID, (status: string) => {
 				resolve(status);
 			});
 		});
 	}
+
+	// public informOtherPlayer(roomID: string): Promise<string>
+	// {
+	// 	return new Promise((resolve) => {
+	// 		this.socket?.emit("room id created", roomID, currentTargetID, (status: string) => {
+	// 			resolve(status);
+	// 		});
+	// 	});
+	// }
+
 }

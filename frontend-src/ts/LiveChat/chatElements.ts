@@ -67,6 +67,9 @@ const gameInviteBanner = document.getElementById('game-invitation-banner') as HT
 const gameInviteFrom = document.getElementById('game-invite-from') as HTMLElement;
 const acceptGameInviteBtn = document.getElementById('accept-game-invite-btn') as HTMLElement;
 const declineGameInviteBtn = document.getElementById('decline-game-invite-btn') as HTMLElement;
+const feedbackBanner = document.getElementById('invite-feedback') as HTMLElement;
+const feedbackFrom = document.getElementById('feedback-from-player') as HTMLElement;
+const feedbackMsg = document.getElementById('feedback-msg') as HTMLElement;
 
 export const DOM = {
 	searchBar,
@@ -137,5 +140,8 @@ export const DOM = {
 	gameInviteBanner,
 	gameInviteFrom,
 	acceptGameInviteBtn,
-	declineGameInviteBtn
+	declineGameInviteBtn,
+	feedbackBanner,
+	feedbackFrom,
+	feedbackMsg
 };

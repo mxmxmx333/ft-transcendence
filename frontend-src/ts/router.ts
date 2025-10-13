@@ -1126,6 +1126,7 @@ async function handleLogout() {
     document.querySelector('.totp-page')?.classList.add('hidden');
     document.querySelector('.account-settings-page')?.classList.add('hidden');
     document.querySelector('.delete-account-page')?.classList.add('hidden');
+    document.querySelector('.reconnect-info')?.classList.add('hidden');
 
     manageNavbar();
     navigateTo('/');

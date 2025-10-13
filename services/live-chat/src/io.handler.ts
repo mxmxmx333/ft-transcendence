@@ -793,7 +793,8 @@ export function onRecordTournamentMessage(msg: string, userID: number)
 		const receiver = activeUsers.get(userID);
 		if (receiver && receiver.activeChatID === tournamentID)
 		{
-			receiver.socket.emit("received message", tournamentID, 'Tournament System', msg, time);
+			// 'T' instead of avatar path, cause i use same functions as for normal messages.
+			receiver.socket.emit("received message", tournamentID, 'Tournament System', 'T', msg, time);
 			return;
 		}
 		
@@ -806,7 +807,7 @@ export function onRecordTournamentMessage(msg: string, userID: number)
 		const returned = stmt2.get(userID, 1) as {amount: number};
 		
 		if (receiver)
-			receiver.socket.emit("update notification", tournamentID, 'Tournament System', msg, returned.amount);
+			receiver.socket.emit("update notification", tournamentID, 'Tournament System', 'T', msg, returned.amount);
 	}
 	catch (err) {
 		console.error("[DB] Error: ", err);
@@ -914,10 +915,27 @@ function onDeleteInvitation(socket: Socket, userID: number)
 
 function onRoomIdCreated(socket: Socket, userID: number)
 {
-	socket.on("room id created", (roomID: string, target_id: number, callback: (status:string) => void) => {
+	socket.on("check if available", (target_id: number, callback: (status: string) => void) => {
 		const receiver = activeUsers.get(target_id);
-		// add check if still online
+		if (!receiver) // additional online check
+			return (callback("offline"));
+		
+		receiver.socket.emit("can you play", userID);
+		callback("online");
+	});
 
-		receiver?.socket.emit("join the room", roomID);
+	socket.on("status response", (status: string, to_id: number) => {
+		const receiver = activeUsers.get(to_id);
+		if (!receiver) // additional online check
+			return;
+		receiver.socket.emit("received player status", status);
+	});
+
+	socket.on("room id created", (roomID: string, target_id: number) => {
+		const receiver = activeUsers.get(target_id);
+		if (!receiver)
+			return;
+
+		receiver.socket.emit("join the room", roomID);
 	});
 }
