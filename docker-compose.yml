@@ -398,9 +398,11 @@ services:
       CERT_DIR: /app/certs
       APPROLE_DIR: /approle-service
       VAULT_ADDR: "https://vault-1:8200"
-      FRONTEND_URL: "web-application-firewall:8443"
       AVATAR_UPLOAD_DIR: /app/uploads/avatars
       LIVE_CHAT_UPSTREAM: https://live-chat:3004
+      OAUTH_REDIRECT_URL: ${OAUTH_REDIRECT_URL:-https://ft-transcendence.at:8443}
+      OAUTH_CLIENT_ID_42: ${OAUTH_CLIENT_ID_42:-placeholder_client_id}
+      OAUTH_CLIENT_SECRET_42: ${OAUTH_CLIENT_SECRET_42:-placeholder_client_secret}
     volumes:
       - database:/app/database
       - database-upload:/app/uploads/avatars:rw

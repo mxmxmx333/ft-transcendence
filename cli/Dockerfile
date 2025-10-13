@@ -6,7 +6,7 @@ ENV RUSTFLAGS="-A dead_code"
 
 WORKDIR /usr/src/cli
 COPY . .
-RUN cargo install --debug --path .
+RUN cargo install --path .
 
 FROM debian:trixie-slim
 COPY --from=builder /usr/local/cargo/bin/cli /usr/local/bin/cli

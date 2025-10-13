@@ -336,6 +336,12 @@ export function joinRoom(player: Player, roomId: string) {
     });
     return;
   }
+  if (room.owner.id === player.id) {
+    player.conn.emit('join_error', {
+      message: 'You are not allowed to play against yourself',
+    });
+    return;
+  }
   room.guest = player;
   console.log(`Player ${player.nickname} joining room ${roomId} as guest`);
 

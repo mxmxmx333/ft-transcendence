@@ -1,4 +1,4 @@
-import { frontendUrl } from './server';
+import { OAUTH_REDIRECT_URL } from './server';
 import { z } from 'zod';
 
 export enum OAuthClientTypes {
@@ -62,7 +62,7 @@ export default class OAuthService {
     }
     this.states.delete(data.state);
 
-    const callbackUrl = frontendUrl + '/oAuthCallback';
+    const callbackUrl = OAUTH_REDIRECT_URL + '/oAuthCallback';
 
     const response = await fetch('https://api.intra.42.fr/oauth/token', {
       method: 'POST',
