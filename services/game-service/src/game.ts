@@ -19,9 +19,7 @@ export function startGame(room: GameRoom) {
   console.log(`[Server] Owner: ${room.owner.nickname} (${room.owner.id})`);
   console.log(`[Server] Guest: ${room.guest.nickname} (${room.guest.id})`);
 
-  // Skorları sıfırla
-  room.owner.score = 0;
-  room.guest.score = 0;
+  resetGame(room);
 
   try {
     const gameStartPayload: GameStartPayload = {
@@ -96,6 +94,22 @@ export function startGame(room: GameRoom) {
   setTimeout(() => {
     gameLoop(room);
   }, 3000);
+}
+
+function resetGame(room: GameRoom) {
+  if (room.owner) {
+    room.owner.score = 0;
+    room.owner.paddleY = 250;
+  }
+  if (room.guest) {
+    room.guest.score = 0;
+    room.guest.paddleY = 250;
+  }
+  room.gameState.ballX = 400;
+  room.gameState.ballY = 400;
+  room.gameState.ballVX = 5 * (Math.random() > 0.5 ? 1 : -1);
+  room.gameState.ballVY = 3 * (Math.random() > 0.5 ? 1 : -1);
+  room.gameState.lastUpdate = Date.now();
 }
 
 function gameLoop(room: GameRoom) {
