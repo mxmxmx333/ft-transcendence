@@ -116,7 +116,7 @@ export default class AuthController {
     } catch (error) {
       console.error('Signup error:', error);
       return reply.status(500).send({
-        error: 'Network error',
+        error: 'Nickname or email already in use',
         details: error,
       });
     }

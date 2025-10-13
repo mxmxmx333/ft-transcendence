@@ -25,7 +25,7 @@ export async function handleSignup(formData: {
     }
 
     const data = await responseClone.json();
-    localStorage.setItem('authToken', data.token);
+    // localStorage.setItem('authToken', data.token);
     initLiveChat(ChatSocketManager.getInstance());
     return data;
   } catch (error) {
