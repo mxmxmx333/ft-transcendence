@@ -1,4 +1,5 @@
 import { navigateTo } from './router';
+import { socketManager } from './router';
 
 export class ProfileOptions {
   private currentAvatar: string = 'default';
@@ -519,7 +520,17 @@ export class ProfileOptions {
 
     if (response.ok) {
       console.log('✅ Profile updated successfully!');
-
+      const data = await response.json();
+      const newToken = data.token ?? data.user?.token ?? null;
+      if (newToken) {
+        localStorage.setItem('authToken', newToken);
+        console.log('✅ New auth token saved after profile update');
+      } else {
+        localStorage.removeItem('authToken');
+        console.log('ℹ️ Auth token cleared after profile update');
+      }
+      const newNickname = data.nickname || nickname;
+      socketManager.updateNickname(newNickname);
       const currentEmail =
            (document.getElementById('profile-email')?.textContent === 'N/A'
           ? ''

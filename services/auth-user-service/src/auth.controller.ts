@@ -707,7 +707,7 @@ export default class AuthController {
 
   async updateProfile(request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) {
     try {
-      const token = request.headers?.authorization?.split(' ')[1];
+      let token = request.headers?.authorization?.split(' ')[1];
       if (!token) {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
@@ -739,7 +739,6 @@ export default class AuthController {
       }
 
       if (avatar) {
-        // ✅ FIX: getAvailableAvatars'a userId parametresini ekle
         const availableAvatars = this.authService.getAvailableAvatars(userId);
         if (!availableAvatars.includes(avatar)) {
           return reply.status(400).send({ error: 'Invalid avatar selection' });
@@ -761,28 +760,40 @@ export default class AuthController {
         return reply.status(400).send({ error: 'No valid updates provided' });
       }
 
-      const updatedUser = this.authService.getUserById(userId);
-      try {
-      const response = await fetch(`${liveChatUpstream}/auth/info/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: Number(updatedUser!.id),
-          nickname: updatedUser!.nickname,
-          avatar: updatedUser!.avatar,
-        }),
+      const updatedUser = await this.authService.getUserById(userId);
+      const newToken = await this.fastify.vAuth.sign({
+        sub: updatedUser!.id?.toString(),
+        nickname: nickname || updatedUser!.nickname,
+        nickname_required: updatedUser!.nickname === null,
+        totp_required: updatedUser!.totp_secret !== null,
       });
-      if (!response.ok) {
-        throw new Error("Unable to inform livechat about user update");
+      if (newToken) {
+        this.fastify.log.info('🔄 Token refreshed on profile update');
+        token = newToken;
       }
-      return reply.send({success: true});
+
+      try {
+        const response = await fetch(`${liveChatUpstream}/auth/info/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: Number(updatedUser!.id),
+            nickname: updatedUser!.nickname,
+            avatar: updatedUser!.avatar,
+          }),
+        });
+        if (!response.ok) {
+          this.fastify.log.error('Unable to inform livechat about user update');
+        }
       } catch (error) {
         this.fastify.log.error(error);
       }
+
       return reply.send({
         success: true,
+        token,
         user: {
           id: updatedUser!.id,
           nickname: updatedUser!.nickname,

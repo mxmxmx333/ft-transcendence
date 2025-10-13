@@ -2,6 +2,7 @@ import { Server } from 'http';
 import { SocketManager } from './socketManager';
 import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces';
 import { gamePage, navigateTo, newgamePage, showPage } from './router';
+import { time } from 'console';
 
 export class PongGame {
   public isSinglePlayer = false;
@@ -240,7 +241,8 @@ private setupResizeObserver() {
   }
   // till here start-pause btns
 
-  private updateStatus(message: string) {
+  private updateStatus(message: string | null) {
+    if (!message) return (document.getElementById('game-status')?.remove());
     console.log(`[Status] ${message}`);
 
     let statusElement = document.getElementById('game-status');
@@ -617,6 +619,7 @@ private setupResizeObserver() {
       console.warn('Game is already running');
       return;
     }
+    this.updateStatus(null)
     this.gameRunning = true;
     this.lastTimeStamp = performance.now();
     this.lastPaddleUpdate = performance.now();
@@ -647,6 +650,7 @@ private setupResizeObserver() {
     }
     this.updateStatus('Game paused');
     this.socketManager?.setGamePauseState(true);
+    setTimeout(() => this.updateStatus(null), 1000);
   }
 
   public resume() {
@@ -658,6 +662,7 @@ private setupResizeObserver() {
     this.animationId = requestAnimationFrame(this.gameLoop);
     this.updateStatus('Game resumed');
     this.socketManager?.setGamePauseState(false);
+    setTimeout(() => this.updateStatus(null), 1000); 
   }
 
   private gameLoop = (timestamp: number) => {
