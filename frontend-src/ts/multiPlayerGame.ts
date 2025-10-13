@@ -1,7 +1,7 @@
 import { Server } from 'http';
 import { SocketManager } from './socketManager';
 import { ClientToServerEvents, ServerToClientEvents } from './types/socket-interfaces';
-import { gamePage, newgamePage, showPage } from './router';
+import { gamePage, navigateTo, newgamePage, showPage } from './router';
 
 export class PongGame {
   public isSinglePlayer = false;
@@ -179,6 +179,7 @@ private setupResizeObserver() {
       console.log('Game page already hidden, not returning to new game page');
       return;
     }
+    navigateTo('/game');
     showPage(newgamePage);
   }
   // till here
@@ -359,6 +360,7 @@ private setupResizeObserver() {
     // Sayfa geçişi
     //   document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
     //   document.querySelector('.game-page')?.classList.remove('hidden');
+    navigateTo('/game');
     showPage(gamePage);
 
     this.startCountdown();

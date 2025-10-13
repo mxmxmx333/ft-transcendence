@@ -48,8 +48,8 @@ type Route = {
 const routes: Route[] = [
     {
     path: '/',
-    view: () => {
-      if (isAuthenticated()) {
+    view: async () => {
+      if (await isAuthenticated()) {
         navigateTo('/profile');
         return;
       }
@@ -81,7 +81,11 @@ const routes: Route[] = [
     view: showLiveChat,
     authRequired: true,
   },
-  { path: '/options', view: showOptionsPage, authRequired: true },
+  { 
+    path: '/options', 
+    view: showOptionsPage, 
+    authRequired: true 
+  },
   {
     path: '/search',
     view: showUserSearchPage,
@@ -113,12 +117,12 @@ const routes: Route[] = [
   },
 ];
 
-export function manageNavbar() {
+export async function manageNavbar() {
   const navbar = document.querySelector('.main-nav') as HTMLElement;
 
   if (!navbar) return;
 
-  if (isAuthenticated()) {
+  if (await isAuthenticated()) {
     // Kullanıcı giriş yaptıysa navbar'ı göster
     navbar.classList.remove('hidden');
     navbar.classList.add('md:flex');
@@ -171,8 +175,8 @@ function setupOptionsPageListeners() {
   });
 }
 
-function showOptionsPage() {
-  if (!isAuthenticated()) {
+async function showOptionsPage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -197,8 +201,8 @@ async function loadOptionsData() {
   }
 }
 
-function showUserSearchPage() {
-  if (!isAuthenticated()) {
+async function showUserSearchPage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -210,8 +214,8 @@ function showUserSearchPage() {
   setupUserSearch();
 }
 
-function showStatistics() {
-  if (!isAuthenticated()) {
+async function showStatistics() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -504,8 +508,8 @@ async function sendFriendRequest(targetUserId: number): Promise<boolean> {
   }
 }
 
-function showUserProfilePage() {
-  if (!isAuthenticated()) {
+async function showUserProfilePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -569,7 +573,7 @@ async function showOAuthResultPage() {
           localStorage.setItem('authToken', data.token);
           navigateTo('/profile');
           return;
-        } else if (!data.token && isAuthenticated()) {
+        } else if (!data.token && await isAuthenticated()) {
           navigateTo('/profile');
           return;
         }
@@ -827,8 +831,8 @@ function showAuthPage() {
   showPage(loginPage);
 }
 
-function showProfilePage() {
-  if (!isAuthenticated()) {
+async function showProfilePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -837,8 +841,8 @@ function showProfilePage() {
   loadProfileData();
 }
 
-export function showGamePage() {
-  if (!isAuthenticated()) {
+export async function showGamePage() {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -863,14 +867,14 @@ export function navigateTo(path: string) {
   handleRouting();
 }
 
-function handleRouting() {
+async function handleRouting() {
   const currentPath = window.location.pathname;
 
   // Parametreli route'ları kontrol et
   if (currentPath.startsWith('/user/')) {
     const userId = currentPath.split('/').pop();
     if (userId && !isNaN(parseInt(userId))) {
-      if (!isAuthenticated()) {
+      if (!(await isAuthenticated())) {
         navigateTo('/');
         return;
       }
@@ -882,7 +886,7 @@ function handleRouting() {
   // Normal route'ları kontrol et
   const route = routes.find((r) => r.path === currentPath) || routes[0];
 
-  if (route.authRequired && !isAuthenticated()) {
+  if (route.authRequired && !(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -899,9 +903,9 @@ function handleRouting() {
 window.addEventListener('popstate', handleRouting);
 
 // Routing to start when dom loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   manageNavbar();
-  if (isAuthenticated())
+  if (await isAuthenticated())
     initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -1138,8 +1142,8 @@ async function handleLogout() {
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
-  if (!isAuthenticated()) {
-    alert('Multiplayer oynamak için giriş yapmalısınız');
+  if (!(await isAuthenticated())) {
+    alert('Please log in.');
     navigateTo('/');
     return;
   }
@@ -1175,6 +1179,7 @@ async function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remo
   try {
     await socketManager.createRoom();
     socketManager.onGameStart = () => {
+      navigateTo('/game');
       showPage(gamePage);
       startMultiplayerGame(game);
     };
@@ -1197,6 +1202,7 @@ async function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remo
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1240,7 +1246,8 @@ async function handleCreateRoom() {
     if (roomId) {
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
       socketManager.onGameStart = () => {
-        showPage(gamePage);
+        navigateTo('/game');
+        // showPage(gamePage);
         if (game) startMultiplayerGame(game);
       };
     } else {
@@ -1265,6 +1272,7 @@ async function handleCreateRoom() {
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1285,6 +1293,7 @@ async function handleJoinRoom() {
     if (success) {
       statusElement.textContent = 'Joined successfully! Starting game...';
       socketManager.onGameStart = () => {
+        navigateTo('/game');
         showPage(gamePage);
         if (game) startMultiplayerGame(game);
       };
@@ -1310,6 +1319,7 @@ async function handleJoinRoom() {
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1515,7 +1525,7 @@ async function leaveTournament(): Promise<void> {
 }
 
 async function showTournamentPage(): Promise<void> {
-  if (!isAuthenticated()) {
+  if (!(await isAuthenticated())) {
     navigateTo('/');
     return;
   }
@@ -1545,6 +1555,7 @@ export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
   hideTournamentRules();
+  navigateTo('/tournament');
   showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -1577,6 +1588,15 @@ export function handleTournamentMatchStart(data: any): void {
 
 export function handleTournamentEnd(data: any): void {
   console.log('Tournament completely finished, winner:', data);
+
+  const game = socketManager.getGameInstance();
+  if (game) {
+    game.stop();
+    socketManager.gameInstance = null;
+    socketManager.leaveRoom();
+  }
+
+  navigateTo('/tournament');
   showPage(tournamentLobby);
 
   const status = document.getElementById('tournament-status');
@@ -1584,7 +1604,6 @@ export function handleTournamentEnd(data: any): void {
     status.textContent = `🏆 Tournament finished!\n${data.winner} won!`;
   }
 
-  // NUR hier zur Tournament-Lobby zurück
   setTimeout(() => {
     resetTournamentUI();
   }, 9000);

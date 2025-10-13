@@ -189,6 +189,17 @@ const setupSignupValidation = () => {
       return;
     }
 
+    const asciiRegex = /^[a-zA-Z0-9_\-\.]+$/;
+    if (!asciiRegex.test(nickname)) {
+      alert('Nickname can only contain letters, numbers, underscores, dashes, and dots.');
+      return;
+    }
+
+    if (!asciiRegex.test(password)) {
+      alert('Password can only contain letters, numbers, underscores, dashes, and dots.');
+      return;
+    }
+
     try {
       await handleSignup({ nickname, email, password });
       

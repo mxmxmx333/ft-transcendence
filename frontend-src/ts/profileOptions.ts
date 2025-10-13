@@ -488,6 +488,13 @@ export class ProfileOptions {
       return;
     }
 
+    const asciiRegex = /^[a-zA-Z0-9_\-\.]+$/;
+    if (!asciiRegex.test(nickname)) {
+      alert('Nickname can only contain letters, numbers, underscores, dashes, and dots.');
+      nicknameInput.focus();
+      return;
+    }
+
     const response = await fetch('/api/profile', {
       method: 'PUT',
       headers: {
@@ -514,8 +521,7 @@ export class ProfileOptions {
         friendsCount: 0,
       });
 
-      document.querySelector('.options-page')?.classList.add('hidden');
-      document.querySelector('.profile-page')?.classList.remove('hidden');
+      navigateTo('/profile');
 
       console.log('✅ Profile page updated with avatar:', this.currentAvatar);
     } else {
