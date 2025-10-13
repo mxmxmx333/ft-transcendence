@@ -609,6 +609,29 @@ export default class AuthController {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
   }
+  async getGameStatistics(request: FastifyRequest, reply: FastifyReply) {
+    const userId = (request.headers['req-user'] as string) || null;
+    if (!userId) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+    try {
+      const user = this.authService.getUserById(parseInt(userId));
+      if (!user) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+      
+      const gameStats = await this.authService.getUserGameStats(parseInt(userId));
+      const body = {
+        games_played: gameStats.games_played,
+        average_score: gameStats.average_score,
+        win_rate: gameStats.win_rate,
+      };
+      return reply.send(body);
+    } catch (err) {
+      console.error('Get game statistics error:', err);
+      return reply.status(500).send({ error: 'Internal server error' });
+    }
+  }
 
   // === NEW METHODS PLS DONT DELETE THERE ARE STILL BUGS
   async getUserById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {

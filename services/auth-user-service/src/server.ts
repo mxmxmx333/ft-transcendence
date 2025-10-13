@@ -332,7 +332,9 @@ async function start() {
   server.delete('/api/profile/avatar', async (req, reply) => {
     return authController.deleteCustomAvatar(req, reply);
   });
-
+  server.get('/api/profile/chat-game-statistics', async (req, reply) => {
+    return authController.getGameStatistics(req, reply);
+  });
   server.register(require('@fastify/static'), {
     root: uploadsBaseDir,
     prefix: '/uploads/',

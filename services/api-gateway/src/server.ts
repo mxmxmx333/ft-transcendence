@@ -117,7 +117,8 @@ async function buildServer() {
       '/socket.io',
       '/api/account',
       '/api/auth/2fa/enable',
-      '/api/auth/2fa/disable'
+      '/api/auth/2fa/disable',
+      '/api/profile/chat-game-statistics',
     ];
     const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));
 
@@ -277,6 +278,12 @@ async function buildServer() {
     prefix: '/api/profile/avatar',
     rewritePrefix: '/api/profile/avatar',
     httpMethods: ['DELETE'],
+  });
+  await server.register(proxy, {
+    upstream: upstreamAuthAndUserService || 'https://localhost:3002',
+    prefix: '/api/profile/chat-game-statistics',
+    rewritePrefix: '/api/profile/chat-game-statistics',
+    httpMethods: ['GET'],
   });
   // === More New added
   await server.register(proxy, {
