@@ -11,7 +11,7 @@ import { loginPage } from './router';
 export class SocketManager {
   private static instance: SocketManager;
   private socket?: Socket;
-  private gameInstance: PongGame | null = null;
+  public gameInstance: PongGame | null = null;
 
   private isConnecting = false;
   private connectionPromise: Promise<void> | null = null;

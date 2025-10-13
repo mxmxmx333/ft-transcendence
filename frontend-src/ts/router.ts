@@ -30,6 +30,7 @@ let currentPage = loginPage;
 
 export function showPage(pageToShow: HTMLElement) {
   if (currentPage === pageToShow) return;
+  console.debug(`[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA] Navigating from ${currentPage.className} to ${pageToShow.className}`);
   currentPage.classList.add('hidden');
   pageToShow.classList.remove('hidden');
   currentPage = pageToShow;
@@ -81,7 +82,11 @@ const routes: Route[] = [
     view: showLiveChat,
     authRequired: true,
   },
-  { path: '/options', view: showOptionsPage, authRequired: true },
+  { 
+    path: '/options', 
+    view: showOptionsPage, 
+    authRequired: true 
+  },
   {
     path: '/search',
     view: showUserSearchPage,
@@ -1175,6 +1180,7 @@ async function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remo
   try {
     await socketManager.createRoom();
     socketManager.onGameStart = () => {
+      navigateTo('/game');
       showPage(gamePage);
       startMultiplayerGame(game);
     };
@@ -1197,6 +1203,7 @@ async function startSinglePlayerGame(game: PongGame, singlePlayer: boolean, remo
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1240,7 +1247,8 @@ async function handleCreateRoom() {
     if (roomId) {
       statusElement.innerHTML = `Room created! ID: <strong class="neon-text-yellow">${roomId}</strong><br>Waiting for opponent...`;
       socketManager.onGameStart = () => {
-        showPage(gamePage);
+        navigateTo('/game');
+        // showPage(gamePage);
         if (game) startMultiplayerGame(game);
       };
     } else {
@@ -1265,6 +1273,7 @@ async function handleCreateRoom() {
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1285,6 +1294,7 @@ async function handleJoinRoom() {
     if (success) {
       statusElement.textContent = 'Joined successfully! Starting game...';
       socketManager.onGameStart = () => {
+        navigateTo('/game');
         showPage(gamePage);
         if (game) startMultiplayerGame(game);
       };
@@ -1310,6 +1320,7 @@ async function handleJoinRoom() {
     }
 
     setTimeout(() => {
+      navigateTo('/game');
       showPage(newgamePage);
     }, 1500);
   }
@@ -1545,6 +1556,7 @@ export function handleTournamentMatchStart(data: any): void {
   console.log('[Frontend] Tournament Match Start'); // Debug
 
   hideTournamentRules();
+  navigateTo('/tournament');
   showPage(gamePage);
 
   const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -1577,6 +1589,15 @@ export function handleTournamentMatchStart(data: any): void {
 
 export function handleTournamentEnd(data: any): void {
   console.log('Tournament completely finished, winner:', data);
+
+  const game = socketManager.getGameInstance();
+  if (game) {
+    game.stop();
+    socketManager.gameInstance = null;
+    socketManager.leaveRoom();
+  }
+
+  navigateTo('/tournament');
   showPage(tournamentLobby);
 
   const status = document.getElementById('tournament-status');
