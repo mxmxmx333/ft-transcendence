@@ -49,7 +49,7 @@ const routes: Route[] = [
     {
     path: '/',
     view: async () => {
-      if (await isAuthenticated()) {
+      if (await isAuthenticatedOnce()) {
         navigateTo('/profile');
         return;
       }
@@ -117,6 +117,14 @@ const routes: Route[] = [
   },
 ];
 
+let __authInflight: Promise<boolean> | null = null;
+export function isAuthenticatedOnce(): Promise<boolean> {
+  if (__authInflight) return __authInflight;
+  __authInflight = isAuthenticated().catch(() => false);
+  __authInflight.finally(() => { __authInflight = null; });
+  return __authInflight;
+}
+
 export async function manageNavbar() {
   const navbar = document.querySelector('.main-nav') as HTMLElement;
   if (!navbar) return;
@@ -124,7 +132,7 @@ export async function manageNavbar() {
   // Always keep mobile (sm) hidden to avoid flash
   navbar.classList.add('hidden');
 
-  if (await isAuthenticated()) {
+  if (await isAuthenticatedOnce()) {
     // Show on desktop/tablet: md and up
     navbar.classList.add('md:flex');
   } else {
@@ -874,7 +882,7 @@ async function handleRouting() {
   if (currentPath.startsWith('/user/')) {
     const userId = currentPath.split('/').pop();
     if (userId && !isNaN(parseInt(userId))) {
-      if (!(await isAuthenticated())) {
+      if (!(await isAuthenticatedOnce())) {
         navigateTo('/');
         return;
       }
@@ -886,7 +894,7 @@ async function handleRouting() {
   // Normal route'ları kontrol et
   const route = routes.find((r) => r.path === currentPath) || routes[0];
 
-  if (route.authRequired && !(await isAuthenticated())) {
+  if (route.authRequired && !(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -905,7 +913,7 @@ window.addEventListener('popstate', handleRouting);
 // Routing to start when dom loaded
 document.addEventListener('DOMContentLoaded', async () => {
   manageNavbar();
-  if (await isAuthenticated())
+  if (await isAuthenticatedOnce())
     initLiveChat(chatSocketManager);
   document.body.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
