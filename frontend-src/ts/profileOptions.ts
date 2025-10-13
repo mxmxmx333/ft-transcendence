@@ -50,7 +50,6 @@ export class ProfileOptions {
 
         console.log('📦 Backend data received, avatar:', data.avatar);
 
-        // ✅ CRITICAL FIX: currentAvatar'ı backend'den gelen veriyle güncelle
         if (data.avatar) {
           this.currentAvatar = data.avatar;
           console.log('✅ currentAvatar updated to:', this.currentAvatar);
@@ -501,10 +500,16 @@ export class ProfileOptions {
     if (response.ok) {
       console.log('✅ Profile updated successfully!');
 
-      this.updateProfileDisplay({
+      const currentEmail =
+           (document.getElementById('profile-email')?.textContent === 'N/A'
+          ? ''
+         : document.getElementById('profile-email')?.textContent) || '';
+
+        this.updateProfileDisplay({
         nickname,
         status,
         avatar: this.currentAvatar,
+        email: currentEmail, 
         gameStatistics: { games_played: 0, games_won: 0 },
         friendsCount: 0,
       });

@@ -560,40 +560,41 @@
   </div>
 </section>
 
-        <section class="game-page hidden w-full max-w-6xl px-4">
-            <div class="flex flex-col items-center gap-6">
-                <!-- Game Controls -->
-                <div class="flex flex-wrap gap-4 justify-center">
-                    <button id="start-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
-                        Start Game
-                    </button>
-                    <button id="pause-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
-                        Pause
-                    </button>
+       <section class="game-page hidden w-full max-w-6xl px-4">
+    <div class="flex flex-col items-center gap-6">
+        <!-- Game Controls -->
+        <div class="flex flex-wrap gap-4 justify-center">
+            <button id="start-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+                Start
+            </button>
+            <button id="pause-btn" class="px-6 py-2 bg-dark neon-text-yellow neon-border-pink rounded-lg font-bold hover:neon-bg-pink hover:text-black transition-all duration-300">
+                Pause
+            </button>
+        </div>
+        
+        <!-- Game Content -->
+        <div class="w-full">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+                <!-- Player 1 -->
+                <div class="text-center md:w-1/6">
+                    <p class="text-gray-300"><span id="game-nick" class="neon-text-blue font-bold"></span></p>
+                    <p class="text-gray-300">Score: <span id="score" class="neon-text-yellow font-bold text-xl"></span></p>
                 </div>
-                <!-- Game Content -->
-                <div class="w-full">
-                    <div class="hidden grid grid-cols-2 gap-3 mt-5 max-w-xs mx-auto mb-6">
-                        <button id="up-btn" class="py-3 bg-gray-800 rounded-lg neon-border-blue hover:bg-gray-700 transition-all duration-300">⬆️ Up</button>
-                        <button id="down-btn" class="py-3 bg-gray-800 rounded-lg neon-border-blue hover:bg-gray-700 transition-all duration-300">⬇️ Down</button>
-                    </div>
 
-                    <div class="flex flex-col md:flex-row justify-between items-center w-full gap-4 md:gap-8">
-                        <div class="text-center order-1 md:order-1">
-                            <p class="text-gray-300"> <span id="game-nick" class="neon-text-blue font-bold"></span></p>
-                            <p class="text-gray-300">Score: <span id="score" class="neon-text-yellow font-bold text-xl"></span></p>
-                        </div>
+                <!-- Canvas -->
+                <div class="w-full md:w-2/3 flex justify-center">
+                    <canvas class="w-full max-w-[800px] aspect-[16/9] neon-border-pink rounded-lg" id="gameCanvas"></canvas>
+                </div>
 
-                        <canvas class="w-full max-w-2xl h-auto aspect-video neon-border-pink rounded-lg order-3 md:order-2" id="gameCanvas"></canvas>
-
-                        <div class="text-center order-2 md:order-3">
-                            <p class="text-gray-300"> <span id="game-nick2" class="neon-text-blue font-bold"></span></p>
-                            <p class="text-gray-300">Score: <span id="score2" class="neon-text-yellow font-bold text-xl"></span></p>
-                        </div>
-                    </div>
+                <!-- Player 2 -->
+                <div class="text-center md:w-1/6">
+                    <p class="text-gray-300"><span id="game-nick2" class="neon-text-blue font-bold"></span></p>
+                    <p class="text-gray-300">Score: <span id="score2" class="neon-text-yellow font-bold text-xl"></span></p>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+</section>
 <!-- Multiplayer -->
 <section class="multiplayer-lobby hidden w-full max-w-6xl px-4 hidden">
   <div class="flex flex-col items-center gap-6">

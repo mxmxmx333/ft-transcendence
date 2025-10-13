@@ -1,21 +1,26 @@
 import { frontendUrl } from './server';
 import { z } from 'zod';
 
-enum OAuthClientTypes {
+export enum OAuthClientTypes {
   Website,
   Cli,
 }
 
+interface OAuthClient {
+  type: OAuthClientTypes;
+  cli_port: number | null;
+}
+
 export default class OAuthService {
-  private states: Map<string, OAuthClientTypes>;
+  private states: Map<string, OAuthClient>;
   public oauth_client_id = process.env.OAUTH_CLIENT_ID_42;
   private oauth_client_secret = process.env.OAUTH_CLIENT_SECRET_42;
 
   constructor() {
-    this.states = new Map<string, OAuthClientTypes>();
+    this.states = new Map<string, OAuthClient>();
   }
 
-  generateRandomState(cli?: boolean) {
+  generateRandomState(cli_port?: number) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const length = 32;
 
@@ -24,9 +29,11 @@ export default class OAuthService {
       result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
 
-    const client_type = cli ? OAuthClientTypes.Cli : OAuthClientTypes.Website;
 
-    this.states.set(result, client_type);
+    const type = cli_port !== undefined ? OAuthClientTypes.Cli : OAuthClientTypes.Website;
+    const port = cli_port !== undefined ? cli_port : null;
+
+    this.states.set(result, {type, cli_port: port});
 
     return result;
   }
@@ -49,8 +56,8 @@ export default class OAuthService {
       throw new OAuthError(400, data.error);
     }
 
-    const client_type = this.states.get(data.state);
-    if (client_type === undefined) {
+    const client = this.states.get(data.state);
+    if (client === undefined) {
       throw new OAuthError(400, 'Invalid state received from OAuth callback');
     }
     this.states.delete(data.state);
@@ -85,7 +92,7 @@ export default class OAuthService {
       );
     }
 
-    return { access_token: accessTokenResult.data.access_token, client_type };
+    return { access_token: accessTokenResult.data.access_token, client };
   }
 
   async fetchProfileInfos(access_token: string) {
@@ -112,10 +119,6 @@ export default class OAuthService {
     return result.data;
   }
 }
-
-export const OAuthRequestSchema = z.object({
-  cli: z.boolean().optional(),
-});
 
 const OAuthCallbackSuccessSchema = z.object({
   code: z.string().nonempty(),
