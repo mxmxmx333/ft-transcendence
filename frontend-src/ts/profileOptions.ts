@@ -13,26 +13,36 @@ export class ProfileOptions {
   }
 
   private initEventListeners() {
-  const form = document.getElementById('profile-form');
-  if (!form) return;
+    const form = document.getElementById('profile-form') as HTMLFormElement | null;
+    if (form) {
+      form.replaceWith(form.cloneNode(true));
+      const newForm = document.getElementById('profile-form') as HTMLFormElement;
+      newForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveProfileChanges();
+      });
+    }
 
-  form.replaceWith(form.cloneNode(true));
-  const newForm = document.getElementById('profile-form') as HTMLFormElement;
+    const optionsBtn = document.getElementById('options-btn') as HTMLButtonElement | null;
+    if (optionsBtn) {
+      if (!optionsBtn.getAttribute('type')) optionsBtn.setAttribute('type', 'button');
+      optionsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateTo('/options');
+      });
+    }
 
-  newForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    this.saveProfileChanges();
-  });
-
-  document.getElementById('options-btn')?.addEventListener('click', () => {
-    navigateTo('/options');
-  });
-
-  document.getElementById('back-to-profile')?.addEventListener('click', () => {
-    navigateTo('/profile');
-  });
-}
-
+    const backBtn = document.getElementById('back-to-profile') as HTMLButtonElement | null;
+    if (backBtn) {
+      if (!backBtn.getAttribute('type')) backBtn.setAttribute('type', 'button');
+      backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateTo('/profile');
+      });
+    }
+  }
 
   private async loadProfileData() {
     try {
@@ -50,6 +60,9 @@ export class ProfileOptions {
 
         console.log('📦 Backend data received, avatar:', data.avatar);
 
+        if (data.avatar === undefined || data.avatar === null) {
+          this.currentAvatar = 'default';
+        }
         if (data.avatar) {
           this.currentAvatar = data.avatar;
           console.log('✅ currentAvatar updated to:', this.currentAvatar);

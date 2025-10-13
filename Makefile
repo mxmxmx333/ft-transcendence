@@ -23,7 +23,7 @@ DOMAIN       ?= ft-transcendence.at
 HOSTS_FILE   ?= /etc/hosts
 HOSTS_LINE   := $(LAN_IP) $(DOMAIN)
 SERVICES	 := api-gateway auth-user-service game-service web-application-firewall ai-opponent live-chat
-SERV_AGENTS  := api-gateway-agent auth-user-service-agent game-service-agent web-application-firewall-agent ai-opponent-agent live-chat-agent
+SERV_AGENTS  := api-gateway-agent auth-user-service-agent game-service-agent ai-opponent-agent live-chat-agent
 VAULT_NODES  := vault-1 vault-2 vault-3
 ################################################################################
 # TARGETS
