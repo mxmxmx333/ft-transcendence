@@ -1,3 +1,4 @@
+
 const searchBar = document.getElementById('search-bar') as HTMLInputElement;
 const noResults = document.getElementById('no-results') as HTMLParagraphElement;
 const noFriends = document.getElementById('no-friends') as HTMLParagraphElement;
@@ -26,8 +27,8 @@ const friendsMenuExBlockedOptions = document.getElementById('friends-blocked-nav
 const friendsMenuExRequestsOptions = document.getElementById('friends-requests-nav-options') as HTMLElement;
 const usersMenuOptions = document.getElementById('users-nav-options') as HTMLElement; // Section element
 const chatOptionsBtn = document.getElementById('chat-friend-options-btn') as HTMLButtonElement;
-const tournamentChat = document.getElementById('tournament-chat') as HTMLLIElement;
-const tournamentMainChatArea = document.getElementById('tournament-chat-main') as HTMLElement;
+// const tournamentChat = document.getElementById('tournament-chat') as HTMLLIElement;
+// const tournamentMainChatArea = document.getElementById('tournament-chat-main') as HTMLElement;
 const chatMainArea = document.getElementById('chat-main') as HTMLElement;
 const friendsMenuExtension = document.getElementById('friends-menu-extension') as HTMLDivElement;
 const blockedList = document.getElementById('blocked-list') as HTMLUListElement;
@@ -70,6 +71,11 @@ const declineGameInviteBtn = document.getElementById('decline-game-invite-btn') 
 const feedbackBanner = document.getElementById('invite-feedback') as HTMLElement;
 const feedbackFrom = document.getElementById('feedback-from-player') as HTMLElement;
 const feedbackMsg = document.getElementById('feedback-msg') as HTMLElement;
+const infoTitle = document.getElementById('info-title') as HTMLDivElement;
+const userWinRate = document.getElementById('user-win-rate') as HTMLSpanElement;
+const userAverageScore = document.getElementById('user-average-score') as HTMLSpanElement;
+const userGamesPlayed = document.getElementById('user-games-played') as HTMLSpanElement;
+const userProfileStatus = document.getElementById('user-profile-status') as HTMLSpanElement;
 
 export const DOM = {
 	searchBar,
@@ -100,8 +106,8 @@ export const DOM = {
 	friendsMenuExRequestsOptions,
 	usersMenuOptions,
 	chatOptionsBtn,
-	tournamentChat,
-	tournamentMainChatArea,
+	// tournamentChat,
+	// tournamentMainChatArea,
 	chatMainArea,
 	friendsMenuExtension,
 	blockedList,
@@ -143,5 +149,17 @@ export const DOM = {
 	declineGameInviteBtn,
 	feedbackBanner,
 	feedbackFrom,
-	feedbackMsg
+	feedbackMsg,
+	infoTitle,
+	userWinRate,
+	userAverageScore,
+	userGamesPlayed,
+	userProfileStatus
 };
+
+
+export interface sendUserEvent {
+  id: number;
+  nickname: string | null;
+  avatar: string | null;
+}

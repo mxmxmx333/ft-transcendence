@@ -18,17 +18,15 @@ export function updateLastMsgDateISO(update: string) {lastMsgDateISO = update;}
 
 // ------------ View Profile functions ------------
 DOM.headerPicArea.addEventListener("click", () => {
-	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-	if (!DOM.headerPic.src.match("T"))
-	{
-		DOM.profileViewPic.src = DOM.headerPic.src;
-		DOM.profileViewPic.classList.remove('hidden');
-	}
-	// plus the rest of information from database -> TBD
-	DOM.profileView.classList.remove('hidden');
+	getProfileInfo();
 });
 
 DOM.headerName.addEventListener("click", () => {
+	getProfileInfo();
+});
+
+async function getProfileInfo()
+{
 	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
 	if (!DOM.headerPic.src.match("T"))
 	{
@@ -37,7 +35,41 @@ DOM.headerName.addEventListener("click", () => {
 	}
 	// plus the rest of information from database -> TBD
 	DOM.profileView.classList.remove('hidden');
-});
+	DOM.userProfileStatus.innerHTML = DOM.onlineStatus.innerHTML;
+
+	try {
+		const token = localStorage.getItem('authToken');
+		const response = await fetch('/api/profile/chat-game-statistics', {
+		method: 'GET',
+		headers: {
+			'req-user': String(currentTargetID),
+			 'Authorization': 'Bearer ' + token,
+		}
+		});
+
+		if (!response.ok) {
+		const errorData = await response.json();
+		const errorMessage = errorData.message || errorData.error || 'Login failed';
+		throw new Error(errorMessage);
+		}
+
+		const data = await response.json();
+
+		let { games_played, average_score, win_rate } = data;
+		if (average_score === undefined)
+			average_score = 'unavailable';
+
+		DOM.userGamesPlayed.innerHTML = String(games_played);
+		DOM.userAverageScore.innerHTML = String(average_score);
+		DOM.userWinRate.innerHTML = String(win_rate);
+	} catch (err)
+	{
+		console.log("Error: ", err);
+		DOM.userGamesPlayed.innerHTML = 'unavailable';
+		DOM.userAverageScore.innerHTML = 'unavailable';
+		DOM.userWinRate.innerHTML = 'unavailable';
+	} 
+}
 
 DOM.closeProfileViewBtn.addEventListener("mouseup", () => {
 	DOM.profileView.classList.add('hidden');
@@ -73,14 +105,7 @@ closeChatsOptionsBtns.forEach(btn => {
 const viewProfileBtns = document.querySelectorAll<HTMLButtonElement>('.view-profile-btn');
 viewProfileBtns.forEach(btn => {
 	btn.addEventListener('mouseup', () => {
-		DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-		if (!DOM.headerPic.src.match("T"))
-		{
-			DOM.profileViewPic.src = DOM.headerPic.src;
-			DOM.profileViewPic.classList.remove('hidden');
-		}
-		// plus the rest of information from database -> TBD
-		DOM.profileView.classList.remove('hidden');
+		getProfileInfo();
 	});
 });
 
@@ -210,21 +235,19 @@ DOM.chatInput.addEventListener('input', () => {
 	DOM.chatInput.style.height = DOM.chatInput.scrollHeight + 'px'; // grow to content
 	// DOM.chatInput.scrollTop = DOM.chatInput.scrollHeight; // while typing it scrolls down so the text is fully visible
 	let difference = DOM.chatInput.clientHeight - oldInputHeight;
-	
+	console.log("DIFFERENCE: %d", difference);
 	if (difference)
 	{
 		DOM.chatMsgArea.scrollTop += difference;
 		if (difference > 0)
 		{
-			console.log("MOVING goToBtmBtn UP");
-			DOM.goToBottomIcon.classList.remove("bottom-16");
+			DOM.goToBottomIcon.classList.remove("bottom-20");
 			DOM.goToBottomIcon.classList.add("bottom-24");
 		}
 		else
 		{
-			console.log("MOVING goToBtmBtn DOWN");
 			DOM.goToBottomIcon.classList.remove("bottom-24");
-			DOM.goToBottomIcon.classList.add("bottom-16");
+			DOM.goToBottomIcon.classList.add("bottom-20");
 		}
 	}
 	oldInputHeight = DOM.chatInput.clientHeight;
@@ -583,6 +606,7 @@ export async function openChat()
 	// Because I am setting scrollTop manually after prepending messages
 	// this eventListener was catching it and was messing up UI in some browsers,
 	// so I disable it here and at the end of the function I'm adding it back
+	DOM.infoTitle.classList.add('hidden');
 	DOM.chatMsgArea.removeEventListener('scroll', onChatScroll);
 	chatSocket.emit("update chat and target info", currentTargetID, "chatID");
 	checkGameInvitations();
@@ -606,15 +630,15 @@ export async function openChat()
 	nothingMoreToLoad = false;
 	DOM.chatMsgArea.replaceChildren();
 	currentOptionsWindow.classList.add('hidden');
-	DOM.tournamentMainChatArea.classList.add('hidden'); // This will have to be removed
+	// DOM.tournamentMainChatArea.classList.add('hidden'); // This will have to be removed
 	DOM.chatMainArea.classList.remove('hidden');
 	DOM.chatMsgArea.classList.remove('hidden');
 	manageChatFooter();
 	DOM.chatOptionsBtn.classList.remove('hidden');
 	DOM.chatInput.value = "";
 	DOM.chatInput.style.height = "32px";
-	DOM.goToBottomIcon.classList.remove("bottom-[20%]");
-	DOM.goToBottomIcon.classList.add("bottom-[14%]");
+	DOM.goToBottomIcon.classList.remove("bottom-24");
+	DOM.goToBottomIcon.classList.add("bottom-20");
 	oldInputHeight = 32;
 	
 	const msgs = currentTargetID === tournamentID
@@ -651,6 +675,7 @@ export async function openChat()
 	const currentChat = DOM.chatHistory.querySelector(`li[data-id="${currentTargetID}"]`);
 	currentChat?.querySelector('.notification-dot')?.classList.add('hidden');
 	DOM.chatMsgArea.addEventListener('scroll', onChatScroll);
+	DOM.chatInput.focus();
 }
 
 async function checkGameInvitations()

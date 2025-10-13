@@ -1,6 +1,6 @@
 import {server} from './server'
 import { Socket, Server as SocketIOServer} from 'socket.io';
-import { UserChatInfo} from './types/types';
+import { sendUserEvent, UserChatInfo} from './types/types';
 import { authUserServiceUpstream } from './server';
 import { fr } from 'zod/v4/locales';
 
@@ -938,4 +938,38 @@ function onRoomIdCreated(socket: Socket, userID: number)
 
 		receiver.socket.emit("join the room", roomID);
 	});
+}
+
+export function onUpdateUserInfo(updates: sendUserEvent)
+{
+	let action: string;
+
+	if (updates.nickname === null && updates.avatar === null)
+	{
+		const stmt = server.db.prepare(`
+			DELETE FROM users
+			WHERE id = ?`);
+		
+		stmt.run(updates.id);
+		action = "delete";
+	}
+
+	else
+	{
+		const stmt2 = server.db.prepare(`
+			UPDATE users
+			SET nickname = ?, avatar = ?
+			WHERE id = ?`
+		);
+	
+		stmt2.run(updates.nickname, updates.avatar, updates.id);
+		action = "update";
+	}
+
+	activeUsers.forEach(user => {
+		if (action === "update")
+			user.socket.emit("user info update", updates);
+		else
+			user.socket.emit("account deleted", updates.id);
+	})
 }
