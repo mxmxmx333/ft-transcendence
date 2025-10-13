@@ -120,7 +120,7 @@ async function buildServer() {
       '/api/account',
       '/api/auth/2fa/enable',
       '/api/auth/2fa/disable',
-      '/api/verify'
+      '/api/verify',
       '/api/profile/chat-game-statistics',
     ];
     const needsAuth = protectedRoutes.some((route) => request.url.startsWith(route));

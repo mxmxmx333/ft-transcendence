@@ -18,18 +18,11 @@ export function updateLastMsgDateISO(update: string) {lastMsgDateISO = update;}
 
 // ------------ View Profile functions ------------
 DOM.headerPicArea.addEventListener("click", () => {
-	DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-	if (!DOM.headerPic.src.match("T"))
-	{
-		DOM.profileViewPic.src = DOM.headerPic.src;
-		DOM.profileViewPic.classList.remove('hidden');
-	}
-	// plus the rest of information from database -> TBD
-	DOM.profileView.classList.remove('hidden');
+	getProfileInfo();
 });
 
 DOM.headerName.addEventListener("click", () => {
-	
+	getProfileInfo();
 });
 
 async function getProfileInfo()
@@ -42,19 +35,40 @@ async function getProfileInfo()
 	}
 	// plus the rest of information from database -> TBD
 	DOM.profileView.classList.remove('hidden');
+	DOM.userProfileStatus.innerHTML = DOM.onlineStatus.innerHTML;
 
-	// try
-	// {
-	// 	const response = await fetch()
-	// }
+	try {
+		const token = localStorage.getItem('authToken');
+		const response = await fetch('/api/profile/chat-game-statistics', {
+		method: 'GET',
+		headers: {
+			'req-user': String(currentTargetID),
+			 'Authorization': 'Bearer ' + token,
+		}
+		});
 
-// 	const body = {
-//         games_played: gameStats.games_played,
-//         average_score: gameStats.average_score,
-//         win_rate: gameStats.win_rate,
-//       };
+		if (!response.ok) {
+		const errorData = await response.json();
+		const errorMessage = errorData.message || errorData.error || 'Login failed';
+		throw new Error(errorMessage);
+		}
 
-// /api/profile/chat-game-statistics
+		const data = await response.json();
+
+		let { games_played, average_score, win_rate } = data;
+		if (average_score === undefined)
+			average_score = 'unavailable';
+
+		DOM.userGamesPlayed.innerHTML = String(games_played);
+		DOM.userAverageScore.innerHTML = String(average_score);
+		DOM.userWinRate.innerHTML = String(win_rate);
+	} catch (err)
+	{
+		console.log("Error: ", err);
+		DOM.userGamesPlayed.innerHTML = 'unavailable';
+		DOM.userAverageScore.innerHTML = 'unavailable';
+		DOM.userWinRate.innerHTML = 'unavailable';
+	} 
 }
 
 DOM.closeProfileViewBtn.addEventListener("mouseup", () => {
@@ -91,14 +105,7 @@ closeChatsOptionsBtns.forEach(btn => {
 const viewProfileBtns = document.querySelectorAll<HTMLButtonElement>('.view-profile-btn');
 viewProfileBtns.forEach(btn => {
 	btn.addEventListener('mouseup', () => {
-		DOM.profileViewName.innerHTML = DOM.headerName.innerHTML;
-		if (!DOM.headerPic.src.match("T"))
-		{
-			DOM.profileViewPic.src = DOM.headerPic.src;
-			DOM.profileViewPic.classList.remove('hidden');
-		}
-		// plus the rest of information from database -> TBD
-		DOM.profileView.classList.remove('hidden');
+		getProfileInfo();
 	});
 });
 

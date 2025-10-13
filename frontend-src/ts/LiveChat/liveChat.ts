@@ -17,7 +17,7 @@ const chatSocket = ChatSocketManager.getInstance();
 export let activeMenu: string = "Chats";
 export let activeExMenu: string = "All";
 export let activeHeaderMenu: string = "Other";
-export let currentTargetID: number;
+export let currentTargetID: number = -2;
 export let currentOptionsWindow = DOM.usersMenuOptions;
 let msgsOnScrollCount: number = 0;
 export function resetGoToBottomMsgCount()
@@ -1022,6 +1022,7 @@ function RegisterSocketListeners()
 			DOM.statusDot.classList.remove('bg-green-500');
 			DOM.statusDot.classList.add('bg-red-600');
 			DOM.onlineStatus.innerHTML = "Offline";
+			DOM.userProfileStatus.innerHTML = "Offline";
 			manageInviteBtnStatus(currentOptionsWindow, "offline");
 		}
 	});
@@ -1032,6 +1033,7 @@ function RegisterSocketListeners()
 			DOM.statusDot.classList.remove('bg-red-600');
 			DOM.statusDot.classList.add('bg-green-500');
 			DOM.onlineStatus.innerHTML = "Online";
+			DOM.userProfileStatus.innerHTML = "Online";
 			manageInviteBtnStatus(currentOptionsWindow, "online");
 		}
 	});

@@ -1,4 +1,3 @@
-import { info } from "console";
 
 const searchBar = document.getElementById('search-bar') as HTMLInputElement;
 const noResults = document.getElementById('no-results') as HTMLParagraphElement;
@@ -76,6 +75,7 @@ const infoTitle = document.getElementById('info-title') as HTMLDivElement;
 const userWinRate = document.getElementById('user-win-rate') as HTMLSpanElement;
 const userAverageScore = document.getElementById('user-average-score') as HTMLSpanElement;
 const userGamesPlayed = document.getElementById('user-games-played') as HTMLSpanElement;
+const userProfileStatus = document.getElementById('user-profile-status') as HTMLSpanElement;
 
 export const DOM = {
 	searchBar,
@@ -153,7 +153,8 @@ export const DOM = {
 	infoTitle,
 	userWinRate,
 	userAverageScore,
-	userGamesPlayed
+	userGamesPlayed,
+	userProfileStatus
 };
 
 
