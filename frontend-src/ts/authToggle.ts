@@ -37,12 +37,13 @@ const setupLoginValidation = () => {
     }
 
     if (!validatePassword(password)) {
-      alert('At least 8 characters!');
+      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
       return;
     }
 
     try {
       await handleLogin({ email, password });
+      form.reset();
       navigateTo('/profile');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Login failed');
@@ -65,6 +66,7 @@ const setup2FaLoginValidation = () => {
 
     try {
       await handle2FaLogin({ totp_code });
+      form.reset();
       navigateTo('/profile');
     } catch (error) {
       alert(error instanceof Error ? error.message : '2Fa validation failed');
@@ -87,6 +89,7 @@ const setupEnableTotpFormValidation = () => {
 
     try {
       await handleEnable2Fa({ totp_code });
+      form.reset();
       showAccountPage();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Enabling 2Fa failed');
@@ -109,6 +112,7 @@ const setupDisableTotpFormValidation = () => {
 
     try {
       await handleDisable2Fa({ totp_code });
+      form.reset();
       showAccountPage();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Disabling 2Fa failed');
@@ -200,7 +204,7 @@ const setupSignupValidation = () => {
     }
 
     if (!validatePassword(password)) {
-      alert('Password can only contain letters, numbers, underscores, dashes, and dots.');
+      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
       return;
     }
 
