@@ -318,7 +318,9 @@ function resetBall(room: GameRoom, scoredByPlayer1: boolean) {
   room.gameState.ballX = 400;
   room.gameState.ballY = 300;
   room.gameState.ballVX = 5 * (scoredByPlayer1 ? 1 : -1);
-  room.gameState.ballVY = 3 * (Math.random() > 0.5 ? 1 : -1);
+  const paddleYTarget = scoredByPlayer1 ? room.guest?.paddleY : room.owner?.paddleY;
+  const percentage = (1 / 600 * (paddleYTarget ?? 300)) - 0.5;
+  room.gameState.ballVY = 5 * (Math.random() - 0.5) + 2 * percentage;
   room.gameState.lastUpdate = Date.now();
 }
 
