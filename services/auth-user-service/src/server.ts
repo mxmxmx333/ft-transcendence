@@ -16,9 +16,9 @@ import httpsAgent from './https-client-plugin';
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
 
-export const frontendUrl = process.env.FRONTEND_URL;
-if (!frontendUrl) {
-  throw new Error('FRONTEND_URL environment variable is not set');
+export const OAUTH_REDIRECT_URL = process.env.OAUTH_REDIRECT_URL;
+if (!OAUTH_REDIRECT_URL) {
+  throw new Error('OAUTH_REDIRECT_URL environment variable is not set');
 }
 export const liveChatUpstream = process.env.LIVE_CHAT_UPSTREAM;
 if (!liveChatUpstream) {
