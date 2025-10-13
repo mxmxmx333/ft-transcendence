@@ -1,7 +1,8 @@
 import { PongGame } from "../multiPlayerGame";
+import { ProfileOptions } from "../profileOptions";
 import { gamePage, navigateTo, showGamePage, showPage, startMultiplayerGame } from "../router";
 import { SocketManager } from "../socketManager";
-import { DOM } from "./chatElements"
+import { DOM, sendUserEvent } from "./chatElements"
 import { ChatSocketManager } from "./chatSocketManager";
 import { convertISOtoLocaleHM, displayDateTag, displayMessage, lastMsgDateISO,
 	manageChatFooter, manageInviteBtnStatus, openChat, updateLastMsgDateISO} from "./liveChatRS";
@@ -390,7 +391,7 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string, 
 	resultElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-8 h-8 rounded-full overflow-hidden bg-white";
-	profilePic.className = "w-full h-full object-cover hidden";
+	profilePic.className = "list-profile-pic w-full h-full object-cover hidden";
 	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
 	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
@@ -400,7 +401,7 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string, 
 	// circle.setAttribute("cy", "20");
 	// circle.setAttribute("r", "12");
 	// path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
-	profileName.className = "ml-3 font-bold text-[15px] max-w-40 whitespace-nowrap overflow-hidden text-ellipsis";
+	profileName.className = "list-profile-name ml-3 font-bold text-[15px] max-w-40 whitespace-nowrap overflow-hidden text-ellipsis";
 	profileName.innerHTML = name;
 	notificationIcon.className = "notification-dot w-3 h-3 ml-auto mr-3 rounded-full notification-dot-color";
 	separationLine.className = "ml-14 border-b-[0.5px] border-gray-600";
@@ -449,7 +450,7 @@ export function addChatHistory(name: string, picSrc: string, lastMsg: string, ta
 	chatElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-9 h-9 rounded-full overflow-hidden bg-white";
-	profilePic.className = "w-full h-full object-cover hidden";
+	profilePic.className = "list-profile-pic w-full h-full object-cover hidden";
 	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
 	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
@@ -460,7 +461,7 @@ export function addChatHistory(name: string, picSrc: string, lastMsg: string, ta
 	// circle.setAttribute("r", "12");
 	// path.setAttribute("d", "M12 52c0-11 9-20 20-20s20 9 20 20");
 	chatMsgInfo.className = "flex flex-col max-w-40";
-	profileName.className = "ml-3 font-bold text-[15px] whitespace-nowrap overflow-hidden text-ellipsis";
+	profileName.className = "list-profile-name ml-3 font-bold text-[15px] whitespace-nowrap overflow-hidden text-ellipsis";
 	msgPreview.className = "msg-preview ml-3 text-[13px] -mt-1 whitespace-nowrap overflow-hidden text-ellipsis";
 	profileName.innerHTML = name;
 	msgPreview.innerHTML = lastMsg;
@@ -518,7 +519,7 @@ DOM.friendsList.addEventListener("mousedown", (e) => {
 	updateHeaderInfo(target);
 	closeChat();
 
-	DOM.tournamentMainChatArea.classList.add('hidden');
+	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
 	
 	// Checks if blocked/blockedBy/noBlock
@@ -534,7 +535,7 @@ DOM.blockedList.addEventListener("mousedown", (e) => {
 	updateHeaderInfo(target);
 	closeChat();
 	
-	DOM.tournamentMainChatArea.classList.add('hidden');
+	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
 	showOptions(DOM.friendsMenuExBlockedOptions);
 });
@@ -549,7 +550,7 @@ DOM.requestsList.addEventListener("mousedown", (e) => {
 	updateHeaderInfo(target);
 	closeChat();
 
-	DOM.tournamentMainChatArea.classList.add('hidden');
+	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
 	DOM.requesterID.innerHTML = target.dataset.username;
 	showOptions(DOM.friendsMenuExRequestsOptions);
@@ -572,7 +573,7 @@ DOM.searchList.addEventListener("mousedown", (e) => {
 	updateHeaderInfo(target);
 	
 	// That will have to be removed when Tournament is made as Friend
-	DOM.tournamentMainChatArea.classList.add('hidden');
+	// DOM.tournamentMainChatArea.classList.add('hidden');
 	DOM.chatMainArea.classList.remove('hidden');
 	
 	if (activeMenu.match("Chats"))
@@ -616,17 +617,17 @@ DOM.chatHistory.addEventListener("click", (e) => {
 	const target = (e.target as HTMLLIElement).closest("li");
 	
 	if (!target) return;
-	if (target.hasAttribute('id'))
-	{
-		// Make Tournament as a friend, create right after creating database and give it users.id = 1
-		// Then add check to not return it as a User when searching 
-		// And check to not return as a friend while loading friendsList
-		// Aaand in manageChatFooter() add check for -> if Tournament
-		DOM.chatMainArea.classList.add('hidden');
-		DOM.tournamentMainChatArea.classList.remove('hidden');
-		target.querySelector('.notification-dot')?.classList.add('hidden');
-		return;
-	}
+	// if (target.hasAttribute('id'))
+	// {
+	// 	// Make Tournament as a friend, create right after creating database and give it users.id = 1
+	// 	// Then add check to not return it as a User when searching 
+	// 	// And check to not return as a friend while loading friendsList
+	// 	// Aaand in manageChatFooter() add check for -> if Tournament
+	// 	DOM.chatMainArea.classList.add('hidden');
+	// 	// DOM.tournamentMainChatArea.classList.remove('hidden');
+	// 	target.querySelector('.notification-dot')?.classList.add('hidden');
+	// 	return;
+	// }
 	
 	currentTargetID = Number(target.dataset.id);
 	updateHeaderInfo(target);
@@ -1121,7 +1122,46 @@ function RegisterSocketListeners()
 	chatSocket.on("join the room", (roomID: string) => {
 		joinGame(roomID);
 	});
+
+	chatSocket.on("user info update", (updated: sendUserEvent) => {
+		const lists = [DOM.chatHistory, DOM.friendsList, DOM.blockedList, DOM.requestsList, DOM.searchList];
+		
+		lists.forEach(list => {
+			const target = list.querySelector(`li[data-id="${updated.id}"]`) as HTMLLIElement;
+			if (target)
+			{
+				target.dataset.picSrc = getAvatarUrl(updated.avatar!);
+				target.dataset.username = updated.nickname!;
+				(target.querySelector('.list-profile-name') as HTMLParagraphElement).innerHTML = updated.nickname!;
+				(target.querySelector('.list-profile-pic') as HTMLImageElement).src = getAvatarUrl(updated.avatar!);
+			}
+			if (currentTargetID === updated.id)
+				updateHeaderInfo(target);
+		})
+	});
+
+	chatSocket.on("account deleted", (id: number) => {
+		const lists = [DOM.chatHistory, DOM.friendsList, DOM.blockedList, DOM.requestsList, DOM.searchList];
+		
+		lists.forEach(list => {
+			const target = list.querySelector(`li[data-id="${id}"]`) as HTMLLIElement;
+			if (target)
+				target.remove();
+			if (currentTargetID === id)
+			{
+				closeChat();
+				currentOptionsWindow.classList.add('hidden');
+				DOM.chatHeader.classList.add('hidden');
+				DOM.infoTitle.classList.remove('hidden');
+				DOM.gameInviteBanner.classList.add('hidden');
+				DOM.feedbackBanner.classList.add('hidden');
+			}
+		})
+	});
 }
+
+
+
 
 async function createRoomAndNotify()
 {
@@ -1194,3 +1234,23 @@ async function joinGame(roomID: string)
 		throw new Error('Failed to join room');
 		}
 }
+
+function getAvatarUrl(avatar: string): string
+{
+    console.log('🔗 getAvatarUrl called with:', avatar);
+
+    let url: string;
+
+    if (!avatar || avatar === 'default' || avatar === 'default1') {
+      url = `/imgs/avatars/${avatar || 'default'}.png`;
+    } else if (avatar.startsWith('custom_')) {
+      const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
+      url = hasExtension ? `/uploads/avatars/${avatar}` : `/uploads/avatars/${avatar}.jpg`;
+    } else {
+      url = `/imgs/avatars/${avatar}.png`;
+    }
+
+    // ✅ Cache busting için timestamp ekle
+    const timestamp = new Date().getTime();
+    return `${url}?t=${timestamp}`;
+  }

@@ -2,14 +2,14 @@ import fastify from 'fastify';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { FastifyRequest } from 'fastify';
 import dotenv from 'dotenv';
-import { AuthPayload, TournamentInfo } from './types/types';
+import { AuthPayload, sendUserEvent } from './types/types';
 import database from './db';
 import tlsReloadPlugin from './tls-reload';
 import fs from 'fs';
 import path from 'path';
 import { registerIoHandlers } from './io.handler';
 import httpsAgent from './https-client-plugin';
-import { display_tournament_message } from './backend_connections';
+import { display_tournament_message, updateUserInfo } from './backend_connections';
 dotenv.config();
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
@@ -145,11 +145,8 @@ async function start() {
     display_tournament_message(request, reply);
   });
 
-  // updateOf = "nickname" --> newValue = <new nickname>
-  // updateOf = "avatar" --> newValue = <new path>
-  // updateOf = "account" --> newValue = "delete"
-  server.post<{ Body: {userID: number, updateOf: string, newValue: string} }>('/auth/info/update', async (request, reply) => {
-    // display_tournament_message(request, reply);
+  server.post<{ Body: sendUserEvent }>('/auth/info/update', async (request, reply) => {
+    updateUserInfo(request, reply);
   });
 
 

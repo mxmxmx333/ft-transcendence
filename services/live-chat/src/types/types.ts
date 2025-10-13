@@ -12,8 +12,8 @@ export interface UserChatInfo {
   invitations: { sent: number[]; received: number[] };
 }
 
-export interface TournamentInfo {
-  playerA: string;
-  playerB: string;
-  timeToStart: number;
+export interface sendUserEvent {
+  id: number;
+  nickname: string | null;
+  avatar: string | null;
 }

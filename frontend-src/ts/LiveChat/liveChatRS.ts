@@ -216,13 +216,11 @@ DOM.chatInput.addEventListener('input', () => {
 		DOM.chatMsgArea.scrollTop += difference;
 		if (difference > 0)
 		{
-			console.log("MOVING goToBtmBtn UP");
 			DOM.goToBottomIcon.classList.remove("bottom-16");
 			DOM.goToBottomIcon.classList.add("bottom-24");
 		}
 		else
 		{
-			console.log("MOVING goToBtmBtn DOWN");
 			DOM.goToBottomIcon.classList.remove("bottom-24");
 			DOM.goToBottomIcon.classList.add("bottom-16");
 		}
@@ -583,6 +581,7 @@ export async function openChat()
 	// Because I am setting scrollTop manually after prepending messages
 	// this eventListener was catching it and was messing up UI in some browsers,
 	// so I disable it here and at the end of the function I'm adding it back
+	DOM.infoTitle.classList.add('hidden');
 	DOM.chatMsgArea.removeEventListener('scroll', onChatScroll);
 	chatSocket.emit("update chat and target info", currentTargetID, "chatID");
 	checkGameInvitations();
@@ -606,7 +605,7 @@ export async function openChat()
 	nothingMoreToLoad = false;
 	DOM.chatMsgArea.replaceChildren();
 	currentOptionsWindow.classList.add('hidden');
-	DOM.tournamentMainChatArea.classList.add('hidden'); // This will have to be removed
+	// DOM.tournamentMainChatArea.classList.add('hidden'); // This will have to be removed
 	DOM.chatMainArea.classList.remove('hidden');
 	DOM.chatMsgArea.classList.remove('hidden');
 	manageChatFooter();
@@ -651,6 +650,7 @@ export async function openChat()
 	const currentChat = DOM.chatHistory.querySelector(`li[data-id="${currentTargetID}"]`);
 	currentChat?.querySelector('.notification-dot')?.classList.add('hidden');
 	DOM.chatMsgArea.addEventListener('scroll', onChatScroll);
+	DOM.chatInput.focus();
 }
 
 async function checkGameInvitations()
