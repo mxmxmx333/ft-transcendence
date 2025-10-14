@@ -14,7 +14,7 @@ import tlsReloadPlugin from './tls-reload';
 import httpsAgent from './https-client-plugin';
 import z, { ZodError } from 'zod';
 
-const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
 
 export const OAUTH_REDIRECT_URL = process.env.OAUTH_REDIRECT_URL;
@@ -49,7 +49,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
 }
 export const server = fastify({
   logger: {
-    level: 'debug',
+    level: 'info',
     ...(isDevelopment
       ? {
           transport: {

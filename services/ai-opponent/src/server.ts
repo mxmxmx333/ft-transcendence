@@ -167,7 +167,7 @@ async function buildServer(): Promise<FastifyInstance> {
   }
   const server = Fastify({
     logger: {
-      level: 'debug',
+      level: 'info',
       ...(isDevelopment && {
         transport: {
           target: 'pino-pretty',

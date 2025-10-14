@@ -12,7 +12,7 @@ import httpsAgent from './https-client-plugin';
 import { display_tournament_message, updateUserInfo } from './backend_connections';
 dotenv.config();
 
-const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 export const authUserServiceUpstream =
   process.env.AUTH_USER_SERVICE_UPSTREAM || 'https://localhost:3002';
@@ -45,7 +45,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
 }
 export const server = fastify({
   logger: {
-    level: 'debug',
+    level: 'info',
     ...(isDevelopment
       ? {
           transport: {

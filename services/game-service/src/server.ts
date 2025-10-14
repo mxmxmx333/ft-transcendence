@@ -11,7 +11,7 @@ import { activeConnections } from './types/types';
 
 
 dotenv.config();
-const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3000';
 let certDir = process.env.CERT_DIR || '../certs';

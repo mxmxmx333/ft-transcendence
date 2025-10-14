@@ -11,7 +11,7 @@ import { register } from 'module';
 import { send } from 'process';
 dotenv.config();
 
-const LOG_LEVEL = 'debug'; ///process.env.LOG_LEVEL || 'debug';
+const LOG_LEVEL = 'info'; ///process.env.LOG_LEVEL || 'debug';
 
 const liveChatUpstream = process.env.LIVE_CHAT_UPSTREAM;
 if (!liveChatUpstream) {
@@ -58,7 +58,7 @@ async function buildServer() {
   }
   const server = Fastify({
     logger: {
-      level: 'debug',
+      level: 'info',
 
       ...(process.env.NODE_ENV === 'development'
         ? {
