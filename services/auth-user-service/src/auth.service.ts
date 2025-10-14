@@ -619,7 +619,9 @@ export default class AuthService {
 
   private async processImage(buffer: Buffer, outputPath: string, mimeType: string): Promise<void> {
     try {
-      // Sharp kütüphanesi kullan (eğer yüklüyse)
+      const maxsize = 10 * 1024 * 1024
+      if (buffer.length > maxsize)
+          throw new Error("The file size is too big")
       try {
         const sharp = require('sharp');
         await sharp(buffer)
