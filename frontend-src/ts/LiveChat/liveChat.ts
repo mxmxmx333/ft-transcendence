@@ -411,13 +411,13 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string, 
 	// const path = document.createElementNS(SVG_NS, 'path');
 	const notificationIcon = document.createElement('div');
 	const separationLine = document.createElement('div');
-	const defaultAvatarPath = "/imgs/avatars/default.png"; // MAYBE?
 	
 	resultElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-8 h-8 rounded-full overflow-hidden bg-white";
 	profilePic.className = "list-profile-pic w-full h-full object-cover hidden";
-	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
+	const resolvedAvatar1 = getAvatarUrl(picSrc);
+	profilePic.src = resolvedAvatar1;
 	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
 	// defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
@@ -443,7 +443,7 @@ function addElementToList(list: HTMLUListElement, name: string, picSrc: string, 
 	
 	resultElement.dataset.id = String(id);
 	resultElement.dataset.username = name;
-	resultElement.dataset.picSrc = profilePic.src;
+	resultElement.dataset.picSrc = resolvedAvatar1;
 
 	if (list === DOM.requestsList && status === "not viewed")
 		wholeBox.appendChild(notificationIcon);
@@ -470,13 +470,13 @@ export function addChatHistory(name: string, picSrc: string, lastMsg: string, ta
 	// const path = document.createElementNS(SVG_NS, 'path');
 	const notificationIcon = document.createElement('div');
 	const separationLine = document.createElement('div');
-	const defaultAvatarPath = "/imgs/avatars/default.png"; // MAYBE?
 	
 	chatElement.className = "flex flex-col hover:bg-slate-500 hover:bg-opacity-20 cursor-pointer";
 	wholeBox.className = "flex items-center p-2";
 	div.className = "w-9 h-9 rounded-full overflow-hidden bg-white";
 	profilePic.className = "list-profile-pic w-full h-full object-cover hidden";
-	profilePic.src = (picSrc === "default") ? defaultAvatarPath : picSrc;
+	const resolvedAvatar2 = getAvatarUrl(picSrc);
+	profilePic.src = resolvedAvatar2;
 	profilePic.classList.remove('hidden');
 	profilePic.alt = "Profile pic";
 	// defaultProfilePic.setAttribute("class", "w-full h-full fill-pink-400");
@@ -523,7 +523,7 @@ export function addChatHistory(name: string, picSrc: string, lastMsg: string, ta
 	
 	chatElement.dataset.id = String(target_id);
 	chatElement.dataset.username = name;
-	chatElement.dataset.picSrc = profilePic.src;
+	chatElement.dataset.picSrc = resolvedAvatar2;
 	
 	// DOM.noChats.remove(); // Same as DOM.chatHistory.removeChild(DOM.noChats) - if it's not there, nothing happens - safe
 	DOM.noChats.classList.add('hidden');
@@ -1280,14 +1280,13 @@ function getAvatarUrl(avatar: string): string
 
     if (!avatar || avatar === 'default' || avatar === 'default1') {
       url = `/imgs/avatars/${avatar || 'default'}.png`;
-    } else if (avatar.startsWith('custom_')) {
-      const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
-      url = hasExtension ? `/uploads/avatars/${avatar}` : `/uploads/avatars/${avatar}.jpg`;
+    } else if (typeof avatar === 'string' && (avatar.startsWith('/') || /^https?:\/\//i.test(avatar))) {
+      url = avatar;
     } else {
-      url = `/imgs/avatars/${avatar}.png`;
+      const hasExtension = /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(avatar);
+      url = hasExtension ? `/uploads/avatars/${avatar}` : `/uploads/avatars/${avatar}.jpg`;
     }
 
-    // ✅ Cache busting için timestamp ekle
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
     return `${url}?t=${timestamp}`;
-  }
+}
