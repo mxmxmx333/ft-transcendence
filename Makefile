@@ -51,6 +51,7 @@ run:
 	@$(COMPOSE) up -d web-application-firewall
 
 cli:
+	@$(COMPOSE) --profile cli build cli-client
 	@$(COMPOSE) run --rm cli-client
 
 # ---- /etc/hosts Helpers (unverändert) ----

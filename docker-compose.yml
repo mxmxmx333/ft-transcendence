@@ -462,8 +462,6 @@ services:
     network_mode: host
     profiles:
       - cli
-    volumes:
-      - cli-certs:/app/certs:ro
 
   # for all vault services (dev + prod)
   vault-seed-config:
@@ -796,7 +794,6 @@ volumes:
   web-application-firewall-agent-certs: {}
   web-application-firewall-agent-approle: {}
   game-service-certs: {}
-  cli-certs: {}
   service-agent-config: {}
   api-gateway-service-certs: {}
   api-gateway-agent-certs: {}

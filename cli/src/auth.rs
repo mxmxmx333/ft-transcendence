@@ -20,8 +20,8 @@ struct TotpRequest<'a> {
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
 pub enum BoolOrString {
-  Bool(bool),
-  String(String),
+    Bool(bool),
+    String(String),
 }
 
 #[derive(Deserialize, Debug)]
@@ -34,14 +34,14 @@ pub struct LoginResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct RedirectResponse {
-  pub url: String,
+    pub url: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct NicknameResponse {
-  pub success: bool,
-  pub token: Option<String>,
-  pub error: Option<String>,
+    pub success: bool,
+    pub token: Option<String>,
+    pub error: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -103,6 +103,7 @@ pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginRespo
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3")
         .build()
         .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
 
@@ -135,24 +136,30 @@ pub async fn login(host: &str, email: &str, password: &str) -> Result<LoginRespo
     }
 
     match response_body.action_required {
-      BoolOrString::Bool(true) => return Err(LoginErrors::Unknown("action_required set to true".to_string())),
-      BoolOrString::String(ref str) => {
-        match str.as_str() {
-          "nickname" => return Err(LoginErrors::NicknameMissing),
-          "2fa" => (),
-          _ => return Err(LoginErrors::Unknown("Invalid value for action_required(String)".to_string())),
+        BoolOrString::Bool(true) => {
+            return Err(LoginErrors::Unknown(
+                "action_required set to true".to_string(),
+            ));
         }
-      },
-      _ => (),
+        BoolOrString::String(ref str) => match str.as_str() {
+            "nickname" => return Err(LoginErrors::NicknameMissing),
+            "2fa" => (),
+            _ => {
+                return Err(LoginErrors::Unknown(
+                    "Invalid value for action_required(String)".to_string(),
+                ));
+            }
+        },
+        _ => (),
     }
 
     Ok(response_body)
 }
 
-
 pub async fn remotelogin(host: &str, port: u16) -> Result<RedirectResponse, LoginErrors> {
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3")
         .build()
         .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
 
@@ -163,16 +170,18 @@ pub async fn remotelogin(host: &str, port: u16) -> Result<RedirectResponse, Logi
     };
 
     let response = client
-      .get(endpoint)
-      .query(&[("cli_port", port)])
-      .send()
-      .await
-      .map_err(|_| LoginErrors::ConnectionError)?;
+        .get(endpoint)
+        .query(&[("cli_port", port)])
+        .send()
+        .await
+        .map_err(|_| LoginErrors::ConnectionError)?;
 
     if response.status().is_server_error() {
         return Err(LoginErrors::ServerError);
     } else if response.status().is_client_error() {
-        return Err(LoginErrors::Unknown("Received client error from redirect response".to_string()));
+        return Err(LoginErrors::Unknown(
+            "Received client error from redirect response".to_string(),
+        ));
     }
 
     let response_body: RedirectResponse = response
@@ -183,11 +192,16 @@ pub async fn remotelogin(host: &str, port: u16) -> Result<RedirectResponse, Logi
     Ok(response_body)
 }
 
-pub async fn set_nickname(host: &str, token: &str, nickname: &str) -> Result<NicknameResponse, LoginErrors> {
+pub async fn set_nickname(
+    host: &str,
+    token: &str,
+    nickname: &str,
+) -> Result<NicknameResponse, LoginErrors> {
     let body = SetNicknameRequest { nickname };
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3")
         .build()
         .map_err(|err| LoginErrors::Unknown(err.to_string()))?;
 
@@ -198,17 +212,19 @@ pub async fn set_nickname(host: &str, token: &str, nickname: &str) -> Result<Nic
     };
 
     let response = client
-      .post(endpoint)
-      .header("Authorization", format!("Bearer {}", token))
-      .json(&body)
-      .send()
-      .await
-      .map_err(|_| LoginErrors::ConnectionError)?;
+        .post(endpoint)
+        .header("Authorization", format!("Bearer {}", token))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|_| LoginErrors::ConnectionError)?;
 
     if response.status().is_server_error() {
         return Err(LoginErrors::ServerError);
     } else if response.status().is_client_error() {
-        return Err(LoginErrors::Unknown("Received client error from nickname response".to_string()));
+        return Err(LoginErrors::Unknown(
+            "Received client error from nickname response".to_string(),
+        ));
     }
 
     let response_body: NicknameResponse = response
@@ -219,11 +235,16 @@ pub async fn set_nickname(host: &str, token: &str, nickname: &str) -> Result<Nic
     Ok(response_body)
 }
 
-pub async fn login2fa(host: &str, auth_token: &str, totp_code: &str) -> Result<LoginResponse, TotpErrors> {
+pub async fn login2fa(
+    host: &str,
+    auth_token: &str,
+    totp_code: &str,
+) -> Result<LoginResponse, TotpErrors> {
     let body = TotpRequest { totp_code };
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3")
         .build()
         .map_err(|err| TotpErrors::Unknown(err.to_string()))?;
 
