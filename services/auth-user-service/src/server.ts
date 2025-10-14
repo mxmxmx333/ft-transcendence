@@ -3,7 +3,7 @@ import path from 'path';
 import dbConnector from './db';
 import AuthService from './auth.service';
 import fastifyMultipart from '@fastify/multipart';
-import AuthController from './auth.controller';
+import AuthController, { Nickname } from './auth.controller';
 import fs from 'fs';
 import vaultClient from './vault-client';
 import vAuth from './auth';
@@ -12,6 +12,7 @@ import { SqliteError } from 'better-sqlite3';
 import { MatchResultBody } from './user';
 import tlsReloadPlugin from './tls-reload';
 import httpsAgent from './https-client-plugin';
+import z, { ZodError } from 'zod';
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug';
 const uploadsBaseDir = process.env.AVATAR_UPLOAD_DIR || path.join(__dirname, '../uploads');
@@ -361,11 +362,16 @@ async function start() {
         }
 
         try {
-          const result = authService.setNickname(user.id, request.body.nickname);
+          const nicknameSchema = z.object({nickname: Nickname});
+          const {nickname} = await nicknameSchema.parseAsync(request.body);
+          const result = authService.setNickname(user.id, nickname);
           const signToken = await authController.signUserInfos(result);
 
           return reply.send({ success: true, token: signToken, user: result });
         } catch (error) {
+          if (error instanceof ZodError) {
+            return reply.send({success: false, error: 'Nickname doesn\'t meet the requirements'});
+          }
           if (error instanceof SqliteError) {
             if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
               return reply.send({ success: false, error: 'Nickname already in use' });
