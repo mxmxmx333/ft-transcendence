@@ -74,7 +74,6 @@ export class AIFilePersistenceManager {
 
       // Validate model data
       if (!modelData.weightsData || !modelData.performanceStats) {
-        // console.warn('[AIFilePersistence] Invalid model data, starting fresh');
         return { weightsData: null, performanceStats: null };
       }
 

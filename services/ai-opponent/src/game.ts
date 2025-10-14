@@ -51,8 +51,6 @@ export class PongGame {
   public readonly isRemote = false;
 
   constructor(socketManager: SocketManager) {
-    console.log(`[PongGame-${this.gameId}] Created new PongGame instance`);
-
     this.socketManager = socketManager;
     this.constants = { ...DEFAULT_CONSTANTS };
     this.constants.paddleCenter = this.constants.paddleHeight / 2;
@@ -88,7 +86,7 @@ export class PongGame {
     console.log(`[PongGame-${this.gameId}] Game started`);
 
     if (this.gameRunning) {
-      console.warn(`[PongGame-${this.gameId}] Game already running`);
+      console.log(`[PongGame-${this.gameId}] Game already running`);
       return;
     }
 
@@ -100,9 +98,6 @@ export class PongGame {
     if (this.gameLoopInterval) {
       clearInterval(this.gameLoopInterval);
     }
-
-    console.log(`[PongGame-${this.gameId}] Starting AI game loop at ${GAME_FPS} FPS`);
-
     this.gameLoopInterval = setInterval(() => {
       if (!this.gameRunning) {
         this.stopGameLoop();
@@ -134,7 +129,7 @@ export class PongGame {
   };
 
   public handleRoomTerminated(): void {
-    console.warn(`[PongGame-${this.gameId}] Room terminated`);
+    console.log(`[PongGame-${this.gameId}] Room terminated`);
     this.stop();
     this.resetGame();
   }
@@ -156,7 +151,7 @@ export class PongGame {
   }
 
   public handleOpponentDisconnected(): void {
-    console.warn(`[PongGame-${this.gameId}] Opponent disconnected`);
+    console.log(`[PongGame-${this.gameId}] Opponent disconnected`);
     this.updateStatus('Opponent disconnected');
 
     setTimeout(() => {
@@ -166,7 +161,7 @@ export class PongGame {
   }
 
   public handleConnectionLost(): void {
-    console.error(`[PongGame-${this.gameId}] Connection lost`);
+    console.warn(`[PongGame-${this.gameId}] Connection lost`);
     this.stop();
     this.updateStatus('Connection lost. Trying to reconnect...');
   }
@@ -211,8 +206,6 @@ export class PongGame {
   }
 
   private resetGame(): void {
-    console.log(`[PongGame-${this.gameId}] Resetting game state`);
-
     this.playerScore = 0;
     this.opponentScore = 0;
 
@@ -236,18 +229,14 @@ export class PongGame {
       return;
     }
 
-    console.log(`[PongGame-${this.gameId}] Game paused`);
     this.isPaused = true;
     this.updateStatus('Game paused');
   }
 
   public resumeGame(): void {
     if (!this.isPaused) {
-      console.log(`[PongGame-${this.gameId}] Cannot resume - game not paused`);
       return;
     }
-
-    console.log(`[PongGame-${this.gameId}] Game resumed`);
     this.isPaused = false;
     this.updateStatus('Game resumed');
   }

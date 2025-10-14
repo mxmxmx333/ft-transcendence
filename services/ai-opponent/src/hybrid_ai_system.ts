@@ -94,8 +94,6 @@ export class HybridAISystem {
   }
 
   public async onGameEnd(won: boolean): Promise<void> {
-    console.log(`[HybridAI] Game ended - AI ${won ? 'WON' : 'LOST'}`);
-
     // Aktualisiere Performance-Tracking
     this.performanceHistory.push(won ? 1 : 0);
     this.gameCount++;

@@ -286,7 +286,7 @@ class ImprovedNeuralNetwork {
 
       console.log('[NeuralNetwork] Weights loaded successfully');
     } catch (error) {
-      console.error('[NeuralNetwork] Failed to load weights:', error);
+      console.warn('[NeuralNetwork] Failed to load weights, will initialize new ones:', error);
       this.initializeWeights();
     }
   }
@@ -325,7 +325,6 @@ export class ImprovedReinforcementLearningAI {
 
     this.isLoading = true;
     try {
-      console.log('[RL-AI] Loading persisted model from files...');
       const { weightsData, performanceStats } = await aiFilePersistenceManager.loadAIModel();
 
       if (weightsData && performanceStats) {
