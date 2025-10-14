@@ -21,7 +21,7 @@ export class AIFilePersistenceManager {
       await fs.mkdir(this.modelDir, { recursive: true });
 
       this.initialized = true;
-      console.log('[AIFilePersistence] Directories initialized');
+      console.debug('[AIFilePersistence] Directories initialized');
     } catch (error) {
       console.error('[AIFilePersistence] Failed to initialize directories:', error);
     }
@@ -43,7 +43,7 @@ export class AIFilePersistenceManager {
       const filePath = path.join(this.modelDir, this.globalModelFile);
       await fs.writeFile(filePath, JSON.stringify(modelData, null, 2));
 
-      console.log(
+      console.debug(
         `[AIFilePersistence] Model saved - Games: ${weightsData.gameCount}, Win Rate: ${(performanceStats.winRate * 100).toFixed(1)}%`
       );
     } catch (error) {
@@ -65,7 +65,7 @@ export class AIFilePersistenceManager {
       try {
         await fs.access(filePath);
       } catch {
-        console.log('[AIFilePersistence] No saved model found, starting fresh');
+        console.debug('[AIFilePersistence] No saved model found, starting fresh');
         return { weightsData: null, performanceStats: null };
       }
 
@@ -77,7 +77,7 @@ export class AIFilePersistenceManager {
         return { weightsData: null, performanceStats: null };
       }
 
-      console.log(
+      console.debug(
         `[AIFilePersistence] Model loaded - Games: ${modelData.weightsData.gameCount}, Win Rate: ${(modelData.performanceStats.winRate * 100).toFixed(1)}%`
       );
 

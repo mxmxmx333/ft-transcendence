@@ -62,7 +62,7 @@ export class PongGame {
 
   private updateStatus(message: string): void {
     // Log status instead of updating DOM (server-side environment)
-    console.log(`[PongGame-${this.gameId}] Status: ${message}`);
+    console.debug(`[PongGame-${this.gameId}] Status: ${message}`);
   }
 
   public updateFromServer(gameState: ServerToClientEvents['game_state']): void {
@@ -83,10 +83,10 @@ export class PongGame {
   }
 
   public handleGameStart(message: any): void {
-    console.log(`[PongGame-${this.gameId}] Game started`);
+    console.debug(`[PongGame-${this.gameId}] Game started`);
 
     if (this.gameRunning) {
-      console.log(`[PongGame-${this.gameId}] Game already running`);
+      console.debug(`[PongGame-${this.gameId}] Game already running`);
       return;
     }
 
@@ -129,13 +129,13 @@ export class PongGame {
   };
 
   public handleRoomTerminated(): void {
-    console.log(`[PongGame-${this.gameId}] Room terminated`);
+    console.debug(`[PongGame-${this.gameId}] Room terminated`);
     this.stop();
     this.resetGame();
   }
 
   public handleGameOver(message: any) {
-    console.log(`[PongGame-${this.gameId}] Game over`);
+    console.debug(`[PongGame-${this.gameId}] Game over`);
     this.gameRunning = false;
 
     // PROBLEM: onGameEnd wird nicht mit korrektem won-Parameter aufgerufen!
@@ -151,7 +151,7 @@ export class PongGame {
   }
 
   public handleOpponentDisconnected(): void {
-    console.log(`[PongGame-${this.gameId}] Opponent disconnected`);
+    console.debug(`[PongGame-${this.gameId}] Opponent disconnected`);
     this.updateStatus('Opponent disconnected');
 
     setTimeout(() => {
@@ -225,7 +225,7 @@ export class PongGame {
 
   public pauseGame(): void {
     if (!this.gameRunning || this.isPaused) {
-      console.log(`[PongGame-${this.gameId}] Cannot pause - game not running or already paused`);
+      console.debug(`[PongGame-${this.gameId}] Cannot pause - game not running or already paused`);
       return;
     }
 
@@ -242,7 +242,7 @@ export class PongGame {
   }
 
   public stop(): void {
-    console.log(`[PongGame-${this.gameId}] Stopping game`);
+    console.debug(`[PongGame-${this.gameId}] Stopping game`);
 
     this.gameRunning = false;
     this.isPaused = false;

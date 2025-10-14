@@ -127,7 +127,7 @@ export class HybridAISystem {
   }
 
   public async cleanup(): Promise<void> {
-    console.log('[HybridAI] Performing cleanup and saving RL AI state...');
+    console.debug('[HybridAI] Performing cleanup and saving RL AI state...');
     if (this.rlAI) {
       await this.rlAI.cleanup();
     }

@@ -52,7 +52,7 @@ async function buildServer() {
         ca: fs.readFileSync(caPath),
       },
     };
-    console.log('Api-Gateway: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+    console.log('Api-Gateway: SSL-Zertifikate gefunden, starte mit HTTPS');
   } else {
     console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
   }

@@ -43,7 +43,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
       ca: fs.readFileSync(caPath),
     },
   };
-  console.log('Auth-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  console.log('Auth-Service: SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
   console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
@@ -66,7 +66,7 @@ export const server = fastify({
 });
 
 server.setErrorHandler((error, request, reply) => {
-  console.log('Live-Chat error:', error);
+  console.warn('Live-Chat error:', error);
   server.log.error(error);
 
   if (error.statusCode == 401) return reply.status(401).send({error: 'Unauthorized'});
@@ -408,7 +408,6 @@ async function start() {
 
   server.post<{ Body: MatchResultBody }>('/api/match-result', async (req, reply) => {
     try {
-      console.log('Internal match result received:', req.body);
       const success = authService.saveMatchResult(req.body);
 
       req.log.info({ matchData: req.body }, 'Match result saved internally');
@@ -482,7 +481,7 @@ async function start() {
   });
 
   await server.listen({ port: 3002, host: '0.0.0.0' });
-  console.log('Server "auth-user-service" is listening: https://localhost:3002 ');
+  console.log('Server "auth-user-service" is listening');
 }
 
 start().catch((err) => {

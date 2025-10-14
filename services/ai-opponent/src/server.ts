@@ -55,13 +55,13 @@ class AIServerClass {
     const instance = this.aiInstances.get(roomId);
 
     if (!instance) {
-      console.log(`[AIServer] No AI instance found for room: ${roomId}`);
+      console.debug(`[AIServer] No AI instance found for room: ${roomId}`);
       return false;
     }
     try {
       // Save AI model before cleanup
       if (instance.game && typeof instance.game.getAISystem === 'function') {
-        console.log(`[AIServer] Saving AI model for room: ${roomId}`);
+        console.debug(`[AIServer] Saving AI model for room: ${roomId}`);
         const aiSystem = instance.game.getAISystem();
         if (aiSystem && typeof aiSystem.cleanup === 'function') {
           await aiSystem.cleanup();
@@ -110,7 +110,7 @@ class AIServerClass {
     }
 
     for (const roomId of roomsToRemove) {
-      console.log(`[AIServer] Cleaning up old instance for room: ${roomId}`);
+      console.debug(`[AIServer] Cleaning up old instance for room: ${roomId}`);
       await this.removeAIInstance(roomId);
     }
 
@@ -121,7 +121,7 @@ class AIServerClass {
     setInterval(async () => {
       const cleaned = await this.cleanupOldInstances();
       if (cleaned > 0) {
-        console.log(`[AIServer] Cleaned up ${cleaned} old instances`);
+        console.debug(`[AIServer] Cleaned up ${cleaned} old instances`);
       }
     }, DEFAULT_CLEANUP_INTERVAL);
   }

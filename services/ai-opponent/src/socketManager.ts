@@ -61,7 +61,7 @@ export class SocketManager {
       // Auto-join room wenn roomId vorhanden
       if (this.roomId) {
         this.socket!.emit('join_room', { roomId: this.roomId });
-        console.log('[SocketManager] Auto-joining room:', this.roomId);
+        console.debug('[SocketManager] Auto-joining room:', this.roomId);
       }
     });
 
@@ -77,18 +77,18 @@ export class SocketManager {
 
   private setupGameEvents(): void {
     this.socket!.on('game_start', (payload: ServerToClientEvents['game_start']) => {
-      console.log('[SocketManager] Game start received:', payload);
+      console.debug('[SocketManager] Game start received:', payload);
       this.gameInstance?.handleGameStart(payload);
       this.onGameStart?.(payload);
     });
 
     this.socket!.on('game_over', (message: ServerToClientEvents['game_over']) => {
-      console.log('[SocketManager] Game over:', message);
+      console.debug('[SocketManager] Game over:', message);
       this.gameInstance?.handleGameOver({ ...message });
     });
 
     this.socket!.on('game_aborted', (message: { message: string }) => {
-      console.log('[SocketManager] Game aborted:', message);
+      console.debug('[SocketManager] Game aborted:', message);
       this.gameInstance?.handleRoomTerminated();
     });
 
@@ -96,7 +96,7 @@ export class SocketManager {
       this.gameInstance?.updateFromServer(state);
     });
     this.socket!.on('game_pause_state', (isPaused: boolean) => {
-      console.log('[SocketManager] Game pause state received:', isPaused);
+      console.debug('[SocketManager] Game pause state received:', isPaused);
       if (isPaused) {
         this.gameInstance?.pauseGame();
       } else {
@@ -107,7 +107,7 @@ export class SocketManager {
 
   private setupRoomEvents(): void {
     this.socket!.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
-      console.log('[SocketManager] Joined room:', data);
+      console.debug('[SocketManager] Joined room:', data);
       this.resolvePendingPromise(data.roomId);
     });
 
@@ -122,7 +122,7 @@ export class SocketManager {
     });
 
     this.socket!.on('room_created', (data: ServerToClientEvents['room_created']) => {
-      console.log('[SocketManager] Room created:', data);
+      console.debug('[SocketManager] Room created:', data);
       this.resolvePendingPromise(data.roomId);
     });
   }
@@ -222,7 +222,7 @@ export class SocketManager {
     this.socket = undefined;
     this.gameInstance = null;
     this.pendingResolve = null;
-    console.log('[SocketManager] Disconnected and cleaned up');
+    console.debug('[SocketManager] Disconnected and cleaned up');
   }
 
   public isConnected(): boolean {

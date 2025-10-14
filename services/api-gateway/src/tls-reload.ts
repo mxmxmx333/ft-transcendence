@@ -14,7 +14,6 @@ export interface TlsReloadOptions {
 
 function readBundle(opts: TlsReloadOptions) {
   const { certPath, keyPath, caPath } = opts;
-  console.log('Reading certs from:', { certPath, keyPath, caPath });
   if (fs.existsSync(certPath) && fs.existsSync(keyPath) && fs.existsSync(caPath)) {
     return {
       key: fs.readFileSync(keyPath),

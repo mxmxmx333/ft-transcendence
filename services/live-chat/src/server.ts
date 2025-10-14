@@ -39,7 +39,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
       ca: fs.readFileSync(caPath),
     },
   };
-  console.log('Auth-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  console.log('Auth-Service: SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
   console.warn('SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
@@ -86,7 +86,7 @@ io.use((socket, next) => {
       id: decoded.id,
       nickname: decoded.nickname,
     };
-    console.log(`User ${socket.user.nickname} connected`);
+    console.debug(`User ${socket.user.nickname} connected`);
     next();
   } catch (err) {
     console.error('Invalid token', err);
@@ -98,7 +98,7 @@ registerIoHandlers(io);
 
 //  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {
-  console.log('Live-Chat error:', error);
+  console.warn('Live-Chat error:', error);
   server.log.error(error);
 
   if (error.statusCode == 401) return reply.status(401).send({error: 'Unauthorized'});
@@ -154,7 +154,7 @@ async function start() {
 
 
   await server.listen({ port: 3004, host: '0.0.0.0' });
-  console.log('Live Chat service listening at http://localhost:3004');
+  console.log('Live Chat service listening');
 }
 
 start().catch((err) => {

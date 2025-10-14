@@ -343,11 +343,11 @@ export class ImprovedReinforcementLearningAI {
         this.totalReward = weightsData.totalReward;
         this.recentGames = performanceStats.recentGames || [];
 
-        console.log(
+        console.debug(
           `[RL-AI] Model loaded successfully - Games: ${this.gameCount}, Win Rate: ${((this.winCount / Math.max(this.gameCount, 1)) * 100).toFixed(1)}%`
         );
       } else {
-        console.log('[RL-AI] No persisted model found, starting fresh');
+        console.debug('[RL-AI] No persisted model found, starting fresh');
       }
     } catch (error) {
       console.error('[RL-AI] Failed to load persisted model:', error);
@@ -558,7 +558,7 @@ export class ImprovedReinforcementLearningAI {
     } else {
       // Reset bei schlechter Performance
       if (this.consecutiveLosses > 8) {
-        console.log('[RL-AI] Poor performance detected, increasing exploration...');
+        console.debug('[RL-AI] Poor performance detected, increasing exploration...');
         this.epsilon = Math.min(0.8, this.epsilon * 1.5); // Mehr Exploration
 
         // Aggressiveres Training statt Bias-Anpassung
@@ -668,7 +668,7 @@ export class ImprovedReinforcementLearningAI {
       this.epsilon = Math.min(0.6, this.epsilon * 1.02);
     }
 
-    console.log(
+    console.debug(
       `[RL-AI] Game ${this.gameCount} ended. W/L: ${this.winCount}/${this.gameCount - this.winCount} (${(winRate * 100).toFixed(1)}%) | Epsilon: ${this.epsilon.toFixed(3)}`
     );
 
@@ -753,7 +753,7 @@ export class ImprovedReinforcementLearningAI {
   }
 
   public async cleanup(): Promise<void> {
-    console.log('[RL-AI] Performing final cleanup and save to file...');
+    console.debug('[RL-AI] Performing final cleanup and save to file...');
     await this.forceSave();
   }
 }

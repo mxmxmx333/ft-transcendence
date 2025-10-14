@@ -68,7 +68,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(caPath)) 
       ca: fs.readFileSync(caPath),
     },
   };
-  console.log('Game-Service: ✅ SSL-Zertifikate gefunden, starte mit HTTPS');
+  console.log('Game-Service: SSL-Zertifikate gefunden, starte mit HTTPS');
 } else {
   console.warn('Game-Service: SSL-Zertifikate nicht gefunden, starte ohne HTTPS');
 }
@@ -115,10 +115,10 @@ io.use((socket, next) => {
           isService: true,
           isAI: true,
         };
-        console.log(`[Auth] AI service authenticated for room: ${roomId}`);
+        console.debug(`[Auth] AI service authenticated for room: ${roomId}`);
         return next();
       }
-      console.log('[Auth] No token provided');
+      console.debug('[Auth] No token provided');
       return next(new Error('Authentication error: No token provided'));
     }
 
@@ -133,7 +133,7 @@ io.use((socket, next) => {
       isService: false,
       isAI: false,
     };
-    console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
+    console.debug(`[Auth] User ${socket.user.nickname} authenticated successfully`);
     next();
   } catch (err) {
     console.warn('[Auth] JWT verification error:', err);
@@ -145,7 +145,7 @@ registerIoHandlers(io);
 
 //  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {
-  console.log('Request error:', error);
+  console.error('Request error:', error);
   server.log.error(error);
 
   if (error.validation) return reply.status(400).send({error: 'Invalid request data'});
@@ -191,7 +191,7 @@ async function start() {
   });
   server.register(httpsAgent);
   await server.listen({ port: 3001, host: '0.0.0.0' });
-  console.log('Server backend is listening: https://localhost:3001 adresinde çalışıyor');
+  console.debug('Server backend is listening');
 }
 
 start().catch((err) => {
