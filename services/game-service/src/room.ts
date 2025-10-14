@@ -59,6 +59,7 @@ export function handleCreateRoom(player: Player, payload: CreateRoomPayload['cre
         lastUpdate: Date.now(),
       },
       isPrivate: true,
+      isPaused: true,
     };
     gameRooms[roomId] = room;
     socket.room = room;

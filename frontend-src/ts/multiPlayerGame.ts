@@ -375,7 +375,7 @@ private setupResizeObserver() {
       // console.log('Countdown already active');
       return;
     }
-    let countdown = 3;
+    let countdown = 5;
     this.announce_match(this.myNickname, this.opponentNickname);
 
     // Clear any existing countdown
