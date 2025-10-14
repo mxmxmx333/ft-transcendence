@@ -117,11 +117,21 @@ const routes: Route[] = [
   },
 ];
 
+const __AUTH_TTL_MS = 2000;
 let __authInflight: Promise<boolean> | null = null;
+let __authCacheVal: boolean | null = null;
+let __authCacheAt = 0;
+
 export function isAuthenticatedOnce(): Promise<boolean> {
+  const now = Date.now();
+  if (__authCacheVal !== null && (now - __authCacheAt) < __AUTH_TTL_MS) {
+    return Promise.resolve(__authCacheVal);
+  }
   if (__authInflight) return __authInflight;
-  __authInflight = isAuthenticated().catch(() => false);
-  __authInflight.finally(() => { __authInflight = null; });
+  __authInflight = isAuthenticated()
+    .then(v => { __authCacheVal = v; __authCacheAt = Date.now(); return v; })
+    .catch(() => { __authCacheVal = false; __authCacheAt = Date.now(); return false; })
+    .finally(() => { __authInflight = null; });
   return __authInflight;
 }
 
@@ -184,7 +194,7 @@ function setupOptionsPageListeners() {
 }
 
 async function showOptionsPage() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -210,7 +220,7 @@ async function loadOptionsData() {
 }
 
 async function showUserSearchPage() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -223,7 +233,7 @@ async function showUserSearchPage() {
 }
 
 async function showStatistics() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -517,7 +527,7 @@ async function sendFriendRequest(targetUserId: number): Promise<boolean> {
 }
 
 async function showUserProfilePage() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -581,7 +591,7 @@ async function showOAuthResultPage() {
           localStorage.setItem('authToken', data.token);
           navigateTo('/profile');
           return;
-        } else if (!data.token && await isAuthenticated()) {
+        } else if (!data.token && await isAuthenticatedOnce()) {
           navigateTo('/profile');
           return;
         }
@@ -840,17 +850,17 @@ function showAuthPage() {
 }
 
 async function showProfilePage() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
   manageNavbar();
+  await loadProfileData();
   showPage(profilePage);
-  loadProfileData();
 }
 
 export async function showGamePage() {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
@@ -1052,6 +1062,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   handleRouting();
 });
+function getAvatarUrl(avatar: string): string {
+    console.log('🔗 getAvatarUrl called with:', avatar);
+
+    let url: string;
+
+    if (!avatar || avatar === 'default' || avatar === 'default1') {
+      url = `/imgs/avatars/${avatar || 'default'}.png`;
+    } else if (avatar.startsWith('custom_')) {
+      const hasExtension = /\.(jpg|png|gif|webp)$/i.test(avatar);
+      url = hasExtension ? `/uploads/avatars/${avatar}` : `/uploads/avatars/${avatar}.jpg`;
+    } else {
+      url = `/imgs/avatars/${avatar}.png`;
+    }
+
+    // ✅ Cache busting için timestamp ekle
+    const timestamp = new Date().getTime();
+    return `${url}?t=${timestamp}`;
+  }
 
 setupMobileMenu(); // For mobile toggle issues.
 document.addEventListener('click', (e) => {
@@ -1102,10 +1130,16 @@ async function loadProfileData() {
     }
 
     const email = data.email ?? 'N/A (Logged in through 42)';
-
     const nicknameElement = document.getElementById('profile-nickname');
     const emailElement = document.getElementById('profile-email');
-
+    const avatarImg = document.getElementById('profile-avatar-img') as HTMLImageElement;
+    if (avatarImg) {
+      const avatarImgUrl = getAvatarUrl(data.avatar);
+      avatarImg.src = avatarImgUrl;
+      avatarImg.onerror = () => {
+        avatarImg.src = '/imgs/avatars/default.png';
+      };
+    }
     if (nicknameElement) nicknameElement.textContent = data.nickname;
     if (emailElement) emailElement.textContent = email;
   } catch (error) {
@@ -1150,7 +1184,7 @@ async function handleLogout() {
 }
 
 async function initPongGame(singlePlayer: boolean, remote: boolean) {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     alert('Please log in.');
     navigateTo('/');
     return;
@@ -1533,7 +1567,7 @@ async function leaveTournament(): Promise<void> {
 }
 
 async function showTournamentPage(): Promise<void> {
-  if (!(await isAuthenticated())) {
+  if (!(await isAuthenticatedOnce())) {
     navigateTo('/');
     return;
   }
