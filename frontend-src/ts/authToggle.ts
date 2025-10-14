@@ -2,26 +2,68 @@ import { handleSignup, handleLogin, handleSetNickname, handle2FaLogin, handleDis
 import { navigateTo, showAccountPage, showDeleteAccountPage } from './router.js';
 
 // For input security issues I'll use these as I got errors for now it's hashed.
-const validateEmail = (email: string): boolean => {
+const validateEmail = (email: string): { valid: boolean; error?: string } => {
+  const trimmedEmail = email.trim();
+  
+  if (trimmedEmail.length > 254) {
+    return { valid: false, error: 'Email is too long (max 254 characters)' };
+  }
+  
   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
-  return re.test(email.trim());
+  if (!re.test(trimmedEmail)) {
+    return { valid: false, error: 'Please enter a valid email address' };
+  }
+  
+  return { valid: true };
 };
 
-const validateNickname = (nickname: string): boolean => {
-  const re = /^[a-zA-Z0-9_\-\.]+$/;
-  return re.test(nickname);
-}
+const validateNickname = (nickname: string): { valid: boolean; error?: string } => {
+  const trimmedNickname = nickname.trim();
+  
+  if (trimmedNickname.length < 3) {
+    return { valid: false, error: 'Nickname must be at least 3 characters' };
+  }
+  
+  if (trimmedNickname.length > 20) {
+    return { valid: false, error: 'Nickname must be at most 20 characters' };
+  }
+  
+  const re = /^[a-zA-Z0-9_\-.]+$/;
+  if (!re.test(trimmedNickname)) {
+    return { 
+      valid: false, 
+      error: 'Nickname can only contain letters, numbers, underscores, dashes, and dots' 
+    };
+  }
+  
+  return { valid: true };
+};
 
-const validatePassword = (password: string): boolean => {
-  // for 8 chars and a number.
+const validatePassword = (password: string): { valid: boolean; error?: string } => {
+
+  if (password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters' };
+  }
+  
+  if (password.length > 128) {
+    return { valid: false, error: 'Password is too long (max 128 characters)' };
+  }
+  
   const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-  return re.test(password);
+  if (!re.test(password)) {
+    return { 
+      valid: false, 
+      error: 'Password must contain at least one uppercase letter, one lowercase letter, and one digit' 
+    };
+  }
+  
+  return { valid: true };
 };
 
 const sanitizeInput = (input: string): string => {
   return input.trim().replace(/\s+/g, ' ');
 };
-// Form submits
+
 const setupLoginValidation = () => {
   const form = document.getElementById('loginForm') as HTMLFormElement;
 
@@ -31,18 +73,21 @@ const setupLoginValidation = () => {
     const email = (document.getElementById('login-email') as HTMLInputElement).value;
     const password = (document.getElementById('login-pw') as HTMLInputElement).value;
 
-    if (!validateEmail(email)) {
-      alert('enter a valid email');
+    const sEmail = sanitizeInput(email);
+    const emailValidation = validateEmail(sEmail);
+    if (!emailValidation.valid) {
+      alert(emailValidation.error);
       return;
     }
 
-    if (!validatePassword(password)) {
-      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      alert(passwordValidation.error);
       return;
     }
 
     try {
-      await handleLogin({ email, password });
+      await handleLogin({ email: sEmail, password });
       form.reset();
       navigateTo('/profile');
     } catch (error) {
@@ -134,11 +179,26 @@ const setupAccountUpdateFormValidation = () => {
     }
 
     const new_password_field  = (document.getElementById('new-password') as HTMLInputElement);
-
     const new_password = new_password_field.value ? new_password_field.value : null;
 
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      alert(emailValidation.error);
+      return;
+    }
+
+    // Validate new password if provided
+    if (new_password) {
+      const passwordValidation = validatePassword(new_password);
+      if (!passwordValidation.valid) {
+        alert(passwordValidation.error);
+        return;
+      }
+    }
+
     try {
-      await handleUpdateAccount({email,current_password, new_password});
+      await handleUpdateAccount({email, current_password, new_password});
       alert('Successfully updated Account info');
       showAccountPage();
     } catch (error) {
@@ -182,7 +242,6 @@ const setupAccountDeleteFormValidation = () => {
   });
 }
 
-// Sadece authToggle.ts'teki setupSignupValidation'ı güncelle:
 const setupSignupValidation = () => {
   const form = document.getElementById('signupForm') as HTMLFormElement;
 
@@ -193,23 +252,24 @@ const setupSignupValidation = () => {
     const email = (document.getElementById('signup-email') as HTMLInputElement).value;
     const password = (document.getElementById('signup-pw') as HTMLInputElement).value;
 
-    if (nickname.length < 3) {
-      alert('Nickname should be at least 3 characters!');
+    // Validate nickname
+    const nicknameValidation = validateNickname(nickname);
+    if (!nicknameValidation.valid) {
+      alert(nicknameValidation.error);
       return;
     }
 
-    if (!validateNickname(nickname)) {
-      alert('Nickname can only contain letters, numbers, underscores, dashes, and dots.');
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      alert(emailValidation.error);
       return;
     }
 
-    if (!validateEmail(email)) {
-      alert('Enter a valid email');
-      return;
-    }
-
-    if (!validatePassword(password)) {
-      alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      alert(passwordValidation.error);
       return;
     }
 
@@ -242,8 +302,10 @@ const setupSetNicknameValidation = () => {
 
     const nickname = (document.getElementById('nickname-field') as HTMLInputElement).value;
 
-    if (nickname.length < 3) {
-      alert('Nickname should be at least 3 characters!');
+    // Validate nickname
+    const nicknameValidation = validateNickname(nickname);
+    if (!nicknameValidation.valid) {
+      alert(nicknameValidation.error);
       return;
     }
 
