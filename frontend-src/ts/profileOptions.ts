@@ -416,19 +416,8 @@ export class ProfileOptions {
 
   private async selectAvatar(avatar: string) {
     console.log('🎯 Selecting avatar:', avatar);
-
     this.currentAvatar = avatar;
-
-    // ✅ Sadece görsel güncelleme yap
     this.highlightSelectedAvatar();
-
-    // ✅ Backend'e gönder
-    await this.updateAvatar(avatar);
-
-    // ❌ loadAvatars() ÇAĞIRMA - sonsuz döngü yaratır!
-    // await this.loadAvatars();
-
-    console.log('✅ Avatar selection complete');
   }
   private highlightSelectedAvatar() {
     console.log('🎨 highlightSelectedAvatar - currentAvatar:', this.currentAvatar);
@@ -515,7 +504,7 @@ export class ProfileOptions {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ nickname, status }),
+      body: JSON.stringify({ nickname, status, avatar: this.currentAvatar }),
     });
 
     if (response.ok) {
@@ -528,6 +517,10 @@ export class ProfileOptions {
       } else {
         localStorage.removeItem('authToken');
         console.log('ℹ️ Auth token cleared after profile update');
+      }
+      const serverAvatar = data.avatar ?? data.user?.avatar ?? null;
+      if (serverAvatar) {
+        this.currentAvatar = serverAvatar;
       }
       const newNickname = data.nickname || nickname;
       socketManager.updateNickname(newNickname);

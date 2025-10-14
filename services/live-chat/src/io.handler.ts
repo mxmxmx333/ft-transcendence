@@ -22,17 +22,6 @@ export function registerIoHandlers(io: SocketIOServer)
 		const userID = Number(socket.user!.id);
 		const userNickname = socket.user.nickname;
 
-		// try {
-		// 	  const resp = await fetch(`${authUserServiceUpstream}/someroute`, {
-		// 		method: 'GET',
-		// 		headers: { "x-user-id": userID.toString() }, // Convert number to string
-		// 	  });
-		
-		// 	  const interfaceData = await resp.json(); // or resp.text(), resp.blob(), etc.
-		// 	} catch (error) {
-		// 	  console.error('Fetch error:', error);
-		// 	}
-
 		const info: UserChatInfo = {
 			socket: socket,
 			activeChatID: null,
@@ -69,8 +58,13 @@ export function registerIoHandlers(io: SocketIOServer)
 		
 	
 		socket.on("update chat and target info", (id: number, type: string) => {
-			activeUsers.get(userID)!.activeChatID = type === "chatID" ? id : null;
-			activeUsers.get(userID)!.currentTargetID = id;
+			const me = activeUsers.get(userID);
+			if (!me) {
+				console.warn(`[Live Chat Socket] Ignored 'update chat and target info' for user ${userID} because they are not active`);
+				return;
+			}
+			me.activeChatID = type === "chatID" ? id : null;
+			me.currentTargetID = id;
 		});
 		
 		socket.on("ping", (callback: () => void) => {

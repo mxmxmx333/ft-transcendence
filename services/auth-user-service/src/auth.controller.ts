@@ -721,6 +721,12 @@ export default class AuthController {
       }
 
       const { nickname, avatar, status } = request.body;
+      // Normalize avatar input (accept key or URL)
+      let avatarKey = avatar;
+      if (avatarKey && (avatarKey.startsWith('/') || /^https?:\/\//i.test(avatarKey))) {
+        const base = avatarKey.split('/').pop() || avatarKey;
+        avatarKey = base.replace(/\.(jpe?g|png|gif|webp|avif)$/i, '');
+      }
       let updated = false;
 
       if (nickname) {
@@ -738,12 +744,12 @@ export default class AuthController {
         }
       }
 
-      if (avatar) {
+      if (avatarKey) {
         const availableAvatars = this.authService.getAvailableAvatars(userId);
-        if (!availableAvatars.includes(avatar)) {
+        if (!availableAvatars.includes(avatarKey)) {
           return reply.status(400).send({ error: 'Invalid avatar selection' });
         }
-        const success = this.authService.updateUserAvatar(userId, avatar);
+        const success = this.authService.updateUserAvatar(userId, avatarKey);
         if (success) updated = true;
       }
 
