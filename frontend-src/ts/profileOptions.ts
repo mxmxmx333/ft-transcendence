@@ -203,16 +203,6 @@ export class ProfileOptions {
               <img src="${avatarSrc}" alt="${avatar}" 
                    class="w-12 h-12 mx-auto object-cover rounded"
                    onerror="console.error('Failed to load:', this.src); this.src='/imgs/avatars/default.png'">
-              ${
-                isCustomAvatar
-                  ? `
-                <button class="delete-custom-avatar absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
-                        data-avatar="${avatar}">
-                  ×
-                </button>
-              `
-                  : ''
-              }
             </div>
             <p class="text-center text-xs text-gray-300 mt-1">${this.getAvatarDisplayName(avatar)}</p>
           </div>
@@ -228,16 +218,6 @@ export class ProfileOptions {
     document.querySelectorAll('.avatar-item').forEach((item) => {
       item.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-
-        // Delete butonuna tıklandıysa
-        if (target.classList.contains('delete-custom-avatar')) {
-          e.stopPropagation();
-          const avatar = target.getAttribute('data-avatar');
-          if (avatar) {
-            this.deleteCustomAvatar(avatar);
-          }
-          return;
-        }
 
         const avatarItem = target.closest('.avatar-item') as HTMLElement;
         const avatar = avatarItem?.getAttribute('data-avatar');
@@ -325,38 +305,38 @@ export class ProfileOptions {
     }
   }
 
-  private async deleteCustomAvatar(avatarUrl: string) {
-    if (!confirm('Are you sure you want to delete this custom avatar?')) {
-      return;
-    }
+  // private async deleteCustomAvatar(avatarUrl: string) {
+  //   if (!confirm('Are you sure you want to delete this custom avatar?')) {
+  //     return;
+  //   }
 
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+  //   try {
+  //     const token = localStorage.getItem('authToken');
+  //     if (!token) return;
 
-      // ✅ Content-Type header'ını KALDIR veya body gönder
-      const response = await fetch('/api/profile/avatar', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // ❌ 'Content-Type': 'application/json', // BU SATIRI KALDIR
-        },
-        // ✅ VEYA boş body gönder
-        // body: JSON.stringify({})
-      });
+  //     // ✅ Content-Type header'ını KALDIR veya body gönder
+  //     const response = await fetch('/api/profile/avatar', {
+  //       method: 'DELETE',
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         // ❌ 'Content-Type': 'application/json', // BU SATIRI KALDIR
+  //       },
+  //       // ✅ VEYA boş body gönder
+  //       // body: JSON.stringify({})
+  //     });
 
-      if (response.ok) {
-        this.showNotification('Avatar deleted successfully!', 'success');
-        await this.loadAvatars();
-        await this.loadProfileData();
-      } else {
-        throw new Error('Failed to delete avatar');
-      }
-    } catch (error) {
-      console.error('Avatar delete failed:', error);
-      this.showNotification('Failed to delete avatar', 'error');
-    }
-  }
+  //     if (response.ok) {
+  //       this.showNotification('Avatar deleted successfully!', 'success');
+  //       await this.loadAvatars();
+  //       await this.loadProfileData();
+  //     } else {
+  //       throw new Error('Failed to delete avatar');
+  //     }
+  //   } catch (error) {
+  //     console.error('Avatar delete failed:', error);
+  //     this.showNotification('Failed to delete avatar', 'error');
+  //   }
+  // }
   private validateFile(file: File): boolean {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB

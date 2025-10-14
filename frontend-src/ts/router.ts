@@ -1009,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.body.addEventListener('click', (e) => {
+  document.body.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-link]')) {
       e.preventDefault();
@@ -1020,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const link = href || dataLink;
 
       if (link === '/logout') {
-        handleLogout();
+        await handleLogout();
       } else if (link) {
         navigateTo(link);
       }

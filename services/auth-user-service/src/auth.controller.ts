@@ -741,7 +741,7 @@ export default class AuthController {
       let avatarKey = avatar;
       if (avatarKey && (avatarKey.startsWith('/') || /^https?:\/\//i.test(avatarKey))) {
         const base = avatarKey.split('/').pop() || avatarKey;
-        avatarKey = base.replace(/\.(jpe?g|png|gif|webp|avif)$/i, '');
+        avatarKey = base.replace(/\.(jpe?g)$/i, '');
       }
       let updated = false;
 
@@ -912,7 +912,7 @@ export default class AuthController {
       }
 
       // Dosya tipi kontrolü
-      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedMimeTypes = ['image/jpeg'];
       if (!allowedMimeTypes.includes(data.mimetype)) {
         return reply.status(400).send({
           error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.',

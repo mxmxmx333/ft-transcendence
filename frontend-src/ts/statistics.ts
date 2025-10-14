@@ -44,9 +44,9 @@ export class StatisticsManager {
 
       this.stats = await statsResponse.json();
       const matchesData = await matchesResponse.json();
-      // this.matches = matchesData.matches || [];
+      this.matches = matchesData.matches || [];
 
-      // // console.log('Statistics loaded:', this.stats);
+      console.log('Statistics loaded:', this.stats);
       // console.log('Matches loaded:', this.matches.length);
 
       this.displayStatistics();
@@ -59,8 +59,15 @@ export class StatisticsManager {
   }
 
   private displayStatistics() {
-    if (!this.stats) return;
-
+    if (!this.stats) {
+      console.log('no stats?')
+      return;
+    }
+    console.log('we got stats!')
+    let lost = this.stats.games_lost;
+    if (this.stats.games_lost + this.stats.games_won !== this.stats.games_played) {
+      lost = this.stats.games_played - this.stats.games_won;
+    }
     const winRate =
       this.stats.games_played > 0 ? (this.stats.games_won / this.stats.games_played) * 100 : 0;
     const avgScore =
@@ -70,8 +77,11 @@ export class StatisticsManager {
     this.updateElement('win-rate-percentage', `${winRate.toFixed(1)}%`);
     this.updateElement('avg-score-value', avgScore.toFixed(1));
     this.updateElement('games-played', this.stats.games_played.toString());
+    console.log(`${this.stats.games_played}`);
 
-    const winLossText = `${this.stats.games_won} wins / ${this.stats.games_lost} losses`;
+    console.log(`${this.stats.games_won} wins / ${lost} losses`);
+
+    const winLossText = `${this.stats.games_won} wins / ${lost} losses`;
     this.updateElement('win-loss-text', winLossText);
 
     // Letztes Spiel
@@ -241,7 +251,7 @@ export class StatisticsManager {
   private updateElement(id: string, value: string) {
     const element = document.getElementById(id);
     if (element) {
-      // element.textContent = value;
+      element.textContent = value;
       // console.log(`Updated ${id}:`, value);
     } else {
       console.warn(`Element not found: ${id}`);
