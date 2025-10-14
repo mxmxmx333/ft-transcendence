@@ -311,6 +311,9 @@ const setupSetNicknameValidation = () => {
 
     try {
       await handleSetNickname({ nickname });
+      const socketManager = SocketManager.getInstance();
+      await socketManager.ensureConnection();
+      initLiveChat(ChatSocketManager.getInstance());
       navigateTo('/profile');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Setting nickname failed');

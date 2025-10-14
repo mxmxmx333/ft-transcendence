@@ -118,6 +118,9 @@ export async function handle2FaLogin(formData: {totp_code: string }) {
     localStorage.setItem('authToken', data.token);
     localStorage.removeItem('preAuthToken');
 
+    const socketManager = SocketManager.getInstance();
+    await socketManager.ensureConnection();
+    initLiveChat(ChatSocketManager.getInstance());
     navigateTo('/profile');
   } catch (error) {
     console.error('Handle2FaLogin error:', error);
