@@ -60,7 +60,7 @@ export class ProfileOptions {
         const data = await response.json();
 
         console.log('📦 Backend data received, avatar:', data.avatar);
-
+        console.log('🎯 fetched Avatar:', data.avatar);
         if (data.avatar === undefined || data.avatar === null) {
           this.currentAvatar = 'default';
         }
@@ -151,7 +151,7 @@ export class ProfileOptions {
     }
   }
 
-  private getAvatarUrl(avatar: string): string {
+   private getAvatarUrl(avatar: string): string {
     console.log('🔗 getAvatarUrl called with:', avatar);
 
     let url: string;

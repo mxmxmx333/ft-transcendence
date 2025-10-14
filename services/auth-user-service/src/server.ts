@@ -318,6 +318,7 @@ async function start() {
       return reply.send({
         nickname: user.nickname,
         email: user.email,
+        avatar: user.avatar,
       });
     } catch (err) {
       return reply.status(401).send({ error: 'Unauthorized' });
