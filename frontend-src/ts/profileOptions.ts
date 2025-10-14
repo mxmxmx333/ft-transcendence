@@ -59,14 +59,14 @@ export class ProfileOptions {
       if (response.ok) {
         const data = await response.json();
 
-        console.log('📦 Backend data received, avatar:', data.avatar);
-        console.log('🎯 fetched Avatar:', data.avatar);
+        // console.log('📦 Backend data received, avatar:', data.avatar);
+        // console.log('🎯 fetched Avatar:', data.avatar);
         if (data.avatar === undefined || data.avatar === null) {
           this.currentAvatar = 'default';
         }
         if (data.avatar) {
           this.currentAvatar = data.avatar;
-          console.log('✅ currentAvatar updated to:', this.currentAvatar);
+          // console.log('✅ currentAvatar updated to:', this.currentAvatar);
         }
 
         // Form alanlarını doldur
@@ -131,7 +131,7 @@ export class ProfileOptions {
 
   private async loadAvatars() {
     try {
-      console.log('🔄 Loading avatars...');
+      // console.log('🔄 Loading avatars...');
       const token = localStorage.getItem('authToken');
 
       const response = await fetch('/api/profile/avatars', {
@@ -142,8 +142,8 @@ export class ProfileOptions {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📦 Avatars received:', data.avatars);
-        console.log('🎯 Rendering with currentAvatar:', this.currentAvatar);
+        // console.log('📦 Avatars received:', data.avatars);
+        // console.log('🎯 Rendering with currentAvatar:', this.currentAvatar);
         this.renderAvatars(data.avatars);
       }
     } catch (error) {
@@ -152,7 +152,7 @@ export class ProfileOptions {
   }
 
    private getAvatarUrl(avatar: string): string {
-    console.log('🔗 getAvatarUrl called with:', avatar);
+    // console.log('🔗 getAvatarUrl called with:', avatar);
 
     let url: string;
 
@@ -173,7 +173,7 @@ export class ProfileOptions {
     const grid = document.getElementById('avatar-grid');
     if (!grid) return;
 
-    console.log('🎨 Rendering avatars. Current:', this.currentAvatar);
+    // console.log('🎨 Rendering avatars. Current:', this.currentAvatar);
 
     grid.innerHTML = avatars
       .map((avatar) => {
@@ -193,7 +193,7 @@ export class ProfileOptions {
         const avatarSrc = this.getAvatarUrl(avatar); // ✅ getAvatarUrl kullan
         const isSelected = avatar === this.currentAvatar;
 
-        console.log('🖼️ Rendering avatar:', avatar, 'URL:', avatarSrc, 'Selected:', isSelected);
+        // console.log('🖼️ Rendering avatar:', avatar, 'URL:', avatarSrc, 'Selected:', isSelected);
 
         return `
           <div class="avatar-item cursor-pointer p-2 rounded-lg border-2 transition-all duration-300 ${
@@ -299,7 +299,7 @@ export class ProfileOptions {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Avatar uploaded successfully:', result);
+        // console.log('✅ Avatar uploaded successfully:', result);
 
         // ✅ CRITICAL FIX: Upload sonrası currentAvatar'ı güncelle
         if (result.avatar) {
@@ -415,12 +415,12 @@ export class ProfileOptions {
   }
 
   private async selectAvatar(avatar: string) {
-    console.log('🎯 Selecting avatar:', avatar);
+    // console.log('🎯 Selecting avatar:', avatar);
     this.currentAvatar = avatar;
     this.highlightSelectedAvatar();
   }
   private highlightSelectedAvatar() {
-    console.log('🎨 highlightSelectedAvatar - currentAvatar:', this.currentAvatar);
+    // console.log('🎨 highlightSelectedAvatar - currentAvatar:', this.currentAvatar);
 
     document.querySelectorAll('.avatar-item').forEach((item) => {
       const avatar = item.getAttribute('data-avatar');
@@ -445,7 +445,7 @@ export class ProfileOptions {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      console.log('📡 Sending avatar update to backend:', avatar);
+      // console.log('📡 Sending avatar update to backend:', avatar);
 
       const response = await fetch('/api/profile', {
         method: 'PUT',
@@ -460,7 +460,7 @@ export class ProfileOptions {
         throw new Error('Failed to update avatar');
       }
 
-      console.log('✅ Backend avatar update successful');
+      // console.log('✅ Backend avatar update successful');
     } catch (error) {
       console.error('Avatar update failed:', error);
     }
@@ -508,15 +508,15 @@ export class ProfileOptions {
     });
 
     if (response.ok) {
-      console.log('✅ Profile updated successfully!');
+      // console.log('✅ Profile updated successfully!');
       const data = await response.json();
       const newToken = data.token ?? data.user?.token ?? null;
       if (newToken) {
         localStorage.setItem('authToken', newToken);
-        console.log('✅ New auth token saved after profile update');
+        // console.log('✅ New auth token saved after profile update');
       } else {
         localStorage.removeItem('authToken');
-        console.log('ℹ️ Auth token cleared after profile update');
+        // console.log('ℹ️ Auth token cleared after profile update');
       }
       const serverAvatar = data.avatar ?? data.user?.avatar ?? null;
       if (serverAvatar) {
@@ -540,7 +540,7 @@ export class ProfileOptions {
 
       navigateTo('/profile');
 
-      console.log('✅ Profile page updated with avatar:', this.currentAvatar);
+      // console.log('✅ Profile page updated with avatar:', this.currentAvatar);
     } else {
       const error = await response.json();
       alert('Profile update failed: ' + (error.message || 'Unknown error'));

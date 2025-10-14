@@ -70,7 +70,7 @@ export async function handleLogin(formData: { email: string; password: string })
 
       const socketManager = SocketManager.getInstance();
       await socketManager.ensureConnection();
-      console.log('Socket connected after login');
+      // console.log('Socket connected after login');
     navigateTo('/profile');
     initLiveChat(ChatSocketManager.getInstance());
     return data;

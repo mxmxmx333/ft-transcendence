@@ -18,7 +18,7 @@ export class ChatSocketManager
 	{
 		if (!ChatSocketManager.instance)
 		{
-			console.log('[LiveChat] Creating new ChatSocketManager instance');
+			// console.log('[LiveChat] Creating new ChatSocketManager instance');
 			ChatSocketManager.instance = new ChatSocketManager();
 		}
 		return ChatSocketManager.instance;
@@ -75,7 +75,7 @@ export class ChatSocketManager
 			});
 		
 			this.socket.on('connect', () => {
-				console.log('[LiveChat] Socket connected:', this.socket?.id);
+				// console.log('[LiveChat] Socket connected:', this.socket?.id);
 				resolve();
 			});
 			
@@ -93,7 +93,7 @@ export class ChatSocketManager
 
 			this.socket.on('disconnect', () => {
 				if (this.logout)
-					console.log("[Live Chat] Socket disconnected (Logout)");
+					// console.log("[Live Chat] Socket disconnected (Logout)");
 				else
 				{
 					console.warn("[Live Chat] Socket disconnected (Lost Connection)");
@@ -110,7 +110,7 @@ export class ChatSocketManager
 			});
 			
 			this.socket.io.on('reconnect', (attempt: number) => {
-				console.log(`[Live Chat] Reconnected after ${attempt} attempts`);
+				// console.log(`[Live Chat] Reconnected after ${attempt} attempts`);
 				this.connectionLost = false;
 				DOM.chatContainer.classList.remove('hidden');
 				DOM.reconnectInfo.classList.add('hidden');
