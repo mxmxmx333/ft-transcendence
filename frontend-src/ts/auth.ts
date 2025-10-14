@@ -1,4 +1,4 @@
-import { navigateTo } from './router.js';
+import { chatSocketManager, navigateTo, socketManager } from './router.js';
 import { SocketManager } from './socketManager.js';
 import { ChatSocketManager } from './LiveChat/chatSocketManager.js';
 import { initLiveChat } from './LiveChat/liveChat.js';
@@ -260,6 +260,8 @@ export async function handleDeleteAccount(formData: { password: string | null}) 
     if (!data.success) {
       throw new Error(data.error);
     }
+    socketManager.disconnect();
+    chatSocketManager.disconnect();
   } catch (error) {
     console.error('HandleDeleteAccount error:', error);
     throw error;

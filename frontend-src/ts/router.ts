@@ -36,7 +36,7 @@ export function showPage(pageToShow: HTMLElement) {
 }
 
 export const socketManager = SocketManager.getInstance();
-const chatSocketManager = ChatSocketManager.getInstance();
+export const chatSocketManager = ChatSocketManager.getInstance();
 
 type Route = {
   path: string;
@@ -85,10 +85,10 @@ const routes: Route[] = [
     view: showLiveChat,
     authRequired: true,
   },
-  { 
-    path: '/options', 
-    view: showOptionsPage, 
-    authRequired: true 
+  {
+    path: '/options',
+    view: showOptionsPage,
+    authRequired: true
   },
   {
     path: '/search',
@@ -1029,12 +1029,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    
+
     if (target.id === 'create-room-btn') {
       e.preventDefault();
       handleCreateRoom();
     }
-    
+
     if (target.id === 'join-room-btn') {
       e.preventDefault();
       handleJoinRoom();
@@ -1308,7 +1308,7 @@ async function handleCreateRoom() {
 
   const socketManager = SocketManager.getInstance();
   const game = socketManager.getGameInstance();
-  
+
   try {
     const roomId = await socketManager.createRoom();
 
