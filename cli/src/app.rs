@@ -2,23 +2,34 @@ use std::{collections::HashMap, error::Error, fmt::Display, net::SocketAddr, tim
 
 use futures_util::{FutureExt, StreamExt, future};
 use http::{Response, StatusCode};
-use hyper::{body::{Bytes}, server::conn::http1, service::service_fn, Request};
+use http_body_util::Full;
+use hyper::{Request, body::Bytes, server::conn::http1, service::service_fn};
+use hyper_util::rt::TokioIo;
 use ratatui::DefaultTerminal;
 use tokio::{
-    net::TcpListener, select, sync::mpsc::{self, Sender}, time
+    net::TcpListener,
+    select,
+    sync::mpsc::{self, Sender},
+    time,
 };
-use hyper_util::rt::TokioIo;
-use http_body_util::Full;
 
 use crate::{
     auth::{self, BoolOrString, LoginErrors, TotpErrors},
     ui::{
-        game::Game, game_lobby::GameLobbyPage, game_over::GameOverPage, gamemode::{GameModePage, GameModes}, host_selector::HostSelectorPage, join_room::JoinRoomPage, login::LoginPage, nickname_page::NicknamePage, pages::{LoginType, PageResults}, totp::TotpPage
+        game::Game,
+        game_lobby::GameLobbyPage,
+        game_over::GameOverPage,
+        gamemode::{GameModePage, GameModes},
+        host_selector::HostSelectorPage,
+        join_room::JoinRoomPage,
+        login::LoginPage,
+        nickname_page::NicknamePage,
+        pages::{LoginType, PageResults},
+        totp::TotpPage,
     },
     websocket::{
-        events::{
-            errors::EventError, request::CreateRoomRequest, websocketevents::SocketEvents,
-        }, SocketIoClient
+        SocketIoClient,
+        events::{errors::EventError, request::CreateRoomRequest, websocketevents::SocketEvents},
     },
 };
 
@@ -49,8 +60,8 @@ impl Display for FatalErrors {
 
 #[derive(Debug)]
 enum WsOrWeb {
-  Websocket(SocketIoClient),
-  Webserver(TcpListener),
+    Websocket(SocketIoClient),
+    Webserver(TcpListener),
 }
 
 #[derive(Debug)]
@@ -78,53 +89,80 @@ enum ChannelEvents {
     RoomJoinError(EventError),
 }
 
-async fn wait_for_webserver_events(server: &mut TcpListener, tx: &Sender<ChannelEvents>) -> Result<SocketEvents, EventError> {
+async fn wait_for_webserver_events(
+    server: &mut TcpListener,
+    tx: &Sender<ChannelEvents>,
+) -> Result<SocketEvents, EventError> {
     let (stream, _) = match server.accept().await {
-      Ok(conn) => conn,
-      Err(_) => return Err(EventError::ConnectionError),
+        Ok(conn) => conn,
+        Err(_) => return Err(EventError::ConnectionError),
     };
 
     let service = service_fn(move |req: Request<hyper::body::Incoming>| {
-      let tx = tx.clone();
-      async move {
-        let query = req.uri().query().unwrap_or("");
-        let params: HashMap<_, _> = url::form_urlencoded::parse(query.as_bytes())
-                  .into_owned()
-                  .collect();
+        let tx = tx.clone();
+        async move {
+            let query = req.uri().query().unwrap_or("");
+            let params: HashMap<_, _> = url::form_urlencoded::parse(query.as_bytes())
+                .into_owned()
+                .collect();
 
-        let token = params.get("token");
-        let nickname_required = params.get("nickname_required");
+            let token = params.get("token");
+            let nickname_required = params.get("nickname_required");
 
-        match (token, nickname_required) {
-          (Some(token), Some(nickname_required)) => {
-            let nickname_required = match nickname_required.as_str() {
-              "true" => true,
-              "false" => false,
-              _ => {
-                let mut response = Response::new(Full::new(Bytes::from("Bad Request")));
-                *response.status_mut() = StatusCode::BAD_REQUEST;
-                tx.send(ChannelEvents::RemoteRedirectError(LoginErrors::InvalidResponse)).await.unwrap();
-                return Ok::<_, hyper::Error>(response);
-              }
-            };
-            tx.send(ChannelEvents::RemoteRedirectCallback((token.clone(), nickname_required))).await.unwrap();
-            Ok::<_, hyper::Error>(Response::new(Full::new(Bytes::from("LGTM"))))
-          },
-          (_, _) => {
-            let mut response = Response::new(Full::new(Bytes::from("Bad Request")));
-            *response.status_mut() = StatusCode::BAD_REQUEST;
-            tx.send(ChannelEvents::RemoteRedirectError(LoginErrors::InvalidResponse)).await.unwrap();
-            Ok::<_, hyper::Error>(response)
-          },
+            match (token, nickname_required) {
+                (Some(token), Some(nickname_required)) => {
+                    let nickname_required = match nickname_required.as_str() {
+                        "true" => true,
+                        "false" => false,
+                        _ => {
+                            let response = Response::builder()
+                                .status(StatusCode::BAD_REQUEST)
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(Full::new(Bytes::from("Bad Request")))
+                                .unwrap();
+                            tx.send(ChannelEvents::RemoteRedirectError(
+                                LoginErrors::InvalidResponse,
+                            ))
+                            .await
+                            .unwrap();
+                            return Ok::<_, hyper::Error>(response);
+                        }
+                    };
+                    tx.send(ChannelEvents::RemoteRedirectCallback((
+                        token.clone(),
+                        nickname_required,
+                    )))
+                    .await
+                    .unwrap();
+                    let response = Response::builder()
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Full::new(Bytes::from("LGTM")))
+                        .unwrap();
+                    Ok::<_, hyper::Error>(response)
+                }
+                (_, _) => {
+                    let response = Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Full::new(Bytes::from("Bad Request")))
+                        .unwrap();
+                    tx.send(ChannelEvents::RemoteRedirectError(
+                        LoginErrors::InvalidResponse,
+                    ))
+                    .await
+                    .unwrap();
+                    Ok::<_, hyper::Error>(response)
+                }
+            }
         }
-      }
     });
 
     let io = TokioIo::new(stream);
 
-    if let Err(err) = http1::Builder::new().serve_connection(io, service).await {
-      eprintln!("Error serving connection: {}", err);
-    }
+    http1::Builder::new()
+        .serve_connection(io, service)
+        .await
+        .ok();
 
     Err(EventError::ConnectionError)
 }
@@ -140,14 +178,16 @@ impl App {
         }
     }
 
-    async fn wait_for_socket_events(&mut self, tx: &Sender<ChannelEvents>) -> Result<SocketEvents, EventError> {
+    async fn wait_for_socket_events(
+        &mut self,
+        tx: &Sender<ChannelEvents>,
+    ) -> Result<SocketEvents, EventError> {
         match self.socket.as_mut() {
             Some(WsOrWeb::Websocket(socket)) => socket.wait_for_events().await,
             Some(WsOrWeb::Webserver(server)) => wait_for_webserver_events(server, tx).await,
             None => future::pending().await,
         }
     }
-
 
     pub async fn run(mut self, terminal: &mut DefaultTerminal) -> Result<(), FatalErrors> {
         let mut reader = crossterm::event::EventStream::new();
@@ -174,8 +214,6 @@ impl App {
                         },
                         (Ok(_), _) => (),
                         (Err(err), _) => {
-                            // TODO: Show some error message (maybe create a separate page)
-                            println!("{:?}", err);
                             self.socket = None;
                         },
                     }
@@ -431,9 +469,15 @@ impl App {
 
 fn get_endpoint(host: &str, token: &str) -> String {
     if cfg!(debug_assertions) {
-        format!("wss://{}:3000/socket.io/?token={}&EIO=4&transport=websocket", host, token)
+        format!(
+            "wss://{}:3000/socket.io/?token={}&EIO=4&transport=websocket",
+            host, token
+        )
     } else {
-        format!("wss://{}:8443/socket.io/?token={}&EIO=4&transport=websocket", host, token)
+        format!(
+            "wss://{}:8443/socket.io/?token={}&EIO=4&transport=websocket",
+            host, token
+        )
     }
 }
 
