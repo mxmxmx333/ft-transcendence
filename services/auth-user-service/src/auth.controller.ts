@@ -12,10 +12,25 @@ interface SignupBody {
   password: string;
 }
 
+export const Nickname = z.string().min(3).max(20).regex(/^[a-zA-Z0-9_\-\.]+$/);
+const Email = z.email().max(254);
+const Password = z.string().min(8).max(128).regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/);
+
+const SignupSchema = z.object({
+  nickname: Nickname,
+  email: Email,
+  password: Password
+});
+
 interface LoginBody {
   email: string;
   password: string;
 }
+
+const LoginSchema = z.object({
+  email: Email,
+  password: Password
+});
 
 interface UpdateProfileBody {
   nickname?: string;
@@ -41,13 +56,13 @@ const Login2FaRequestSchema = z.object({
 });
 
 const UpdateAccountRequestSchema = z.object({
-  email: z.email(),
-  current_password: z.string().min(8),
-  new_password: z.string().min(8).nullable(),
+  email: Email,
+  current_password: Password,
+  new_password: Password.nullable(),
 });
 
 const DeleteAccountRequestSchema = z.object({
-  password: z.string().min(8).nullable(),
+  password: Password.nullable(),
 });
 
 export default class AuthController {
@@ -64,16 +79,9 @@ export default class AuthController {
 
   // ======= EXISTING AUTH METHODS =======
   async signup(request: FastifyRequest<{ Body: SignupBody }>, reply: FastifyReply) {
-    const { nickname, email, password } = request.body;
-
     try {
-      // Validations
-      if (!nickname || !email || !password) {
-        return reply.status(400).send({
-          error: 'All fields must be filled',
-          details: ['nickname', 'email', 'password'],
-        });
-      }
+      const { nickname, email, password } = await SignupSchema.parseAsync(request.body);
+
       const existingUser = this.authService.getUserByEmail(email);
       if (existingUser) {
         return reply.status(409).send({
@@ -115,6 +123,11 @@ export default class AuthController {
       });
     } catch (error) {
       console.error('Signup error:', error);
+      if (error instanceof ZodError) {
+        return reply.status(400).send({
+          error: 'Bad request',
+        });
+      }
       return reply.status(500).send({
         error: 'Nickname or email already in use',
         details: error,
@@ -126,9 +139,8 @@ export default class AuthController {
     request: FastifyRequest<{ Body: { email: string; password: string } }>,
     reply: FastifyReply
   ) {
-    const { email, password } = request.body;
-
     try {
+      const { email, password } = await LoginSchema.parseAsync(request.body);
       const user = this.authService.getUserByEmail(email);
       if (!user) {
         return reply.status(401).send({
@@ -175,6 +187,11 @@ export default class AuthController {
       });
     } catch (error) {
       this.fastify.log.error(error);
+      if (error instanceof ZodError) {
+        return reply.status(400).send({
+          error: 'Bad request',
+        });
+      }
       return reply.status(500).send({
         error: 'Internal server error',
         details: error,
@@ -189,11 +206,7 @@ export default class AuthController {
         return reply.status(401).send({ error: 'Unauthorized' });
       }
 
-      const result = await Login2FaRequestSchema.safeParseAsync(request.body);
-
-      if (!result.success) {
-        return reply.code(400).send(result.error);
-      }
+      const result = await Login2FaRequestSchema.parseAsync(request.body);
 
       const { sub, totp_required } = await request.server.vAuth.verify(token);
       if (!totp_required) {
@@ -210,7 +223,7 @@ export default class AuthController {
 
       const totp = new OTPAuth.TOTP({secret: user.totp_secret});
 
-      const delta = totp.validate({token: result.data.totp_code, window: 1});
+      const delta = totp.validate({token: result.totp_code, window: 1});
       if (delta === null) {
         return reply.status(401).send({error: 'Invalid 2FA Code'});
       }
@@ -233,6 +246,11 @@ export default class AuthController {
       });
     } catch (error) {
       this.fastify.log.error(error);
+      if (error instanceof ZodError) {
+        return reply.status(400).send({
+          error: 'Bad request',
+        });
+      }
       return reply.status(500).send({
         error: 'Internal server error',
         details: error,
@@ -245,6 +263,9 @@ export default class AuthController {
       const token = request.headers?.authorization?.split(' ')[1];
       if (!token) {
         return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      if (!request.body.totp_code) {
+        return reply.status(400).send({ error: 'Missing totp code' });
       }
 
       const { sub } = await request.server.vAuth.verify(token);
@@ -287,6 +308,9 @@ export default class AuthController {
       const token = request.headers?.authorization?.split(' ')[1];
       if (!token) {
         return reply.status(401).send({ error: 'Unauthorized' });
+      }
+      if (!request.body.totp_code) {
+        return reply.status(400).send({ error: 'Missing totp code' });
       }
 
       const { sub } = await request.server.vAuth.verify(token);

@@ -203,6 +203,11 @@ const setupSignupValidation = () => {
       return;
     }
 
+    if (!validateEmail(email)) {
+      alert('Enter a valid email');
+      return;
+    }
+
     if (!validatePassword(password)) {
       alert('Password must contain at least 8 characters and include at least one lower case and upper case letter and a digit.');
       return;
@@ -210,19 +215,19 @@ const setupSignupValidation = () => {
 
     try {
       await handleSignup({ nickname, email, password });
-      
+
       // ✅ SUCCESS MESAJI
       alert('🎉 Signup successful! You can now login with your email and password.');
-      
+
       // ✅ FORMU TEMİZLE
       form.reset();
-      
+
       // ✅ OPSİYONEL: Otomatik login formuna geç
       const switchToLogin = document.getElementById('switchToLogin');
       if (switchToLogin) {
         switchToLogin.click();
       }
-      
+
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Signup failed');
     }
