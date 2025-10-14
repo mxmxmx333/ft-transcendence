@@ -118,7 +118,7 @@ DOM.searchBar.addEventListener('focusout', (e) => {
 	// const clicked = (e.relatedTarget as HTMLElement);
 	// if (sideBarMenu.contains(clicked) || friendsMenuExtension.contains(clicked))
 	// {
-	// 	console.log("It actually works");
+	// // 	console.log("It actually works");
 	// 	return;
 	// }
 
@@ -330,7 +330,7 @@ DOM.friendsMenuExtension.addEventListener('click', (e) => {
 	
 	if (target.innerText.match("All"))
 	{
-		console.log('Friends children:', DOM.friendsList.children.length, DOM.friendsList.innerHTML);
+		// console.log('Friends children:', DOM.friendsList.children.length, DOM.friendsList.innerHTML);
 
 		DOM.friendsList.classList.remove('hidden');
 		DOM.friendsList.scrollTop = 0;
@@ -382,7 +382,7 @@ function updateHeaderInfo(target: HTMLLIElement | null)
 		const name = target.dataset.username;
 		const picSrc = target.dataset.picSrc!;
 		
-		console.log("AVATAR PATH : ", picSrc);
+		// console.log("AVATAR PATH : ", picSrc);
 		DOM.headerName.innerHTML = name;
 		if (name.length > 24)
 		{
@@ -532,7 +532,7 @@ export function addChatHistory(name: string, picSrc: string, lastMsg: string, ta
 	else
 		DOM.chatHistory.appendChild(chatElement);
 	
-	console.log("Added chat with name: %s id: %d", name, target_id);
+	// console.log("Added chat with name: %s id: %d", name, target_id);
 }
 
 DOM.friendsList.addEventListener("mousedown", (e) => {
@@ -541,7 +541,7 @@ DOM.friendsList.addEventListener("mousedown", (e) => {
 	if (!target || !DOM.friendsList.contains(target)) return;
 	
 	currentTargetID = Number(target.dataset.id);
-	console.log("currentTargetID: %d   <-- friendsList", currentTargetID);
+	// console.log("currentTargetID: %d   <-- friendsList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -559,7 +559,7 @@ DOM.blockedList.addEventListener("mousedown", (e) => {
 	if (!target || !DOM.blockedList.contains(target)) return;
 	
 	currentTargetID = Number(target.dataset.id);
-	console.log("currentTargetID: %d   <-- blockedList", currentTargetID);
+	// console.log("currentTargetID: %d   <-- blockedList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -576,7 +576,7 @@ DOM.requestsList.addEventListener("mousedown", (e) => {
 		|| !(DOM.requestsList.contains(target))) return;
 	
 	currentTargetID = Number(target.dataset.id);
-	console.log("currentTargetID: %d   <-- requestsList", currentTargetID);
+	// console.log("currentTargetID: %d   <-- requestsList", currentTargetID);
 	updateHeaderInfo(target);
 	closeChat();
 	DOM.infoTitle.classList.add('hidden');
@@ -601,7 +601,7 @@ DOM.searchList.addEventListener("mousedown", (e) => {
 	
 	e.preventDefault();
 	currentTargetID = Number(target.dataset.id);
-	console.log("currentTargetID: %d   <-- searchList", currentTargetID);
+	// console.log("currentTargetID: %d   <-- searchList", currentTargetID);
 	updateHeaderInfo(target);
 	DOM.infoTitle.classList.add('hidden');
 	
@@ -663,7 +663,7 @@ DOM.chatHistory.addEventListener("click", (e) => {
 	// }
 	
 	currentTargetID = Number(target.dataset.id);
-	console.log("currentTargetID: %d   <-- chatHistory", currentTargetID);
+	// console.log("currentTargetID: %d   <-- chatHistory", currentTargetID);
 	updateHeaderInfo(target);
 	openChat();
 });
@@ -706,7 +706,7 @@ async function getChatHistory()
 	if (unread && window.location.pathname !== "/livechat")
 		DOM.liveChatNotification.classList.remove('hidden');
 
-	console.log("Was getting the chats - length: ", chats.length);
+	// console.log("Was getting the chats - length: ", chats.length);
 }
 
 export async function getFriendsAll()
@@ -1162,7 +1162,7 @@ function RegisterSocketListeners()
 	chatSocket.on("user info update", (updated: sendUserEvent) => {
 		const lists = [DOM.chatHistory, DOM.friendsList, DOM.blockedList, DOM.requestsList, DOM.searchList];
 		
-		console.log("USER INFO UPDATED INITIATED");
+		// console.log("USER INFO UPDATED INITIATED");
 		lists.forEach(list => {
 			const target = list.querySelector(`li[data-id="${updated.id}"]`) as HTMLLIElement;
 			if (target)
@@ -1274,7 +1274,7 @@ async function joinGame(roomID: string)
 
 function getAvatarUrl(avatar: string): string
 {
-    console.log('🔗 getAvatarUrl called with:', avatar);
+    // console.log('🔗 getAvatarUrl called with:', avatar);
 
     let url: string;
 

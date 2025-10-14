@@ -64,7 +64,7 @@ async function getProfileInfo()
 		DOM.userWinRate.innerHTML = String(win_rate);
 	} catch (err)
 	{
-		console.log("Error: ", err);
+		// console.log("Error: ", err);
 		DOM.userGamesPlayed.innerHTML = 'unavailable';
 		DOM.userAverageScore.innerHTML = 'unavailable';
 		DOM.userWinRate.innerHTML = 'unavailable';
@@ -235,7 +235,7 @@ DOM.chatInput.addEventListener('input', () => {
 	DOM.chatInput.style.height = DOM.chatInput.scrollHeight + 'px'; // grow to content
 	// DOM.chatInput.scrollTop = DOM.chatInput.scrollHeight; // while typing it scrolls down so the text is fully visible
 	let difference = DOM.chatInput.clientHeight - oldInputHeight;
-	console.log("DIFFERENCE: %d", difference);
+	// console.log("DIFFERENCE: %d", difference);
 	if (difference)
 	{
 		DOM.chatMsgArea.scrollTop += difference;

@@ -28,7 +28,7 @@ export class StatisticsManager {
 
   public async loadStatistics() {
     try {
-      console.log('Loading statistics...');
+      // console.log('Loading statistics...');
 
       const [statsResponse, matchesResponse] = await Promise.all([
         fetch('/api/my-statistics', {
@@ -44,10 +44,10 @@ export class StatisticsManager {
 
       this.stats = await statsResponse.json();
       const matchesData = await matchesResponse.json();
-      this.matches = matchesData.matches || [];
+      // this.matches = matchesData.matches || [];
 
-      console.log('Statistics loaded:', this.stats);
-      console.log('Matches loaded:', this.matches.length);
+      // // console.log('Statistics loaded:', this.stats);
+      // console.log('Matches loaded:', this.matches.length);
 
       this.displayStatistics();
       this.drawCharts();
@@ -241,8 +241,8 @@ export class StatisticsManager {
   private updateElement(id: string, value: string) {
     const element = document.getElementById(id);
     if (element) {
-      element.textContent = value;
-      console.log(`Updated ${id}:`, value);
+      // element.textContent = value;
+      // console.log(`Updated ${id}:`, value);
     } else {
       console.warn(`Element not found: ${id}`);
     }

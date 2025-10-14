@@ -189,7 +189,7 @@ async function saveProfileChanges() {
 
     if (response.ok) {
       // Alert yerine daha zarif bir bildirim kullanın
-      console.log('Profile updated successfully!');
+      // console.log('Profile updated successfully!');
       // navigateTo yerine direkt olarak sayfayı kapat
       showPage(profilePage);
 
@@ -281,7 +281,7 @@ function setupUserSearch() {
     clearTimeout(searchTimeout);
     const query = newInput.value.trim();
 
-    console.log('Search input:', query); // Debug
+    // console.log('Search input:', query); // Debug
 
     if (query.length < 2) {
       resultsContainer.innerHTML =
@@ -308,7 +308,7 @@ async function performSearch(query: string, resultsContainer: HTMLElement) {
 
     resultsContainer.innerHTML = '<p class="text-gray-400 text-center py-4">Searching...</p>';
 
-    console.log('Making search request for:', query); // Debug
+    // console.log('Making search request for:', query); // Debug
 
     const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
       method: 'GET',
@@ -318,14 +318,14 @@ async function performSearch(query: string, resultsContainer: HTMLElement) {
       },
     });
 
-    console.log('Search response status:', response.status); // Debug
+    // console.log('Search response status:', response.status); // Debug
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('Search results data:', data); // Debug
+    // console.log('Search results data:', data); // Debug
 
     if (data.users && data.users.length > 0) {
       renderSearchResults(data.users, resultsContainer);
@@ -356,7 +356,7 @@ function getStatusColor(status: string): string {
 }
 
 function renderSearchResults(users: any[], container: HTMLElement) {
-  console.log('Rendering search results:', users); // Debug
+  // console.log('Rendering search results:', users); // Debug
 
   container.innerHTML = users
     .map((user) => {
@@ -422,10 +422,10 @@ function addSearchResultEventListeners(container: HTMLElement) {
       e.preventDefault();
       const target = e.target as HTMLElement;
       const userId = target.getAttribute('data-user-id');
-      console.log('View profile clicked for user ID:', userId); // Debug
+      // console.log('View profile clicked for user ID:', userId); // Debug
       if (userId) {
         const userIdNum = parseInt(userId);
-        console.log('Parsed user ID:', userIdNum); // Debug
+        // console.log('Parsed user ID:', userIdNum); // Debug
         if (!isNaN(userIdNum)) {
           navigateTo(`/user/${userIdNum}`);
         } else {
@@ -518,7 +518,7 @@ async function sendFriendRequest(targetUserId: number): Promise<boolean> {
       return false;
     }
 
-    console.log('Sending friend request to user:', targetUserId); // Debug
+    // console.log('Sending friend request to user:', targetUserId); // Debug
 
     const response = await fetch('/api/friends/request', {
       method: 'POST',
@@ -529,10 +529,10 @@ async function sendFriendRequest(targetUserId: number): Promise<boolean> {
       body: JSON.stringify({ targetUserId }),
     });
 
-    console.log('Friend request response:', response.status); // Debug
+    // console.log('Friend request response:', response.status); // Debug
 
     if (response.ok) {
-      console.log('Friend request sent successfully');
+      // console.log('Friend request sent successfully');
       return true;
     } else {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -584,7 +584,7 @@ async function showOAuthResultPage() {
       if (result.ok) {
         const data = await result.json();
 
-        console.log(data);
+        // console.log(data);
         if (data.token && data.cli_redirect) {
           const nickname_required = data.action_required === 'nickname';
           const cli_callback_result = await fetch('http://localhost:' + data.cli_redirect + '?token=' + data.token + '&nickname_required=' + nickname_required);
@@ -617,7 +617,7 @@ async function showOAuthResultPage() {
       }
     }
   } catch (error) {
-    console.log('Network error from 42 callback: ', error);
+    // console.log('Network error from 42 callback: ', error);
   }
 
   if (oauth_result_header) {
@@ -716,7 +716,7 @@ export async function showAccountPage() {
 
     showPage(accountSettingsPage);
   } catch (error) {
-    console.log('Account settings request error', error);
+    // console.log('Account settings request error', error);
     localStorage.removeItem('authToken');
     navigateTo('/');
   }
@@ -736,8 +736,8 @@ async function loadUserProfileData(userId: number) {
       return;
     }
 
-    console.log('Loading user profile for ID:', userId);
-    console.log('Using endpoint:', `/api/user/${userId}`);
+    // console.log('Loading user profile for ID:', userId);
+    // console.log('Using endpoint:', `/api/user/${userId}`);
 
     const response = await fetch(`/api/user/${userId}`, {
       headers: {
@@ -746,12 +746,12 @@ async function loadUserProfileData(userId: number) {
       },
     });
 
-    console.log('User profile response status:', response.status);
-    console.log('User profile response headers:', response.headers);
+    // console.log('User profile response status:', response.status);
+    // console.log('User profile response headers:', response.headers);
 
     if (response.ok) {
       const userData = await response.json();
-      console.log('User profile data received:', userData);
+      // console.log('User profile data received:', userData);
       renderUserProfile(userData);
     } else {
       // Response body'yi de kontrol edelim
@@ -759,7 +759,7 @@ async function loadUserProfileData(userId: number) {
       console.error('User profile error response:', errorText);
 
       // Alternatif endpoint'i deneyelim
-      console.log('Trying alternative endpoint...');
+      // console.log('Trying alternative endpoint...');
       const altResponse = await fetch(`/api/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -767,11 +767,11 @@ async function loadUserProfileData(userId: number) {
         },
       });
 
-      console.log('Alternative endpoint status:', altResponse.status);
+      // console.log('Alternative endpoint status:', altResponse.status);
 
       if (altResponse.ok) {
         const userData = await altResponse.json();
-        console.log('Alternative endpoint data:', userData);
+        // console.log('Alternative endpoint data:', userData);
         renderUserProfile(userData);
       } else {
         alert('User not found');
@@ -1082,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleRouting();
 });
 function getAvatarUrl(avatar: string): string {
-    console.log('🔗 getAvatarUrl called with:', avatar);
+    // console.log('🔗 getAvatarUrl called with:', avatar);
 
     let url: string;
 
@@ -1438,7 +1438,7 @@ async function createTournament(): Promise<void> {
     document.getElementById('tournament-status')!.textContent = 'Creating tournament...';
 
     const tournamentData = await socketManager.createTournament();
-    console.log('Tournament created with data:', tournamentData);
+    // console.log('Tournament created with data:', tournamentData);
 
     const roomId = tournamentData.roomId || tournamentData.id || 'Unknown';
 
@@ -1486,7 +1486,7 @@ async function joinTournament(): Promise<void> {
       `Joining tournament ${tournamentId}...`;
 
     const tournamentData = await socketManager.joinTournament(tournamentId);
-    console.log('Tournament data received:', tournamentData);
+    // console.log('Tournament data received:', tournamentData);
 
     showTournamentInfo(tournamentId, tournamentData);
     showTournamentRules();
@@ -1504,10 +1504,10 @@ function showTournamentInfo(tournamentId: string, tournamentData?: any): void {
   document.getElementById('tournament-owner-controls')?.classList.remove('hidden');
 
   if (tournamentData && tournamentData.players) {
-    console.log('Using real player data:', tournamentData.players);
+    // console.log('Using real player data:', tournamentData.players);
     updateTournamentPlayers(tournamentData.players);
   } else if (tournamentData && tournamentData.room && tournamentData.room.players) {
-    console.log('Using nested player data:', tournamentData.room.players);
+    // console.log('Using nested player data:', tournamentData.room.players);
     updateTournamentPlayers(tournamentData.room.players);
   } else {
     return;
@@ -1516,7 +1516,7 @@ function showTournamentInfo(tournamentId: string, tournamentData?: any): void {
 }
 
 export function updateTournamentPlayers(playersData: any): void {
-  console.log('Live update - Tournament players changed:', playersData);
+  // console.log('Live update - Tournament players changed:', playersData);
 
   let players = playersData;
   if (playersData && !Array.isArray(playersData)) {
@@ -1533,7 +1533,7 @@ export function updateTournamentPlayers(playersData: any): void {
   const startBtn = document.getElementById('start-tournament-btn') as HTMLButtonElement;
 
   playersList.innerHTML = '';
-  console.log('Updating tournament players:', players);
+  // console.log('Updating tournament players:', players);
 
   players.forEach((player) => {
     const playerDiv = document.createElement('div');
@@ -1625,7 +1625,7 @@ async function showTournamentPage(): Promise<void> {
 }
 
 export function handleTournamentMatchStart(data: any): void {
-  console.log('[Frontend] Tournament Match Start'); // Debug
+  // console.log('[Frontend] Tournament Match Start'); // Debug
 
   hideTournamentRules();
   navigateTo('/tournament');
@@ -1652,15 +1652,15 @@ export function handleTournamentMatchStart(data: any): void {
     }
   }
 
-  console.log('Tournament game setup complete, canvas visible');
+  // console.log('Tournament game setup complete, canvas visible');
   socketManager.onGameStart = () => {
-    console.log('Tournament game starting!');
+    // console.log('Tournament game starting!');
     startMultiplayerGame(game);
   };
 }
 
 export function handleTournamentEnd(data: any): void {
-  console.log('Tournament completely finished, winner:', data);
+  // console.log('Tournament completely finished, winner:', data);
 
   const game = socketManager.getGameInstance();
   if (game) {

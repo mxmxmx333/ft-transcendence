@@ -51,7 +51,7 @@ export class PongGame {
   private lastPaddleUpdate = 0;
   private paddleUpdateInterval = 50; // ms
   constructor(canvas: HTMLCanvasElement, socketManager: SocketManager) {
-    console.log('Initializing Pong Game');
+    // console.log('Initializing Pong Game');
     this.socketManager = socketManager;
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -69,9 +69,9 @@ export class PongGame {
   private setupSocketListeners() {
     const socket = this.socketManager?.getSocket();
     if (!socket) return;
-    console.log('Setting up socket listeners');
+    // console.log('Setting up socket listeners');
     socket.on('game_pause_state', (isPaused: boolean) => {
-      console.log('Game pause state:', isPaused);
+      // console.log('Game pause state:', isPaused);
       if (isPaused) {
         this.pauseGame();
       } else {
@@ -243,10 +243,10 @@ private setupResizeObserver() {
 
   private updateStatus(message: string | null) {
     if (!message) return (document.getElementById('game-status')?.remove());
-    console.log(`[Status] ${message}`);
+    // console.log(`[Status] ${message}`);
 
     let statusElement = document.getElementById('game-status');
-    console.log('statusElement:', statusElement);
+    // console.log('statusElement:', statusElement);
 
     if (!statusElement) {
       const gameArea = document.querySelector('.game-page');
@@ -267,7 +267,7 @@ private setupResizeObserver() {
           border-radius: 5px;
         `;
         gameArea.appendChild(statusElement);
-        console.log('Status element created');
+        // console.log('Status element created');
       } else {
         console.warn('No game area found to create status element');
         return;
@@ -298,21 +298,21 @@ private setupResizeObserver() {
   }
 
   public handleGameStart(message: any) {
-    console.log('Game start received:', message);
-    console.log('Canvas element:', this.canvas);
-    console.log('Is Owner:', message.isOwner);
-    console.log('Owner info:', message.owner);
-    console.log('Guest info:', message.guest);
-    console.log('Message.owner.nickname:', message.owner.nickname);
-    console.log('Message.guest.nickname:', message.guest.nickname);
+    // console.log('Game start received:', message);
+    // console.log('Canvas element:', this.canvas);
+    // console.log('Is Owner:', message.isOwner);
+    // console.log('Owner info:', message.owner);
+    // console.log('Guest info:', message.guest);
+    // console.log('Message.owner.nickname:', message.owner.nickname);
+    // console.log('Message.guest.nickname:', message.guest.nickname);
 
     if (this.countdownInterval) {
-      console.log('Countdown already running, ignoring duplicate game start');
+      // console.log('Countdown already running, ignoring duplicate game start');
       return;
     }
 
     if (this.gameRunning) {
-      console.log('Game already running, stopping first');
+      // console.log('Game already running, stopping first');
       this.stop();
     }
 
@@ -333,7 +333,7 @@ private setupResizeObserver() {
     this.canvas.style.display = 'block';
     this.canvas.style.visibility = 'visible';
 
-    console.log('Canvas visibility set to visible');
+    // console.log('Canvas visibility set to visible');
 
     this.isPlayer1 = message.isOwner;
     this.roomId = message.roomId;
@@ -348,11 +348,11 @@ private setupResizeObserver() {
     document.getElementById('game-nick')!.textContent = message.owner.nickname;
     document.getElementById('game-nick2')!.textContent = message.guest.nickname;
 
-    console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
-    console.log(`My nickname: ${this.myNickname}`);
-    console.log(`Opponent nickname: ${this.opponentNickname}`);
-    console.log('Owner nickname (left):', message.owner.nickname);
-    console.log('Guest nickname (right):', message.guest.nickname);
+    // console.log(`I am ${this.isPlayer1 ? 'Player 1 (Owner)' : 'Player 2 (Guest)'}`);
+    // console.log(`My nickname: ${this.myNickname}`);
+    // console.log(`Opponent nickname: ${this.opponentNickname}`);
+    // console.log('Owner nickname (left):', message.owner.nickname);
+    // console.log('Guest nickname (right):', message.guest.nickname);
 
     // Kontrol bilgisini göster
     this.updateStatus(
@@ -372,7 +372,7 @@ private setupResizeObserver() {
 
   private startCountdown() {
     if (this.countdownInterval) {
-      console.log('Countdown already active');
+      // console.log('Countdown already active');
       return;
     }
     let countdown = 3;
@@ -393,11 +393,11 @@ private setupResizeObserver() {
         this.countdownInterval = undefined;
 
         if (!this.gameRunning) {
-          console.log('Starting game after countdown');
+          // console.log('Starting game after countdown');
           // this.gameRunning = true;
           this.start();
         } else {
-          console.log('Game already running, skipping start');
+          // console.log('Game already running, skipping start');
         }
       }
     }, 1000);
@@ -405,7 +405,7 @@ private setupResizeObserver() {
 
   private announce_match(owner: string, guest: string) {
     this.updateStatus(`Next Match: ${owner} vs ${guest}`);
-    console.log('Tournament match announcement:', { owner, guest });
+    // console.log('Tournament match announcement:', { owner, guest });
     // alert(`Next Match: ${owner} vs ${guest}`);
     // Optional: Clear the message after a few seconds
     // setTimeout(() => {
@@ -422,16 +422,16 @@ private setupResizeObserver() {
 
   public handleGameOver(message: any) {
     this.gameRunning = false;
-    console.log('Game over message:', message);
-    console.log('Game over. Winner:', message.winner);
-    console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
+    // console.log('Game over message:', message);
+    // console.log('Game over. Winner:', message.winner);
+    // console.log(`myNickname = ${this.myNickname}, opponentNick = ${this.opponentNickname}`);
     this.drawGameOver(message.winner);
   }
 
   public matchEnd(message: any) {
     this.gameRunning = false;
-    console.log('Match end message:', message);
-    console.log('Winner:', message.winnerName);
+    // console.log('Match end message:', message);
+    // console.log('Winner:', message.winnerName);
     this.drawMatchOver(message.winnerName);
   }
 
@@ -624,7 +624,7 @@ private setupResizeObserver() {
     this.lastTimeStamp = performance.now();
     this.lastPaddleUpdate = performance.now();
     this.animationId = requestAnimationFrame(this.gameLoop);
-    console.log('Game started');
+    // console.log('Game started');
   }
 
   public startGame() {
@@ -689,7 +689,7 @@ private setupResizeObserver() {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = undefined;
-      console.log('Countdown stopped');
+      // console.log('Countdown stopped');
     }
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);

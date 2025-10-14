@@ -28,7 +28,7 @@ export class SocketManager {
 
   public static getInstance(): SocketManager {
     if (!SocketManager.instance) {
-      console.log('Creating new SocketManager instance');
+      // console.log('Creating new SocketManager instance');
       SocketManager.instance = new SocketManager();
     }
     return SocketManager.instance;
@@ -40,11 +40,11 @@ export class SocketManager {
 
   public async ensureConnection(): Promise<void> {
     if (this.hasActiveConnection()) {
-      console.log('Socket already connected');
+      // console.log('Socket already connected');
       return Promise.resolve();
     }
     if (this.isConnecting && this.connectionPromise) {
-      console.log('Connection already in progress');
+      // console.log('Connection already in progress');
       return this.connectionPromise;
     }
 
@@ -62,7 +62,7 @@ export class SocketManager {
   public async setGamePauseState(isPaused: boolean): Promise<void> {
     if (this.hasActiveConnection()) {
       this.socket!.emit('game_pause', isPaused);
-      console.log(`[Client] game_pause emitted: ${isPaused}`);
+      // console.log(`[Client] game_pause emitted: ${isPaused}`);
     }
   }
 
@@ -107,7 +107,7 @@ export class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket?.id);
+      // console.log('Socket connected:', this.socket?.id);
       this.reconnectAttempts = 0;
       resolve();
     });
@@ -133,7 +133,7 @@ export class SocketManager {
   }
   
   private handleConnectionFailure(error: any): void {
-    console.log('Connection failed:', error);
+    // console.log('Connection failed:', error);
     this.gameInstance?.stop();
     this.gameInstance = null;    
     this.socket?.disconnect();
@@ -161,14 +161,14 @@ export class SocketManager {
     this.socket.off('game_state');
 
     this.socket.on('game_start', (payload: ServerToClientEvents['game_start']) => {
-      console.log('Game start received:', payload);
+      // console.log('Game start received:', payload);
       console.debug('[Game] this.gameInstance:', this.gameInstance);
       this.gameInstance?.handleGameStart(payload);
       this.onGameStart?.(payload);
     });
 
     this.socket.on('game_over', (message: ServerToClientEvents['game_over']) => {
-      console.log('Game over:', message);
+      // console.log('Game over:', message);
       this.gameInstance?.handleGameOver({ ...message });
       this.gameInstance?.stop();
       this.gameInstance = null; // Clear game instance after game over
@@ -176,7 +176,7 @@ export class SocketManager {
     });
 
     this.socket.on('game_aborted', (message: { message: string }) => {
-      console.log('Game aborted:', message);
+      // console.log('Game aborted:', message);
       this.gameInstance?.handleRoomTerminated();
       this.gameInstance?.stop();
       this.gameInstance = null; // Clear game instance after game over
@@ -198,11 +198,11 @@ export class SocketManager {
     this.socket.off('room_error');
 
     this.socket.on('joined_room', (data: ServerToClientEvents['joined_room']) => {
-      console.log('Joined room:', data);
+      // console.log('Joined room:', data);
     });
 
     this.socket.on('room_created', (data: ServerToClientEvents['room_created']) => {
-      console.log('Room created:', data);
+      // console.log('Room created:', data);
       this.updateLobbyStatus(`Room created: ${data.roomId}. Waiting for opponent...`);
     });
 
@@ -217,7 +217,7 @@ export class SocketManager {
     });
 
     this.socket.on('room_error', (error: ServerToClientEvents['room_error']) => {
-      console.log('Room error:', error.message);
+      // console.log('Room error:', error.message);
       alert(`Room error: ${error.message}`);
     });
   }
@@ -236,15 +236,15 @@ export class SocketManager {
     this.socket.off('tournament_winner');
 
     this.socket.on('tournament_room_created', (data: any) => {
-      console.log('Tournament room created:', data);
+      // console.log('Tournament room created:', data);
     });
 
     this.socket.on('joined_tournament_room', (data: any) => {
-      console.log('Joined tournament room:', data);
+      // console.log('Joined tournament room:', data);
     });
 
     this.socket.on('tournament_players_updated', (data: any) => {
-      console.log('Tournament players updated:', data);
+      // console.log('Tournament players updated:', data);
       updateTournamentPlayers(data.players);
     });
 
@@ -254,19 +254,19 @@ export class SocketManager {
     });
 
     this.socket.on('tournament_player_joined', (data: any) => {
-      console.log('Player joined tournament:', data);
+      // console.log('Player joined tournament:', data);
       updateTournamentPlayers(data.players || data.room?.players || []);
     });
 
     this.socket.on('tournament_player_left', (data: any) => {
-      console.log('Player left tournament:', data);
+      // console.log('Player left tournament:', data);
       updateTournamentPlayers(data.players || data.room?.players || []);
     });
 
     this.socket.on('tournament_match_start', (data: any) => {
-      console.log('Current game instance:', this.gameInstance);
+      // console.log('Current game instance:', this.gameInstance);
       if (this.gameInstance) {
-        console.log('🔄 Stopping previous game instance');
+        // console.log('🔄 Stopping previous game instance');
         this.gameInstance.stop();
         this.gameInstance = null;
       }
@@ -274,7 +274,7 @@ export class SocketManager {
       // Navigate to game page if not already there
       const currentPath = window.location.hash;
       if (!currentPath.includes('#/pong')) {
-        console.log('🔄 Navigating to game page for tournament match');
+        // console.log('🔄 Navigating to game page for tournament match');
         window.location.hash = '#/pong';
       }
       // Call window function like the other tournament events
@@ -282,12 +282,12 @@ export class SocketManager {
     });
 
     this.socket.on('tournament_match_end', (data: any) => {
-      console.log('Tournament match ended:', data);
+      // console.log('Tournament match ended:', data);
       this.gameInstance?.matchEnd(data);
     });
 
     this.socket.on('tournament_winner', (data: any) => {
-      console.log('Tournament winner:', data);
+      // console.log('Tournament winner:', data);
       handleTournamentEnd(data);
     });
   }
@@ -312,13 +312,13 @@ export class SocketManager {
     }
   }
   public async updateNickname(newNickname: string): Promise<void> {
-    console.log('Has active connection:', this.hasActiveConnection());
-    console.log('Nickname to change:', newNickname);
+    // console.log('Has active connection:', this.hasActiveConnection());
+    // console.log('Nickname to change:', newNickname);
     if (this.hasActiveConnection()) {
       this.socket!.emit('update_nickname', { nickname: newNickname });
-      console.log('[Client] update_nickname emitted:', newNickname);
+      // console.log('[Client] update_nickname emitted:', newNickname);
     } else {
-      console.log('Cannot update nickname: No active connection');
+      // console.log('Cannot update nickname: No active connection');
     }
   }
 
@@ -368,7 +368,7 @@ export class SocketManager {
       }, this.roomOperationTimeout);
 
       this.socket!.emit('create_tournament_room');
-      console.log('[Client] create_tournament_room emitted');
+      // console.log('[Client] create_tournament_room emitted');
     });
   }
 
@@ -418,14 +418,14 @@ export class SocketManager {
       }, this.roomOperationTimeout);
 
       this.socket!.emit('join_tournament_room', { roomId });
-      console.log('[Client] join_tournament emitted for room:', roomId);
+      // console.log('[Client] join_tournament emitted for room:', roomId);
     });
   }
 
   public async startTournament(tournamentId: string): Promise<void> {
     await this.ensureConnection();
     this.socket!.emit('start_tournament', { roomId: tournamentId });
-    console.log('[Client] start_tournament emitted for tournament:', tournamentId);
+    // console.log('[Client] start_tournament emitted for tournament:', tournamentId);
   }
 
   public async leaveTournament(): Promise<void> {
@@ -434,7 +434,7 @@ export class SocketManager {
       const tournamentId = document.getElementById('current-tournament-id')?.textContent;
       if (tournamentId && tournamentId !== '-') {
         this.socket!.emit('leave_tournament', { roomId: tournamentId });
-        console.log('[Client] leave_tournament emitted for:', tournamentId);
+        // console.log('[Client] leave_tournament emitted for:', tournamentId);
       }
     }
   }
@@ -482,7 +482,7 @@ export class SocketManager {
       };
 
       this.socket!.emit('create_room', roomConfig);
-      console.log('[Client] create_room emitted');
+      // console.log('[Client] create_room emitted');
     });
   }
 
@@ -524,19 +524,19 @@ export class SocketManager {
       }, this.roomOperationTimeout);
 
       this.socket!.emit('join_room', { roomId });
-      console.log('[Client] join_room emitted for room:', roomId);
+      // console.log('[Client] join_room emitted for room:', roomId);
     });
   }
 
   public async leaveRoom(): Promise<void> {
     if (this.hasActiveConnection()) {
       this.socket!.emit('leave_room');
-      console.log('[Client] leave_room emitted');
+      // console.log('[Client] leave_room emitted');
     }
     this.gameInstance?.handleRoomTerminated();
     this.gameInstance?.stop();
     this.gameInstance = null; // Clear game instance after game over
-    console.log('Left room and cleared game instance');
+    // console.log('Left room and cleared game instance');
     // this.disconnect();
   }
 
@@ -549,7 +549,7 @@ export class SocketManager {
   }
 
   public setGameInstance(gameInstance: PongGame): void {
-    console.log('Setting game instance');
+    // console.log('Setting game instance');
     this.gameInstance = gameInstance;
   }
 
@@ -557,7 +557,7 @@ export class SocketManager {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = undefined;
-      console.log('Socket disconnected');
+      // console.log('Socket disconnected');
     }
     this.isConnecting = false;
     this.connectionPromise = null;
