@@ -290,10 +290,7 @@ impl SocketIoClient {
                     _ => Err(EventError::InvalidResponse),
                 }
             }
-            _ => {
-                println!("{:?}", msg);
-                Err(EventError::InvalidResponse)
-            }
+            _ => Err(EventError::InvalidResponse),
         }
     }
 }
