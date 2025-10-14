@@ -607,6 +607,9 @@ async function showOAuthResultPage() {
             return;
           }
         } else if (data.token && data.action_required === false) {
+          const socketManager = SocketManager.getInstance();
+          await socketManager.ensureConnection();
+          initLiveChat(ChatSocketManager.getInstance());
           localStorage.setItem('authToken', data.token);
           navigateTo('/profile');
           return;
