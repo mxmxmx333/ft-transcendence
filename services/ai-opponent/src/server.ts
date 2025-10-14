@@ -27,8 +27,6 @@ class AIServerClass {
     }
 
     try {
-      console.log(`[AIServer] Creating new AI instance for room: ${roomId}`);
-
       const socketManager = new SocketManager(roomId);
       const game = new PongGame(socketManager);
 
@@ -60,9 +58,6 @@ class AIServerClass {
       console.log(`[AIServer] No AI instance found for room: ${roomId}`);
       return false;
     }
-
-    console.log(`[AIServer] Removing AI instance for room: ${roomId}`);
-
     try {
       // Save AI model before cleanup
       if (instance.game && typeof instance.game.getAISystem === 'function') {
@@ -137,7 +132,6 @@ dotenv.config();
 
 // Validate required environment variables
 export const gameServiceUpstream = process.env.GAME_SERVICE_UPSTREAM || 'https://localhost:3000';
-console.log(`[Server] Using Game Service: ${gameServiceUpstream}`);
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const aiServer = new AIServerClass();
@@ -146,7 +140,6 @@ let certDir = process.env.CERT_DIR || '../certs';
 if (isDevelopment) {
   certDir = path.join(__dirname, certDir);
 }
-console.debug(`[Server] Using certDir: ${certDir}`);
 const certPath = path.join(certDir, 'server.crt');
 const keyPath = path.join(certDir, 'server.key');
 const caPath = path.join(certDir, 'ca.crt');
@@ -161,9 +154,8 @@ async function buildServer(): Promise<FastifyInstance> {
         ca: fs.readFileSync(caPath),
       },
     };
-    console.log('[Server] ✅ SSL certificates found, starting with HTTPS');
   } else {
-    console.warn('[Server] ⚠️ SSL certificates not found, starting without HTTPS');
+    console.warn('[Server] SSL certificates not found, starting without HTTPS');
   }
   const server = Fastify({
     logger: {
@@ -226,8 +218,6 @@ async function start() {
   });
 
   server.get('/api/ai', async (request, reply) => {
-    console.log('[Server] Received request at /api/ai/');
-
     const roomId = request.headers['roomid'];
     if (!roomId || typeof roomId !== 'string') {
       return reply.status(400).send({ error: 'Missing or invalid roomId header' });
@@ -245,7 +235,6 @@ async function start() {
       const socket = instance.socketManager.getSocket();
       const joinRoomHandler = () => {
         socket?.emit('join_room', { roomId });
-        console.log(`[Server] AI joining room ${roomId}`);
       };
 
       if (socket?.connected) {
@@ -260,7 +249,6 @@ async function start() {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`[Server] Error creating AI instance for room ${roomId}:`, error);
       return reply.status(503).send({ error: 'AI service temporarily unavailable' });
     }
   });
@@ -285,7 +273,7 @@ async function start() {
       }
     }
     catch (error) {
-      console.warn(`[Server] Error removing AI instance for room ${roomId}:`, error)
+      console.error(`[Server] Error removing AI instance for room ${roomId}:`, error)
       return reply.status(400).send({ error: 'Failed to remove AI instance' });
     }
   });
@@ -296,7 +284,7 @@ async function start() {
 
   try {
     await server.listen({ port: SERVER_PORT, host: SERVER_HOST });
-    server.log.info(`AI Opponent Service running at https://localhost:${SERVER_PORT}`);
+    server.log.info(`AI Opponent Service running`);
   } catch (error) {
     server.log.error({ err: error }, 'Failed to start server');
     process.exit(1);

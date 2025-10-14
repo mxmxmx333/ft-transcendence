@@ -283,8 +283,6 @@ class ImprovedNeuralNetwork {
       this.bias1 = [...data.bias1];
       this.bias2 = [...data.bias2];
       this.bias3 = [...data.bias3];
-
-      console.log('[NeuralNetwork] Weights loaded successfully');
     } catch (error) {
       console.warn('[NeuralNetwork] Failed to load weights, will initialize new ones:', error);
       this.initializeWeights();

@@ -21,7 +21,6 @@ export class SocketManager {
 
   public connect(): void {
     if (this.socket?.connected) {
-      console.log('[SocketManager] Already connected');
       return;
     }
     this.createSocket();
@@ -57,7 +56,6 @@ export class SocketManager {
 
   private setupConnectionEvents(): void {
     this.socket!.on('connect', () => {
-      console.log('[SocketManager] Connected:', this.socket?.id);
       this.reconnectAttempts = 0;
 
       // Auto-join room wenn roomId vorhanden
@@ -138,7 +136,7 @@ export class SocketManager {
 
   private handleReconnection(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[SocketManager] Max reconnection attempts reached');
+      console.warn('[SocketManager] Max reconnection attempts reached');
       this.gameInstance?.handleConnectionLost();
       return;
     }
@@ -193,7 +191,6 @@ export class SocketManager {
       this.socket.once('join_error', cleanup);
 
       this.socket.emit(action, payload);
-      console.log(`[SocketManager] ${action} emitted:`, payload);
     });
   }
 
@@ -204,24 +201,20 @@ export class SocketManager {
     }
 
     this.socket.emit('leave_room');
-    console.log('[SocketManager] Leave room emitted');
   }
 
   public paddleMove(payload: ClientToServerEvents['paddle_move']): void {
     if (!this.socket?.connected) return;
 
     this.socket.emit('paddle_move', payload);
-    // console.log('[SocketManager] Paddle move:', payload);
   }
 
   public setGameInstance(gameInstance: PongGame): void {
-    console.log('[SocketManager] Setting game instance');
     this.gameInstance = gameInstance;
   }
 
   public disconnect(): void {
     if (!this.socket) {
-      console.log('[SocketManager] Already disconnected');
       return;
     }
 

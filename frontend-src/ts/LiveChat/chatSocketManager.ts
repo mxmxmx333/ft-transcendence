@@ -92,9 +92,7 @@ export class ChatSocketManager
 			});
 
 			this.socket.on('disconnect', () => {
-				if (this.logout)
-					// console.log("[Live Chat] Socket disconnected (Logout)");
-				else
+				if (!this.logout)
 				{
 					console.warn("[Live Chat] Socket disconnected (Lost Connection)");
 					this.connectionLost = true;
