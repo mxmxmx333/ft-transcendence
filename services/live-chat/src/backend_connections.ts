@@ -23,6 +23,6 @@ export async function updateUserInfo(request: FastifyRequest<{ Body: sendUserEve
   }
   catch (error) {
 		console.error("[DB] Error: ", error);
-    reply.status(500).send();
+    reply.status(503).send();
 	}
 }

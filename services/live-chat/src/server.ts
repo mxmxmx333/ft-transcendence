@@ -96,11 +96,14 @@ io.use((socket, next) => {
 
 registerIoHandlers(io);
 
-// --- Error handler ---
+//  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {
-  console.error('Error:', error);
+  console.log('Live-Chat error:', error);
   server.log.error(error);
-  reply.status(500).send({ error: 'Internal Server Error' });
+
+  if (error.statusCode == 401) return reply.status(401).send({error: 'Unauthorized'});
+  if (error.statusCode == 404) return reply.status(404).send({error: 'Not found'});
+  reply.status(400).send({ error: 'Request failed' });
 });
 
 // --- Shutdown ---

@@ -128,9 +128,8 @@ export default class AuthController {
           error: 'Bad request',
         });
       }
-      return reply.status(500).send({
-        error: 'Nickname or email already in use',
-        details: error,
+      return reply.status(400).send({
+        error: 'Nickname or email already in use'
       });
     }
   }
@@ -192,9 +191,8 @@ export default class AuthController {
           error: 'Bad request',
         });
       }
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(401).send({
+        error: 'Login failed'
       });
     }
   }
@@ -251,9 +249,8 @@ export default class AuthController {
           error: 'Bad request',
         });
       }
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(401).send({
+        error: '2FA verification failed'
       });
     }
   }
@@ -280,7 +277,7 @@ export default class AuthController {
 
       const secret = this.totp_secrets_tmp.get(user.id);
       if (!secret) {
-        return reply.status(500).send({error: 'Secret missing'});
+        return reply.status(400).send({error: 'Secret missing'});
       }
 
       const totp = new OTPAuth.TOTP({secret});
@@ -296,9 +293,8 @@ export default class AuthController {
       return reply.send({success: true});
     } catch (error) {
       this.fastify.log.error(error);
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(400).send({
+        error: 'Failed to enable 2FA'
       });
     }
   }
@@ -335,9 +331,8 @@ export default class AuthController {
       return reply.send({success: true});
     } catch (error) {
       this.fastify.log.error(error);
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(400).send({
+        error: 'Failed to disable 2FA'
       });
     }
   }
@@ -374,9 +369,8 @@ export default class AuthController {
       });
     } catch (error) {
       this.fastify.log.error(error);
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(400).send({
+        error: 'Failed to get account information'
       });
     }
   }
@@ -418,9 +412,8 @@ export default class AuthController {
         return reply.status(400).send({error: 'Invalid request'});
       }
       this.fastify.log.error(error);
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(400).send({
+        error: 'Failed to update account'
       });
     }
   }
@@ -477,9 +470,8 @@ export default class AuthController {
         return reply.status(400).send({error: 'Invalid request'});
       }
       this.fastify.log.error(error);
-      return reply.status(500).send({
-        error: 'Internal server error',
-        details: error,
+      return reply.status(400).send({
+        error: 'Failed to delete account'
       });
     }
   }
@@ -575,7 +567,7 @@ export default class AuthController {
         return reply.code(error.code).send(error.message);
       }
 
-      return reply.code(500).send(error);
+      return reply.code(400).send(error);
     }
   }
 
@@ -653,7 +645,7 @@ export default class AuthController {
       return reply.send(body);
     } catch (err) {
       console.error('Get game statistics error:', err);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(400).send({ error: 'Failed to get statistics' });
     }
   }
 
@@ -681,7 +673,7 @@ export default class AuthController {
       return reply.send(userProfile);
     } catch (error) {
       console.error('Error getting user profile:', error);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(400).send({ error: 'User not found' });
     }
   }
   async getUserByIdAlt(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
@@ -707,7 +699,7 @@ export default class AuthController {
       return reply.send(userProfile);
     } catch (error) {
       console.error('Error getting user profile:', error);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(400).send({ error: 'User not found' });
     }
   }
   async getFriendRequests(request: FastifyRequest, reply: FastifyReply) {
@@ -723,7 +715,7 @@ export default class AuthController {
       return reply.send({ requests });
     } catch (error) {
       console.error('Error getting friend requests:', error);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(400).send({ error: 'Failed to get friend requests' });
     }
   }
 
@@ -764,7 +756,7 @@ export default class AuthController {
           if (error.message === 'Nickname already exists') {
             return reply.status(409).send({ error: 'Nickname already exists' });
           }
-          throw error;
+          return reply.status(400).send({ error: 'Invalid nickname format' });
         }
       }
 
@@ -815,10 +807,10 @@ export default class AuthController {
           }),
         });
         if (!response.ok) {
-          this.fastify.log.error('Unable to inform livechat about user update');
+          this.fastify.log.warn('Unable to inform livechat about user update');
         }
       } catch (error) {
-        this.fastify.log.error(error);
+        this.fastify.log.warn('Live chat service temporarily unavailable');
       }
 
       return reply.send({
@@ -834,7 +826,7 @@ export default class AuthController {
       });
     } catch (error) {
       this.fastify.log.error(error);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(400).send({ error: 'Profile update failed' });
     }
   }
 
@@ -853,7 +845,7 @@ export default class AuthController {
       const avatars = this.authService.getAvailableAvatars(userId);
       return reply.send({ avatars });
     } catch (error) {
-      return reply.status(500).send({ error: 'Failed to get avatars' });
+      return reply.status(400).send({ error: 'Failed to get avatars' });
     }
   }
   // ======= FRIEND SYSTEM METHODS =======
@@ -869,7 +861,7 @@ export default class AuthController {
       const friends = this.authService.getFriends(decoded.id);
       return reply.send({ friends });
     } catch (error) {
-      return reply.status(500).send({ error: 'Failed to get friends' });
+      return reply.status(400).send({ error: 'Failed to get friends' });
     }
   }
 
@@ -897,7 +889,7 @@ export default class AuthController {
 
       return reply.send({ success: true, message: 'Friend removed' });
     } catch (error) {
-      return reply.status(500).send({ error: 'Failed to remove friend' });
+      return reply.status(400).send({ error: 'Failed to remove friend' });
     }
   }
 
@@ -950,7 +942,7 @@ export default class AuthController {
       });
     } catch (error) {
       console.error('Avatar upload error:', error);
-      return reply.status(500).send({ error: 'Failed to upload avatar' });
+      return reply.status(400).send({ error: 'Failed to upload avatar' });
     }
   }
   async deleteCustomAvatar(request: FastifyRequest, reply: FastifyReply) {
@@ -977,7 +969,7 @@ export default class AuthController {
       }
     } catch (error) {
       console.error('Avatar delete error:', error);
-      return reply.status(500).send({ error: 'Failed to delete avatar' });
+      return reply.status(400).send({ error: 'Failed to delete avatar' });
     }
   }
 }

@@ -236,7 +236,7 @@ async function start() {
     try {
       const instance = aiServer.createAIInstance(roomId);
       if (!instance) {
-        return reply.status(500).send({ error: 'Failed to create AI instance' });
+        return reply.status(503).send({ error: 'AI service temporarily unavailable' });
       }
 
       // Connect and join room
@@ -261,7 +261,7 @@ async function start() {
       };
     } catch (error) {
       console.error(`[Server] Error creating AI instance for room ${roomId}:`, error);
-      return reply.status(500).send({ error: 'Internal server error' });
+      return reply.status(503).send({ error: 'AI service temporarily unavailable' });
     }
   });
 
@@ -275,12 +275,18 @@ async function start() {
       return reply.status(400).send({ error: 'Missing or invalid roomId header' });
     }
 
-    const removed = await aiServer.removeAIInstance(roomId);
-
-    if (removed) {
-      return { message: `AI instance for room ${roomId} removed` };
-    } else {
-      return reply.status(404).send({ error: `No AI instance found for room ${roomId}` });
+    try {
+      const removed = await aiServer.removeAIInstance(roomId);
+      
+      if (removed) {
+        return { message: `AI instance for room ${roomId} removed` };
+      } else {
+        return reply.status(404).send({ error: `No AI instance found for room ${roomId}` });
+      }
+    }
+    catch (error) {
+      console.warn(`[Server] Error removing AI instance for room ${roomId}:`, error)
+      return reply.status(400).send({ error: 'Failed to remove AI instance' });
     }
   });
 

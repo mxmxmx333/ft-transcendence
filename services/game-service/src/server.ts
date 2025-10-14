@@ -136,7 +136,7 @@ io.use((socket, next) => {
     console.log(`[Auth] User ${socket.user.nickname} authenticated successfully`);
     next();
   } catch (err) {
-    console.error('[Auth] JWT verification error:', err);
+    console.warn('[Auth] JWT verification error:', err);
     next(new Error('Authentication error: Invalid token'));
   }
 });
@@ -145,9 +145,13 @@ registerIoHandlers(io);
 
 //  === Error Logging ===
 server.setErrorHandler((error, request, reply) => {
-  console.log('Error occurred:', error);
+  console.log('Request error:', error);
   server.log.error(error);
-  reply.status(500).send({ error: 'Internal Server Error' });
+
+  if (error.validation) return reply.status(400).send({error: 'Invalid request data'});
+  if (error.statusCode == 401) return reply.status(401).send({error: 'Unauthorized'});
+  if (error.statusCode == 404) return reply.status(404).send({error: 'Not found'});
+  reply.status(400).send({ error: 'Request failed' });
 });
 
 // --- Shutdown ---

@@ -65,10 +65,13 @@ export const server = fastify({
   ...httpsOptions,
 });
 
-// Error handling
 server.setErrorHandler((error, request, reply) => {
+  console.log('Live-Chat error:', error);
   server.log.error(error);
-  reply.status(500).send({ error: 'Internal Server Error' });
+
+  if (error.statusCode == 401) return reply.status(401).send({error: 'Unauthorized'});
+  if (error.statusCode == 404) return reply.status(404).send({error: 'Not found'});
+  reply.status(400).send({ error: 'Request failed' });
 });
 
 server.register(httpsAgent);
@@ -201,8 +204,8 @@ async function start() {
 
   server.get<{Querystring: {cli_port?: number}}>('/api/auth/42', async (request, reply) => {
     if (!oAuthService.envVariablesConfigured()) {
-      return reply.status(500).send({
-        error: 'OAuth settings not configured in .env file',
+      return reply.status(503).send({
+        error: 'OAuth service temporarily unavailable',
       });
     }
 
@@ -217,8 +220,8 @@ async function start() {
 
   server.get('/api/auth/42/callback', async (request, reply) => {
     if (!oAuthService.envVariablesConfigured()) {
-      return reply.status(500).send({
-        error: 'OAuth settings not configured in .env file',
+      return reply.status(503).send({
+        error: 'OAuth service temporarily unavailable',
       });
     }
 
@@ -295,7 +298,7 @@ async function start() {
     try {
       return reply.send({ success: true });
     } catch (err) {
-      return reply.status(500).send({ error: 'Logout failed' });
+      return reply.status(400).send({ error: 'Logout failed' });
     }
   });
 
@@ -412,7 +415,7 @@ async function start() {
       return reply.send({ success });
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: 'Failed to save match result' });
+      return reply.status(400).send({ error: 'Failed to save match result' });
     }
   });
 
@@ -430,7 +433,7 @@ async function start() {
       return reply.send({ matches });
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get match history' });
+      return reply.status(400).send({ error: 'Failed to get match history' });
     }
   });
 
@@ -447,7 +450,7 @@ async function start() {
       return reply.send(stats);
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: 'Failed to get statistics' });
+      return reply.status(400).send({ error: 'Failed to get statistics' });
     }
   });
 
