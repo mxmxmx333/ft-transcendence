@@ -1,6 +1,6 @@
 .PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
 		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev cli destroy-docker-volumes ensure-network clean-networks clean
+		setup-env start-vault-dev vault-deps-dev cli cli-docker destroy-docker-volumes ensure-network clean-networks clean
 
 ################################################################################
 # VARIABLES
@@ -44,13 +44,15 @@ build:
 	@echo "🔧 Building assets & images..."
 	@npm run build
 	@$(COMPOSE) build web-application-firewall
-	@$(COMPOSE) --profile cli build cli-client
 
 run:
 	@echo "🚀 Starting services..."
 	@$(COMPOSE) up -d web-application-firewall
 
 cli:
+	@RUSTFLAGS="-A dead_code" cargo run --release --manifest-path cli/Cargo.toml
+
+cli-docker:
 	@$(COMPOSE) --profile cli build cli-client
 	@$(COMPOSE) run --rm cli-client
 
