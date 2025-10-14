@@ -141,7 +141,6 @@ impl SocketIoClient {
                     Self::split_code_json(&text).ok_or(EventError::ConnectionError)?;
 
                 if code != 42 {
-                    println!("{}", text);
                     return Err(EventError::InvalidResponse);
                 }
 
@@ -191,10 +190,7 @@ impl SocketIoClient {
                 Ok(parsed.room_id)
             }
             "create_error" => Err(EventError::CreateRoomError),
-            _ => {
-                eprintln!("Unexpected Response: {:?}", response);
-                Err(EventError::InvalidResponse)
-            }
+            _ => Err(EventError::InvalidResponse),
         }
     }
 
@@ -209,10 +205,7 @@ impl SocketIoClient {
         match response.get_type() {
             "joined_room" => Ok(()),
             "join_error" => Err(EventError::JoinRoomError),
-            _ => {
-                eprintln!("Unexpected Response: {:?}", response);
-                Err(EventError::InvalidResponse)
-            }
+            _ => Err(EventError::InvalidResponse),
         }
     }
 
@@ -283,8 +276,8 @@ impl SocketIoClient {
                             .map_err(EventError::SerializingError)?,
                     )),
                     "game_pause_state" => Ok(SocketEvents::GamePauseState(
-                      serde_json::from_value(parsed.get_value().clone())
-                        .map_err(EventError::SerializingError)?,
+                        serde_json::from_value(parsed.get_value().clone())
+                            .map_err(EventError::SerializingError)?,
                     )),
                     "game_aborted" => Ok(SocketEvents::GameAborted(
                         serde_json::from_value(parsed.get_value().clone())
@@ -294,10 +287,7 @@ impl SocketIoClient {
                         serde_json::from_value(parsed.get_value().clone())
                             .map_err(EventError::SerializingError)?,
                     )),
-                    _ => {
-                        println!("Unknown event: {}", parsed.get_type());
-                        Err(EventError::InvalidResponse)
-                    }
+                    _ => Err(EventError::InvalidResponse),
                 }
             }
             _ => {
