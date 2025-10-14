@@ -213,7 +213,7 @@ impl App {
                           game.set_paused(is_paused);
                         },
                         (Ok(_), _) => (),
-                        (Err(err), _) => {
+                        (Err(_), _) => {
                             self.socket = None;
                         },
                     }
