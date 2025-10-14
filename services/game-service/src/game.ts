@@ -20,6 +20,7 @@ export function startGame(room: GameRoom) {
   console.log(`[Server] Guest: ${room.guest.nickname} (${room.guest.id})`);
 
   resetGame(room);
+  room.isPaused = true;
 
   try {
     const gameStartPayload: GameStartPayload = {
@@ -92,8 +93,10 @@ export function startGame(room: GameRoom) {
   }
 
   setTimeout(() => {
+    resetGame(room);
+    room.isPaused = false;
     gameLoop(room);
-  }, 3000);
+  }, 5000);
 }
 
 function resetGame(room: GameRoom) {
