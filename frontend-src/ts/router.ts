@@ -49,6 +49,10 @@ const routes: Route[] = [
     {
     path: '/',
     view: async () => {
+      if (!localStorage.getItem('authToken')) {
+        showAuthPage();
+        return;
+      }
       if (await isAuthenticatedOnce()) {
         navigateTo('/profile');
         return;
@@ -122,16 +126,31 @@ let __authInflight: Promise<boolean> | null = null;
 let __authCacheVal: boolean | null = null;
 let __authCacheAt = 0;
 
+function setAuthLoggedOut() {
+  __authInflight = null;
+  __authCacheVal = false;
+  __authCacheAt = Date.now();
+}
+
 export function isAuthenticatedOnce(): Promise<boolean> {
+  const hasToken = !!localStorage.getItem('authToken');
+  if (!hasToken) {
+    __authInflight = null;
+    __authCacheVal = false;
+    __authCacheAt = Date.now();
+    return Promise.resolve(false);
+  }
   const now = Date.now();
   if (__authCacheVal !== null && (now - __authCacheAt) < __AUTH_TTL_MS) {
     return Promise.resolve(__authCacheVal);
   }
   if (__authInflight) return __authInflight;
+
   __authInflight = isAuthenticated()
     .then(v => { __authCacheVal = v; __authCacheAt = Date.now(); return v; })
     .catch(() => { __authCacheVal = false; __authCacheAt = Date.now(); return false; })
     .finally(() => { __authInflight = null; });
+
   return __authInflight;
 }
 
@@ -1153,16 +1172,13 @@ async function loadProfileData() {
 async function handleLogout() {
   try {
     const token = localStorage.getItem('authToken');
-    if (token) {
-      await fetch('/api/logout', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    }
 
+    // clear auth state FIRST (!!!)
     localStorage.removeItem('authToken');
+    setAuthLoggedOut();
+
+    // disconnect sockets & reset UI
+    chatSocketManager.disconnect();
     document.querySelector('.main-nav')?.classList.add('hidden');
     document.querySelector('.options-page')?.classList.add('hidden');
     document.querySelector('.multiplayer-lobby')?.classList.add('hidden');
@@ -1173,11 +1189,23 @@ async function handleLogout() {
     document.querySelector('.delete-account-page')?.classList.add('hidden');
     document.querySelector('.reconnect-info')?.classList.add('hidden');
 
+    // show login page
+    showAuthPage();
     manageNavbar();
     navigateTo('/');
-    chatSocketManager.disconnect();
+
+    // Ttell backend 
+    if (token) {
+      fetch('/api/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
   } catch (error) {
     localStorage.removeItem('authToken');
+    setAuthLoggedOut();
+    showAuthPage();
+    manageNavbar();
     navigateTo('/');
   }
 }
