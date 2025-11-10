@@ -1,6 +1,12 @@
-.PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
-		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev cli cli-docker destroy-docker-volumes ensure-network clean-networks clean
+.PHONY: \
+	all dep-check build run \
+	hosts-add hosts-remove assert-ip \
+	setup-env deps-update-minor deps-audit deps-audit-force \
+	vault-deps-dev start-vault-dev stop-vault-dev clean-vault-dev vault-dev-re \
+	vault-deps-prod prod \
+	cli cli-docker \
+	destroy-docker-volumes destroy-service-images clean-networks clean \
+	down up re re-services
 
 ################################################################################
 # VARIABLES
