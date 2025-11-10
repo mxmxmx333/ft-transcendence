@@ -132,18 +132,17 @@ These targets seed Vault configuration, build the SPA, and start all services.
   - Remove later with: `make hosts-remove`
 
 2) Initialize environment
-- `make setup-env` populates `.env` with your `HOST_UID`/`HOST_GID` and preserves existing values.
 - Edit `ft_transcendence/.env` to set real OAuth credentials and domain:
   - `OAUTH_CLIENT_ID_42`, `OAUTH_CLIENT_SECRET_42` (from 42 Intra)
   - `OAUTH_REDIRECT_URL` (e.g. `https://ft-transcendence.at:8443`)
 
 3) Build and run
-- Full bring‑up (Vault + services + agents): `make prod`
+- Full bring‑up (Vault + services + agents): `make`
 - Rebuild services only: `make re-services`
 - Stop stack: `make down`
 
 4) Open the app
-- https://ft-transcendence.at:8443
+- https://ft-transcendence.at:8443 or https://localhost:8443 
 
 Cleanup helpers
 - Remove volumes and networks: `make clean`
@@ -159,20 +158,13 @@ Run everything from sources with hot reload for services and Vite for the SPA.
 
 2) Start Vault (dev profile)
 - Seeds config and dev certs, runs single‑node Vault with UI: `make start-vault-dev`
-- Reset dev Vault: `make vault-dev-re`
+- Reset dev Vault: `make vault-dev-re` (note that you will have to run this from time to time in the dev setup if certs outdate)
 
 3) Start all dev servers
 - `npm run dev` runs:
   - Auth, Game, API Gateway, Live Chat, AI Opponent (Fastify + tsx watch)
   - Frontend Vite dev server on `https://localhost:5173`
 - The SPA proxies `/api`, `/socket.io`, `/uploads` to the gateway at `https://localhost:3000`.
-
-4) Build frontend (when needed)
-- `npm run build:frontend` outputs to `services/web-application-firewall/html`.
-
-Notes
-- Services auto‑enable HTTPS if `server.key/server.crt/ca.crt` exist under their `certs` dir; otherwise they run without HTTPS in development.
-- The Gateway also serves `/uploads/` statically, and the Nginx edge exposes `/uploads/avatars/` to the browser.
 
 ## Configuration
 Environment (`ft_transcendence/.env`)
@@ -188,11 +180,6 @@ Environment (`ft_transcendence/.env`)
 
 Ports and endpoints
 - App: `https://ft-transcendence.at:8443`
-- Gateway health: `https://localhost:3000/api/verify`
-- Service health (examples):
-  - Auth: `https://localhost:3002/health`
-  - Live Chat stats: `https://localhost:3004/api/health`
-  - AI stats: `https://localhost:3003/api/ai/stats`
 
 ## API Surface (selected)
 Auth & account
