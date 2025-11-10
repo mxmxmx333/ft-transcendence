@@ -18,10 +18,10 @@
 [![WebSockets](https://img.shields.io/badge/WebSockets-Enabled-00BCD4)](#)
 [![mTLS](https://img.shields.io/badge/mTLS-Enabled-2E7D32)](#)
 
-A secure, containerized, real‑time Pong platform with account management, OAuth 42 login, optional TOTP 2FA, live chat, tournaments, AI opponent and a hardened edge (Nginx + ModSecurity). All internal service‑to‑service traffic is TLS/mTLS with short‑lived certificates issued and rotated by HashiCorp Vault. The SPA frontend is built with Vite and served by the WAF; Fastify services handle API, game and chat via HTTP and WebSockets.
+A secure, containerized, real‑time Pong platform with account management, OAuth 42 login, optional TOTP 2FA, live chat, tournaments, AI opponent and a hardened edge (Nginx + ModSecurity). All internal service‑to‑service traffic is TLS/mTLS with short‑lived certificates issued and rotated by HashiCorp Vault. The SPA frontend is built with Vite and served by the Nginx edge (protected by ModSecurity WAF); Fastify services handle API, game and chat via HTTP and WebSockets.
 
 ## Overview
-- SPA frontend served by a Web Application Firewall (Nginx + ModSecurity) on `:8443`.
+- SPA frontend served by the Nginx edge (protected by ModSecurity WAF) on `:8443`.
 - API Gateway (Fastify) terminates client APIs and proxies to internal services.
 - Services:
   - Auth & User Service (Fastify, SQLite): signup/login, OAuth 42, TOTP 2FA, profile, avatars, friends, stats.
@@ -34,7 +34,7 @@ A secure, containerized, real‑time Pong platform with account management, OAut
 ## Architecture
 High‑level flow
 - Browser → WAF (HTTPS 8443, WAF rules + rate limiting) → API Gateway → internal services (mTLS).
-- Static SPA and uploaded avatars are served by WAF; uploads are also exposed via gateway for convenience.
+- Static SPA and uploaded avatars are served by the Nginx edge; WAF inspects/protects API paths (WebSockets bypass WAF body parsing).
 - WebSockets:
   - Game: `/socket.io` via gateway → game‑service.
   - Live Chat: `/socket.io/livechat` via gateway → live‑chat.
@@ -171,7 +171,7 @@ Run everything from sources with hot reload for services and Vite for the SPA.
 
 Notes
 - Services auto‑enable HTTPS if `server.key/server.crt/ca.crt` exist under their `certs` dir; otherwise they run without HTTPS in development.
-- The Gateway also serves `/uploads/` statically, and the WAF exposes `/uploads/avatars/` to the browser.
+- The Gateway also serves `/uploads/` statically, and the Nginx edge exposes `/uploads/avatars/` to the browser.
 
 ## Configuration
 Environment (`ft_transcendence/.env`)
@@ -268,7 +268,7 @@ file and update this section accordingly.
   - Live chat: connect to `wss://localhost:3000/socket.io/livechat?token=<JWT>`.
 - Prod-like (Docker)
   - `make setup-env` then configure `.env` OAuth values and `OAUTH_REDIRECT_URL`.
-  - `make prod` finishes; WAF serves SPA at https://ft-transcendence.at:8443.
+  - `make prod` finishes; the Nginx edge (WAF‑enabled) serves the SPA at https://ft-transcendence.at:8443.
   - Try OAuth 42: `GET /api/auth/42` redirects to 42; callback handled at `<OAUTH_REDIRECT_URL>/oAuthCallback`.
   - Upload avatar: `POST /api/profile/avatar/upload` (multipart, ≤ 5MB) then access via `/uploads/avatars/...`.
   - Verify rate limits: repeated `POST /api/login` eventually hits WAF limit rules.
