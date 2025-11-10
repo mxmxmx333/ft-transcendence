@@ -84,6 +84,9 @@ flowchart LR
   G -->|/socket.io| GS
   G -->|/socket.io/livechat| LC
   GS <--> AI
+  GS --> LC
+  GS --> A
+  A --> LC
 
   subgraph "Secrets and PKI"
     V[HashiCorp Vault]
