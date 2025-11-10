@@ -65,28 +65,28 @@ flowchart LR
     B[User Agent]
   end
 
-  B == HTTPS 8443 ==> WAF[Nginx + ModSecurity\nWeb Application Firewall]
+  B -->|HTTPS 8443| WAF[Nginx + ModSecurity<br/>Web Application Firewall]
 
-  WAF -- /api, /socket.io, /uploads --> G[API Gateway\nFastify (3000)]
-  WAF -- serves SPA & avatars --> SPA[(Static SPA\nVite build)]
+  WAF -->|/api, /socket.io, /uploads| G[API Gateway<br/>Fastify (3000)]
+  WAF -->|serves SPA & avatars| SPA[(Static SPA<br/>Vite build)]
 
   subgraph Internal Services
-    A[Auth & User Service\nFastify + SQLite\n(3002)]
-    GS[Game Service\nFastify + Socket.IO\n(3001)]
-    LC[Live Chat\nFastify + Socket.IO\n(3004)]
-    AI[AI Opponent\nHeadless Socket.IO\n(3003)]
+    A[Auth & User Service<br/>Fastify + SQLite<br/>(3002)]
+    GS[Game Service<br/>Fastify + Socket.IO<br/>(3001)]
+    LC[Live Chat<br/>Fastify + Socket.IO<br/>(3004)]
+    AI[AI Opponent<br/>Headless Socket.IO<br/>(3003)]
   end
 
-  G -- /api/auth/* --> A
-  G -- /api/game/* & /socket.io --> GS
-  G -- /socket.io/livechat --> LC
+  G -->|/api/auth/*| A
+  G -->|/api/game/* & /socket.io| GS
+  G -->|/socket.io/livechat| LC
   GS <--> AI
 
   classDef mTLS fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
   class G,A,GS,LC,AI mTLS
 
   subgraph Secrets & PKI
-    V[HashiCorp Vault\n(dev or 3-node Raft)]
+    V[HashiCorp Vault<br/>(dev or 3-node Raft)]
     VA1[Vault Agent: api-gateway]
     VA2[Vault Agent: auth-user-service]
     VA3[Vault Agent: game-service]
@@ -94,14 +94,16 @@ flowchart LR
     VA5[Vault Agent: ai-opponent]
   end
 
-  V <-- AppRole + PKI --> VA1 & VA2 & VA3 & VA4 & VA5
-  VA1 -. rotate certs .-> G
-  VA2 -. rotate certs .-> A
-  VA3 -. rotate certs .-> GS
-  VA4 -. rotate certs .-> LC
-  VA5 -. rotate certs .-> AI
-
-  note over G,A,GS,LC,AI: mTLS between services; TLS reload on SIGHUP
+  V -->|AppRole + PKI| VA1
+  V -->|AppRole + PKI| VA2
+  V -->|AppRole + PKI| VA3
+  V -->|AppRole + PKI| VA4
+  V -->|AppRole + PKI| VA5
+  VA1 -.->|rotate certs| G
+  VA2 -.->|rotate certs| A
+  VA3 -.->|rotate certs| GS
+  VA4 -.->|rotate certs| LC
+  VA5 -.->|rotate certs| AI
 ```
 
 ## Features
