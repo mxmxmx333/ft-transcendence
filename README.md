@@ -18,7 +18,7 @@
 [![WebSockets](https://img.shields.io/badge/WebSockets-Enabled-00BCD4)](#)
 [![mTLS](https://img.shields.io/badge/mTLS-Enabled-2E7D32)](#)
 
-A secure, containerized, real‑time Pong platform with account management, OAuth 42 login, optional TOTP 2FA, live chat, tournaments, AI opponent and a hardened edge (Nginx + ModSecurity). All internal service‑to‑service traffic is TLS/mTLS with short‑lived certificates issued and rotated by HashiCorp Vault. The SPA frontend is built with Vite and served by the Nginx edge (protected by ModSecurity WAF); Fastify services handle API, game and chat via HTTP and WebSockets.
+A secure, containerized, real‑time Pong platform with account management, OAuth 42 login, optional TOTP 2FA, live chat, tournaments, AI opponent and a hardened edge (Nginx + ModSecurity). Internal gateway‑to‑service traffic uses HTTPS with Vault‑issued server certificates; mTLS is used only for calls to Vault. The SPA frontend is built with Vite and served by the Nginx edge (protected by ModSecurity WAF); Fastify services handle API, game and chat via HTTP and WebSockets.
 
 ## Overview
 - SPA frontend served by the Nginx edge (protected by ModSecurity WAF) on `:8443`.
@@ -33,7 +33,7 @@ A secure, containerized, real‑time Pong platform with account management, OAut
 
 ## Architecture
 High‑level flow
-- Browser → WAF (HTTPS 8443, WAF rules + rate limiting) → API Gateway → internal services (mTLS).
+- Browser → WAF (HTTPS 8443, WAF rules + rate limiting) → API Gateway → internal services (HTTPS).
 - Static SPA and uploaded avatars are served by the Nginx edge; WAF inspects/protects API paths (WebSockets bypass WAF body parsing).
 - WebSockets:
   - Game: `/socket.io` via gateway → game‑service.
@@ -82,9 +82,6 @@ flowchart LR
   G -->|/socket.io/livechat| LC
   GS <--> AI
 
-  classDef mTLS fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
-  class G,A,GS,LC,AI mTLS
-
   subgraph Secrets & PKI
     V[HashiCorp Vault<br/>(dev or 3-node Raft)]
     VA1[Vault Agent: api-gateway]
@@ -99,11 +96,11 @@ flowchart LR
   V -->|AppRole + PKI| VA3
   V -->|AppRole + PKI| VA4
   V -->|AppRole + PKI| VA5
-  VA1 -.->|rotate certs| G
-  VA2 -.->|rotate certs| A
-  VA3 -.->|rotate certs| GS
-  VA4 -.->|rotate certs| LC
-  VA5 -.->|rotate certs| AI
+  VA1 -.->|rotate server certs| G
+  VA2 -.->|rotate server certs| A
+  VA3 -.->|rotate server certs| GS
+  VA4 -.->|rotate server certs| LC
+  VA5 -.->|rotate server certs| AI
 ```
 
 ## Features
@@ -232,7 +229,8 @@ Authentication
 ## Security Model
 - Edge hardening with Nginx + ModSecurity, selective WAF disablement for WebSockets, and rate limiting
   on login and API paths.
-- Internal mTLS everywhere; certs stored in Docker volumes and rotated by Vault Agents (AppRole).
+- Internal HTTPS between the API Gateway and services using Vault‑issued server certificates. mTLS is
+  used only for Vault API calls (Vault Agent / AppRole).
 - Fast in‑process TLS reload without full restarts via a custom Fastify plugin.
 - Uploaded files constrained and processed (avatars via `sharp`) and served from controlled paths.
 
