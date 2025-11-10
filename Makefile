@@ -1,6 +1,12 @@
-.PHONY: all dep-check build run hosts-add hosts-remove assert-ip \
-		ca vault-bootstrap-cert print-vault clean-vault-certs \
-		setup-env start-vault-dev vault-deps-dev cli cli-docker destroy-docker-volumes ensure-network clean-networks clean
+.PHONY: \
+	all dep-check build run \
+	hosts-add hosts-remove assert-ip \
+	setup-env deps-update-minor deps-audit deps-audit-force \
+	vault-deps-dev start-vault-dev stop-vault-dev clean-vault-dev vault-dev-re \
+	vault-deps-prod prod \
+	cli cli-docker \
+	destroy-docker-volumes destroy-service-images clean-networks clean \
+	down up re re-services
 
 ################################################################################
 # VARIABLES
@@ -232,16 +238,17 @@ clean: down destroy-docker-volumes clean-networks
 
 down:
 	@echo "🛑 Stopping all services (keeping volumes)..."
-	@$(COMPOSE) down --remove-orphans
+	@$(COMPOSE) down --remove-orphans $(SERVICES)
+	@$(COMPOSE) down --remove-orphans $(SERV_AGENTS)
 	@$(COMPOSE) --profile prod down --remove-orphans
 
 up:
 	@echo "🚀 Starting all services..."
 	@npm run build:frontend
-	@$(COMPOSE) --profile prod up -d $(VAULT_NODES)
-	@$(COMPOSE) --profile prod up --exit-code-from vault-unseal-prod vault-unseal-prod
+	@$(COMPOSE) up -d $(VAULT_NODES)
+	@$(COMPOSE) up -d vault-unseal-prod
 	@$(COMPOSE) up -d $(SERVICES)
-	@$(COMPOSE) --profile prod up -d $(SERV_AGENTS)
+	@$(COMPOSE) up -d $(SERV_AGENTS)
 
 re: clean destroy-service-images prod
 	@echo "🔄 Project rebuilt and restarted."
@@ -250,5 +257,5 @@ re-services:
 	@echo "🔄 Rebuilding and restarting all services (keeping volumes)..."
 	@npm run build:frontend
 	@$(COMPOSE) up -d --build --no-deps --remove-orphans $(SERVICES)
-	@$(COMPOSE) --profile prod up -d --no-deps --remove-orphans $(SERV_AGENTS)
+	@$(COMPOSE) up -d --no-deps --remove-orphans $(SERV_AGENTS)
 	@echo "✅ Services rebuilt and restarted."
