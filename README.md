@@ -235,10 +235,28 @@ Authentication
 - Fast in‑process TLS reload without full restarts via a custom Fastify plugin.
 - Uploaded files constrained and processed (avatars via `sharp`) and served from controlled paths.
 
-## CLI (optional)
-- A Rust TUI client lives in `ft_transcendence/cli`.
-- Run locally: `make cli`
-- Or via Docker: `make cli-docker`
+## CLI Client
+- Location: `ft_transcendence/cli`
+- Purpose: Terminal UI to login (local or 42 OAuth), join/create games, or play single player vs. AI.
+
+Run options
+- Local (recommended): `make cli` (equivalent to `cargo run --release --manifest-path cli/Cargo.toml`)
+- Docker: `make cli-docker` (uses compose `cli-client`, `network_mode: host`)
+
+Usage flow
+- Host selection: enter `localhost` (dev) or `ft-transcendence.at` (prod). Defaults follow build mode.
+- Login methods:
+  - Local Login: email/password, optional TOTP if enabled on the account.
+  - Remote Login through 42: opens your default browser, completes OAuth, and returns the token to the CLI via a temporary localhost callback.
+- After auth: choose Single Player, Create Room, or Join Room.
+
+Controls
+- Menus: Up/Down/Enter, Tab to toggle; Esc to go back or exit.
+- In game: Up/Down to move, `p` to pause, Esc to exit to menu.
+
+Notes
+- The CLI accepts self‑signed certificates in dev to ease local testing.
+- For OAuth, ensure a desktop browser is available on the same machine.
 
 ## Troubleshooting
 - OAuth 42 disabled: if `OAUTH_CLIENT_ID_42`/`OAUTH_CLIENT_SECRET_42` are placeholders,
