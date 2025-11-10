@@ -35,9 +35,10 @@ A secure, containerized, real‑time Pong platform with account management, OAut
 High‑level flow
 - Browser → WAF (HTTPS 8443, WAF rules + rate limiting) → API Gateway → internal services (HTTPS).
 - Static SPA and uploaded avatars are served by the Nginx edge; WAF inspects/protects API paths (WebSockets bypass WAF body parsing).
-- WebSockets:
-  - Game: `/socket.io` via gateway → game‑service.
-  - Live Chat: `/socket.io/livechat` via gateway → live‑chat.
+- Game service endpoints via gateway:
+  - HTTP API at `/api/game/*`
+  - WebSocket at `/socket.io`
+- Live Chat WebSocket via gateway: `/socket.io/livechat`
 - Auth: JWT. API Gateway validates tokens and injects `x-user-id` and `x-user-nickname` for internal calls.
 - Secrets/TLS: Vault Agents mint/rotate short‑lived certs; services hot‑reload TLS on `SIGHUP`.
 
@@ -78,6 +79,7 @@ flowchart LR
 
   G -->|/api/auth| A
   G -->|/api/game| GS
+  G -->|/socket.io| GS
   G -->|/socket.io/livechat| LC
   GS <--> AI
 
