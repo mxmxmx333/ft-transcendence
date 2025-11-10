@@ -107,7 +107,7 @@ flowchart LR
 
 ## Features
 - OAuth 42 login flow with state tracking and redirect handling.
-- Email/password auth with bcrypt and JWT; optional TOTP 2FA (enable/disable and 2FA login).
+- Email/password auth with bcrypt and JWT via vault transit; optional TOTP 2FA (enable/disable and 2FA login).
 - Profile management: nickname, avatar upload (with size limits), preset avatars.
 - Friends and friend requests; user profiles by id.
 - Game rooms, tournaments, match history and per‑user statistics.
