@@ -262,14 +262,10 @@ file and update this section accordingly.
 - Dev mode
   - `make start-vault-dev` completes; Vault dev UI reachable at https://localhost:8200 (self-signed).
   - `npm run dev` starts 6 processes; Vite at https://localhost:5173 renders the SPA.
-  - Gateway health: `curl -k https://localhost:3000/api/verify` returns `{ "status": "ok" }`.
-  - Auth service health: `curl -k https://localhost:3002/health` returns `{ "status": "ok" }`.
-  - Login/signup: perform `POST /api/signup` then `POST /api/login`; a JWT is returned.
-  - WebSocket: connect to `wss://localhost:3000/socket.io/?token=<JWT>`; receive `connect`.
-  - Live chat: connect to `wss://localhost:3000/socket.io/livechat?token=<JWT>`.
+  - note that if certs run out of date, vault has to be rebuild in dev mode `make vault-dev-re`
 - Prod-like (Docker)
-  - `make setup-env` then configure `.env` OAuth values and `OAUTH_REDIRECT_URL`.
-  - `make prod` finishes; the Nginx edge (WAF‑enabled) serves the SPA at https://ft-transcendence.at:8443.
+  - configure `.env` OAuth values and `OAUTH_REDIRECT_URL`.
+  - `make` finishes; the Nginx edge (WAF‑enabled) serves the SPA at https://ft-transcendence.at:8443.
   - Try OAuth 42: `GET /api/auth/42` redirects to 42; callback handled at `<OAUTH_REDIRECT_URL>/oAuthCallback`.
   - Upload avatar: `POST /api/profile/avatar/upload` (multipart, ≤ 5MB) then access via `/uploads/avatars/...`.
   - Verify rate limits: repeated `POST /api/login` eventually hits WAF limit rules.
