@@ -64,42 +64,42 @@ flowchart LR
   B[User Agent] -->|HTTPS 8443| WAF[NGINX + ModSecurity]
 
   %% WAF to Gateway routes
-  WAF -->|/api| G[API Gateway (3000)]
+  WAF -->|/api| G[API Gateway 3000]
   WAF -->|/socket.io| G
   WAF -->|/uploads| G
   WAF --> SPA[Static SPA]
 
-  subgraph Internal Services
-    A[Auth and User Service (3002)]
-    GS[Game Service (3001)]
-    LC[Live Chat (3004)]
-    AI[AI Opponent (3003)]
+  subgraph "Internal Services"
+    A[Auth & User 3002]
+    GS[Game 3001]
+    LC[Live Chat 3004]
+    AI[AI Opponent 3003]
   end
 
-  G -->|/api/auth/*| A
-  G -->|/api/game/*| GS
+  G -->|/api/auth| A
+  G -->|/api/game| GS
   G -->|/socket.io/livechat| LC
   GS <--> AI
 
-  subgraph Secrets and PKI
+  subgraph "Secrets and PKI"
     V[HashiCorp Vault]
-    VA1[Vault Agent: api-gateway]
-    VA2[Vault Agent: auth-user-service]
-    VA3[Vault Agent: game-service]
-    VA4[Vault Agent: live-chat]
-    VA5[Vault Agent: ai-opponent]
+    VA1[Vault Agent api-gateway]
+    VA2[Vault Agent auth-user-service]
+    VA3[Vault Agent game-service]
+    VA4[Vault Agent live-chat]
+    VA5[Vault Agent ai-opponent]
   end
 
-  V -->|AppRole and PKI| VA1
-  V -->|AppRole and PKI| VA2
-  V -->|AppRole and PKI| VA3
-  V -->|AppRole and PKI| VA4
-  V -->|AppRole and PKI| VA5
-  VA1 -.->|rotate server certs| G
-  VA2 -.->|rotate server certs| A
-  VA3 -.->|rotate server certs| GS
-  VA4 -.->|rotate server certs| LC
-  VA5 -.->|rotate server certs| AI
+  V -->|AppRole PKI| VA1
+  V -->|AppRole PKI| VA2
+  V -->|AppRole PKI| VA3
+  V -->|AppRole PKI| VA4
+  V -->|AppRole PKI| VA5
+  VA1 -.->|rotate certs| G
+  VA2 -.->|rotate certs| A
+  VA3 -.->|rotate certs| GS
+  VA4 -.->|rotate certs| LC
+  VA5 -.->|rotate certs| AI
 ```
 
 ## Features
