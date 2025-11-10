@@ -2,6 +2,7 @@
 
 [![42 School](https://img.shields.io/badge/42-School-000000?logo=42&logoColor=white)](https://42.fr/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Yes-555555)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-DEA584?logo=rust&logoColor=black)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -114,7 +115,7 @@ flowchart LR
 - Live chat with Socket.IO; tournament and profile update notifications.
 - AI opponent on demand per room, with lifecycle and cleanup.
 - WAF protections and rate limits on sensitive routes; SPA fallback.
-- mTLS between internal services; automated certificate rotation via Vault Agents.
+- HTTPS between gateway and services; Vault Agents rotate server certs (mTLS only for Vault).
 
 ## Prerequisites
 - Docker and Docker Compose v2
@@ -258,8 +259,7 @@ Notes
 - Do not commit real credentials. `.env` is local only.
 
 ## License
-This project is for 42 school educational purposes. If you plan to publish externally, add a license
-file and update this section accordingly.
+MIT — see `ft_transcendence/LICENSE` for details.
 
 ## Verification Steps
 - Pre-checks
